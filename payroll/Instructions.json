@@ -1,0 +1,121 @@
+{
+  "section": "Payroll",
+  "tailoring_questions": [
+    {
+      "id": "Payroll-1",
+      "question": "Does the entity have any accounting estimates relating to payroll? (for eg. gratuity, other employee benefits, etc.)",
+      "type": "radio",
+      "options": ["Yes", "No"],
+      "follow_up": {
+        "condition": "Yes",
+        "id": "Payroll-2",
+        "question": "Does the management use an expert for these estimates?",
+        "type": "radio",
+        "options": ["Yes", "No"]
+      }
+    },
+    {
+      "id": "Payroll-3",
+      "question": "Has the entity capitalized any portion of its salary for ongoing/completed projects?",
+      "type": "radio",
+      "options": ["Yes", "No"]
+    }
+  ],
+  "romms": [
+    {
+      "id": "romm-1",
+      "risk": "Payroll expenses is recorded that did not occur",
+      "assertion": "Occurrence",
+      "options": ["Lower", "Higher", "Significant", "NRPMM"]
+    },
+    {
+      "id": "romm-2",
+      "risk": "Payroll expenses is incomplete",
+      "assertion": "Completeness",
+      "options": ["Lower", "Higher", "Significant", "NRPMM"]
+    },
+    {
+      "id": "romm-3",
+      "risk": "Payroll expenses is recorded in incorrect period",
+      "assertion": "Cutoff",
+      "options": ["Lower", "Higher", "Significant", "NRPMM"]
+    },
+    {
+      "id": "romm-4",
+      "risk": "Payroll expenses is not recorded at proper amount",
+      "assertion": "Accuracy",
+      "options": ["Lower", "Higher", "Significant", "NRPMM"]
+    },
+    {
+      "id": "romm-5",
+      "risk": "Payroll expenses is not recorded in proper account",
+      "assertion": "Classification",
+      "options": ["Lower", "Higher", "Significant", "NRPMM"]
+    }
+  ],
+   
+  "controls":[],
+  "substantive_procedures":[
+    {
+      "IPE Testing": "frontend"
+    },
+    {
+      "Exception Testing": "exception_testing.py"
+    },
+    {
+      "Headcount Reconcilation": "headcount_resco.py"
+    },
+    {
+      "Mom Analysis": "mom_analysis.py"
+    },
+    {
+      "Increment": "increment.py"
+    },
+    {
+      "Salary Analytical": "increment.py",
+      "question": [
+        {
+          "id": "sa-1",
+          "question": "Assessment of risk",
+          "options": ["Lower", "Higher", "Significant"]
+        },
+        {
+          "id": "sa-2",
+          "question": "Control reliance approach ",
+          "options": ["Relying on controls", "Not relying on controls"]
+        }
+      ]
+    },
+    {
+      "PF Analytical": "increment.py",
+      "question": [
+        {
+          "id": "pa-1",
+          "question": "Select the ledger accounts comprising of provident fund for substantive analytical procedures on provident fund.",
+          "options": "List there in pf_calculations.json",
+          "type": "multi-correct Dropdown"
+        },
+        {
+          "id": "pa-2",
+          "question": "Select the ledger accounts comprising balances such as basic salary, etc. on which the substantive analytical procedures are to be performed.",
+          "options": "List there in pf_calculations.json",
+          "type": "multi-correct Dropdown"
+        },
+        {
+          "id": "pa-3",
+          "question": "Mention the percentage to be used for the analytical procedure.",
+          "type": "text",
+          "Document": true
+        }
+      ],
+      "table": true
+    },
+    {
+      "Actuary Testing": "actuary_test.py",
+      "Accuracy Check": "accuracy_check.py"
+    },
+    {
+      "Managerial Renumeration": "frontend"
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+use Bun instead of npm as your first choice, unless explicitly asked to.

@@ -1,0 +1,10 @@
+{
+    "Preliminary Analytical Procedures": [
+          {
+          "id": "PAR-1",
+          "question": "Perform preliminary analytical procedures to identify areas with potential for material misstatement",
+          "type": "preliminary-analytical-table",
+          "documentationRequired": true
+          }
+      ]
+  }

@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+out/
+.vite/
+
+# Generated files
+forge.config.ts
+forge.env.d.ts
+
+# Configuration files
+vite.config.*
+vitest.config.*
+playwright.config.*
+
+# Payroll Python files (external dependency)
+payroll/encrypted/*.py
+payroll/test_config.py
+
+# Documentation (may contain examples with relaxed rules)
+*.md
+
+# Lock files
+package-lock.json
+bun.lock
+
+# IDE and OS files
+.vscode/
+.idea/
+.DS_Store
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*

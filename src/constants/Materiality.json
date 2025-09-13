@@ -1,0 +1,109 @@
+{
+    "Materiality": {
+      "Group materiality at planning stage": [
+        {
+          "id": "M-1",
+          "question": "Document the common users of the financial statements of the entity and other factors affecting determination of materiality (for eg. misstatements identified in the previous audit, changes in surrounding circumstances or significant change in common users as a group).",
+          "type": "document"
+        },
+        {
+          "id": "M-2",
+          "question": "Document the factor(s) chosen as benchmark to determine financial statement materiality.",
+          "type": "multi-select",
+          "options": [
+            "Cash Flow from Operations",
+            "EBITDA",
+            "Total Expenses",
+            "Revenue from Operations",
+            "Total Assets",
+            "Total equity/net assets"
+          ],
+          "table": true
+        },
+        {
+          "id": "M-3",
+          "question": "Determined Materiality",
+          "type": "text"
+        },
+        {
+          "id": "M-4",
+          "question": "Document the factors used to consider benchmarks for materiality:\n- The entity’s ownership structure, the way it is financed and relative volatility of the benchmark;\n- The elements of the financial statements;\n- Items on which attention of users tends to be focused;\n- Nature of the entity, where it is in its life cycle, and the industry and economic environment in which it operates;",
+          "type": "document"
+        },
+        {
+          "id": "M-5",
+          "question": "Enter % for Performance Materiality (must be less than 100%).",
+          "type": "text"
+        },
+        {
+          "id": "M-6",
+          "question": "Document factors used for consideration of performance materiality.",
+          "type": "document",
+          "subInputs": [
+            {
+              "label": "Reliability on internal controls",
+              "options": ["Effective", "Not Effective"]
+            },
+            {
+              "label": "Engagement risk",
+              "options": ["Increased", "Not Increased"]
+            },
+            {
+              "label": "Forecasting changes",
+              "options": ["No changes", "Significant and could impact expected misstatements"]
+            },
+            {
+              "label": "History of misstatements",
+              "options": ["Limited to no errors", "High value or amount"]
+            },
+            {
+              "label": "Management responsiveness",
+              "options": ["Investigates and corrects", "Does not investigate and/or correct"]
+            }
+          ]
+        },
+        {
+          "id": "M-7",
+          "question": "Enter % for Clearly Trivial Threshold.",
+          "type": "percent"
+        },
+        {
+          "id": "M-8",
+          "question": "Clearly Trivial Threshold Computed Value",
+          "type": "text"
+        }
+      ],
+      "Revised Materiality": {
+        "id": "M-9",
+        "question": "Have we come across any instances of changes in circumstances, new information or change in auditor’s understanding of the entity and its operations as a result of performing further audit procedures.",
+        "type": "radio",
+        "options": ["Yes", "No"],
+        "subQuestionIf": {
+          "Yes": {
+            "question": "Does the materiality determined at planning stage need revision?",
+            "type": "radio",
+            "options": ["Yes", "No"],
+            "tableif": "Yes"
+          }
+        }
+      },
+      "Component Materiality": {
+        "id": "M-11",
+        "question": "Component Name",
+        "type": "text",
+        "table": true,
+        "condition": {
+          "questionId": "EP-1",
+          "operator": "==",
+          "value": "Yes"
+        }
+      },
+      "ABCOTD Materiality": {
+        "id": "M-10",
+        "question": "Do we need to determine materiality for particular classes of transactions, account balances or disclosures?",
+        "type": "radio",
+        "options": ["Yes", "No"],
+        "tableif": "Yes"
+      }
+    }
+  }

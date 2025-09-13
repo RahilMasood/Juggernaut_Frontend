@@ -1,0 +1,61 @@
+import {
+  PAYROLL_ACCEPTED_INPUTS_CHANNEL,
+  PAYROLL_DOWNLOAD_RESULT_CHANNEL,
+  PAYROLL_LIST_RESULTS_CHANNEL,
+  PAYROLL_PROGRESS_CHANNEL,
+  PAYROLL_RUN_SCRIPT_CHANNEL,
+  PAYROLL_OPEN_DIALOG_CHANNEL,
+} from "./payroll-channels";
+
+export function exposePayrollContext() {
+  const { contextBridge, ipcRenderer } = (window as any).require("electron");
+  contextBridge.exposeInMainWorld("payroll", {
+    acceptedInputs: (): Promise<string[]> =>
+      ipcRenderer.invoke(PAYROLL_ACCEPTED_INPUTS_CHANNEL),
+    testPython: (): Promise<{ ok: boolean; executable?: string; error?: string; message: string }> =>
+      ipcRenderer.invoke("payroll:test-python"),
+    run: (
+      scriptKey: string,
+      args: {
+        inputFiles: string[];
+        options?: Record<string, unknown>;
+      },
+    ): Promise<{ ok: boolean; runId?: string; error?: string }> =>
+      ipcRenderer.invoke(PAYROLL_RUN_SCRIPT_CHANNEL, { scriptKey, ...args }),
+    listResults: (): Promise<
+      Array<{
+        id: string;
+        label: string;
+        createdAt: number;
+        filePath: string;
+        size: number;
+        mimeType?: string;
+      }>
+    > => ipcRenderer.invoke(PAYROLL_LIST_RESULTS_CHANNEL),
+    downloadResult: (
+      id: string,
+    ): Promise<{ ok: boolean; filePath?: string; error?: string }> =>
+      ipcRenderer.invoke(PAYROLL_DOWNLOAD_RESULT_CHANNEL, { id }),
+    openDialog: async (): Promise<string[]> => {
+      const res = await ipcRenderer.invoke(PAYROLL_OPEN_DIALOG_CHANNEL);
+      return Array.isArray(res) ? res : [];
+    },
+    onProgress: (
+      handler: (payload: {
+        runId: string;
+        progress: number;
+        status: "running" | "success" | "error";
+        message?: string;
+        error?: string;
+        stdout?: string;
+        stderr?: string;
+      }) => void,
+    ) => {
+      const listener = (_event: unknown, payload: any) => handler(payload);
+      ipcRenderer.on(PAYROLL_PROGRESS_CHANNEL, listener);
+      return () => ipcRenderer.removeListener(PAYROLL_PROGRESS_CHANNEL, listener);
+    },
+  });
+}
+
+

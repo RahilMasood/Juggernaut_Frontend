@@ -1,0 +1,16 @@
+{
+  "column_map": [
+    {
+      "CTC": "Emp. No",
+      "Actuary": "Employee ID"
+    },
+    {
+      "CTC": "DOJ",
+      "Actuary": "Date of Joining  (dd-mmm-yyyy)"
+    },
+    {
+      "CTC": "Basic",
+      "Actuary": "Basic"
+    }
+  ]
+}

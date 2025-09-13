@@ -1,0 +1,14 @@
+{
+    "IT Risk Assessment": [
+          {
+          "id": "ITR-1",
+          "question": "The auditor should include in the documentation herein, the key elements of their understanding of the entity and its environment, including the sources of information from which the understanding was obtained. This is particularly important when we conclude entity-level and fraud risk factors present.\nDocument our understanding of the information system used by the entity and the IT environment, including relevancy of general IT controls.",
+          "type": "document"
+          },
+          {
+          "id": "ITR-2",
+          "question": "Document our procedures performed relating to the testing of use of information technology (IT) systems by the entity.",
+          "type": "document"
+          }
+      ]
+  }

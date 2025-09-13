@@ -1,0 +1,181 @@
+{
+    "Fraud Risk Assessment & Response": {
+        "Inquiries of the management and others within the entity": [
+            {
+                "id": "FRA-1",
+                "question": "Are all of those charged with governance involved in managing the entity?",
+                "type": "radio",
+                "options": ["Yes", "No"]
+            },
+            {
+                "condition": {
+                    "questionId": "FRA-1",
+                    "operator": "==",
+                    "value": "Yes"
+                    },
+                "questions": [
+                    {
+                    "id": "FRA-2",
+                    "question": "Document the management’s assessment of the risk that the financial statements may be materially misstated due to fraud, including the nature, extent and frequency of such assessments. ",
+                    "type": "document"
+                    },
+                    {
+                    "id": "FRA-3",
+                    "question": "Document management’s process for identifying and responding to the risks of fraud in the entity, including any specific risks of fraud that management has identified or that have been brought to its attention, or classes of transactions, account balances, or disclosures for which a risk of fraud is likely to exist. ",
+                    "type": "document"
+                    },
+                    {
+                    "id": "FRA-4",
+                    "question": "Document management’s communication, if any, to employees regarding its views on business practices and ethical behavior. ",
+                    "type": "document"
+                    },
+                    {
+                    "id": "FRA-5",
+                    "question": "Document our inquiries of the management, and other’s within the entity as appropriate, to determine whether they have knowledge of any actual, suspected or alleged fraud affecting the entity. ",
+                    "table": true,
+                    "type": "document"
+                    },
+                    {
+                    "id": "FRA-6",
+                    "question": "Have we presumed fraud risk for revenue recognition?",
+                    "type": "radio",
+                    "options": ["Yes", "No"],
+                    "documentRequiredIf": "No"
+                    }
+                ]
+            },
+            {
+                "condition": {
+                    "questionId": "FRA-1",
+                    "operator": "==",
+                    "value": "No"
+                    },
+                "questions": [
+                    {
+                    "id": "FRA-7",
+                    "question": "Document the management’s assessment of the risk that the financial statements may be materially misstated due to fraud, including the nature, extent and frequency of such assessments. ",
+                    "type": "document"
+                    },
+                    {
+                    "id": "FRA-8",
+                    "question": "Document management’s process for identifying and responding to the risks of fraud in the entity, including any specific risks of fraud that management has identified or that have been brought to its attention, or classes of transactions, account balances, or disclosures for which a risk of fraud is likely to exist",
+                    "type": "document"
+                    },
+                    {
+                    "id": "FRA-9",
+                    "question": "Document management’s communication, if any, to employees regarding its views on business practices and ethical behavior. ",
+                    "type": "document"
+                    },
+                    {
+                    "id": "FRA-10",
+                    "question": "Document our inquiries of the management, and other’s within the entity as appropriate, to determine whether they have knowledge of any actual, suspected or alleged fraud affecting the entity. ",
+                    "type": "document"
+                    },
+                    {
+                    "id": "FRA-11",
+                    "question": "Document our understanding of management’s communication, if any, to those charged with governance regarding its processes for identifying and responding to the risks of fraud in the entity ",
+                    "type": "document"
+                    },
+                    {
+                    "id": "FRA-12",
+                    "question": "Document our understanding of how those charged with governance exercise oversight of management’s processes for identifying and responding to the risks of fraud in the entity and the internal control that management has established to mitigate these risks  ",
+                    "type": "document",
+                    "table": true
+                    },
+                    {
+                    "id": "FRA-13",
+                    "question": "Have we presumed fraud risk for revenue recognition?",
+                    "type": "radio",
+                    "options": ["Yes", "No"],
+                    "documentRequiredIf": "No"
+                    }
+                ]
+            }
+        ],
+        "Planning Discussion with the Client/Entity": [
+            {
+            "id": "PD-1",
+            "question": "Date of meeting",
+            "type": "date"
+            },
+            {
+            "id": "PD-2",
+            "question": "Location of meeting",
+            "type": "text"
+            },
+            {
+            "id": "PD-3",
+            "question": "Key personnel involved in meeting",
+            "type": "table"
+            },
+            {
+            "id": "PD-4",
+            "question": "Summary of important issues arising from discussion(s) with the client/entity.",
+            "type": "document"
+            }
+        ],
+        "Fraud Risk Factors": [
+            {
+                "id": "FRF-1",
+                "question": "Have any fraud risk factors been identified relating to misstatement arising from fraudulent financial reporting?\nIncentives/pressures – \n(a) Financial stability or profitability is threatened by economic, industry, or entity operating conditions. \n(b) Excessive pressure exists for management to meet the requirements or expectations of third parties. \n(c) Information available indicates that the personal financial situation of management or those charged with governance is threatened by the entity’s financial performance. \nOpportunities – \n(a) The nature of the industry or the entity’s operations provides opportunities to engage in fraudulent financial reporting. \n(b) The monitoring of management is not effective. \n(c) There is a complex or unstable organizational structure. \n(d) Internal control components are deficient. \nAttitudes/Rationalization – factors which can be considered to be arising from the attitudes of the organization.",
+                "type": "radio",
+                "options": ["Yes", "No"],
+                "documentRequiredIf": "Yes"
+            },
+            {
+                "id": "FRF-2",
+                "question": "Have any fraud risk factors been identified relating to misstatement arising from misappropriation of assets? \nIncentives/pressures – \n(a) Personal financial obligations may create pressure on management or employees with access to cash or other assets susceptible to theft to misappropriate those assets. \n(b) Adverse relationships between the entity and employees with access to cash or other assets susceptible to theft may motivate those employees to misappropriate those assets. \nOpportunities – \n(a) Certain characteristics or circumstances may increase the susceptibility of assets to misappropriation. \n(b) Inadequate internal control over assets may increase the susceptibility of misappropriation of those assets. \nAttitudes/Rationalization – disregard for monitoring of risk and internal control, changes in behaviour or tolerance for petty thefts.",
+                "type": "radio",
+                "options": ["Yes", "No"],
+                "documentRequiredIf": "Yes"
+            }
+        ],
+        "Management Override of Controls": [
+            {
+                "head": "Document the Audit Procedures Responsive to Risks Related to Management Override of Controls"
+            },
+            {
+            "id": "MOC-1",
+            "question": "Test the appropriateness of journal entries recorded in the general ledger and other adjustments made in the preparation of the financial statements. In designing and performing audit procedures for such tests, we shall: make inquiries of individuals involved in the financial reporting process about inappropriate or unusual activity relating to the processing of journal entries and other adjustments; select journal entries and other adjustments made at the end of a reporting period; and consider the need to test journal entries and other adjustments throughout the period.",
+            "type": "document"
+            },
+            {
+            "id": "MOC-2",
+            "question": "Review accounting estimates for biases and evaluate whether the circumstances producing the bias, if any, represent a risk of material misstatement due to fraud. In performing this review, we shall: evaluate whether the judgments and decisions made by management in making the accounting estimates included in the financial statements, even if they are individually reasonable, indicate a possible bias on the part of the entity’s management that may represent a risk of material misstatement due to fraud. If so, the auditor shall re-evaluate the accounting estimates taken as a whole; and perform a retrospective review of management judgments and assumptions related to significant accounting estimates reflected in the financial statements of the prior year.",
+            "type": "document"
+            },
+            {
+            "id": "MOC-3",
+            "question": "For significant transactions that are outside the normal course of business for the entity, or that otherwise appear to be unusual given the auditor’s understanding of the entity and its environment and other information obtained during the audit, we shall evaluate whether the business rationale (or the lack thereof) of the transactions suggests that they may have been entered into to engage in fraudulent financial reporting or to conceal misappropriation of assets.",
+            "type": "radio",
+            "options": [
+                "No such transactions have been identified",
+                "The transactions identified have been assessed"
+            ],
+            "documentRequiredIf": "The transactions identified have been assessed"
+            }
+        ],
+        "Communication with management and those charged with governance regarding matters of fraud": [
+            {
+            "id": "CMG-1",
+            "question": "If we have identified a fraud or have obtained information that indicates that a fraud may exist, we have communicated these matters on a timely basis to the appropriate level of management in order to inform those with primary responsibility for the prevention and detection of fraud of matters relevant to their responsibilities. We have communicated these matters to those charged with governance on a timely basis. If we suspected fraud involving management, we have communicated these suspicions to those charged with governance and discussed with them the nature, timing and extent of audit procedures necessary to complete the audit.",
+            "type": "radio",
+            "options": [
+                "Yes",
+                "Not Applicable"
+            ],
+            "documentRequiredIf": "Yes"
+            },
+            {
+            "id": "CMG-2",
+            "question": "For the fraud identified/suspected as above, we have considered our responsibility to report the occurrence or suspicion to a party outside the entity (e.g. reporting to Central Government u/s 143(12) of the Companies Act, 2013).",
+            "type": "radio",
+            "options": [
+                "Yes",
+                "Not Applicable"
+            ],
+            "documentRequiredIf": "Yes"
+            }
+        ]
+    }
+}

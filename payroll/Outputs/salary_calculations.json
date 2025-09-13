@@ -1,0 +1,48 @@
+{
+    "Threshold Calculation": {
+        "Selected risk": "Higher",
+        "Control reliance": "Relying on controls",
+        "Final threshold": 19440000.0
+    },
+    "Salary Ledgers": [
+        "Apprentice Cost_x000D_\n",
+        "Ex-Gratia",
+        "Joining / Referral Bonus_x000D_\n",
+        "Kit Allowance",
+        "Leave Encashment",
+        "Leave Travel Allowance",
+        "Loyalty Bonus",
+        "Medical Allowance",
+        "Mobile Allowance",
+        "Performance Incentive",
+        "Salary",
+        "Statutory Bonus",
+        "Stipend",
+        "Apprentice Cost",
+        "Kit Allowance",
+        "Leave Encashment",
+        "Leave Travel Allowance",
+        "Loyalty Bonus",
+        "Medical Allowance",
+        "Mobile and Accessories",
+        "Mobile-P&L",
+        "Notice Pay Recovery",
+        "Overseas Travel - Salary",
+        "Re-Location Charges",
+        "Salary",
+        "Scholarship",
+        "Statutory Bonus",
+        "Stipend"
+    ],
+    "Salary Calculations": {
+        "CY Salaries & Wages": 500361515.0,
+        "PY Salaries & Wages": 0.0,
+        "CY Excluded total": 0,
+        "PY Excluded total": 0,
+        "CY Net Salary": 500361515.0,
+        "PY Net Salary": 0.0,
+        "Salary Expectation": 0.0,
+        "Difference (Expectation - Actual)": -500361515.0,
+        "Within Threshold": "No"
+    }
+}

@@ -1,0 +1,173 @@
+{
+    "Engagement Acceptance & Continuance": {
+      "Engagement Profiling": [
+        {
+          "id": "EP-1",
+          "question": "Is this an audit of group financial statements?",
+          "type": "radio",
+          "options": ["Yes", "No"]
+        },
+        {
+          "id": "EP-2",
+          "question": "Is this an initial audit engagement for the entity?",
+          "type": "radio",
+          "options": ["Yes", "No"]
+        },
+        {
+          "id": "EP-3",
+          "question": "Based on the risk assessment performed the engagement risk has been assessed as?",
+          "type": "radio",
+          "options": ["Normal", "Greater than Normal", "Much Greater than Normal"]
+        },
+        {
+          "id": "EP-4",
+          "question": "Are we performing a joint audit?",
+          "type": "radio",
+          "options": ["Yes", "No"]
+        },
+        {
+          "id": "EP-5",
+          "question": "Is this an audit of component audit client in which we are acting as a component auditor?",
+          "type": "radio",
+          "options": ["Yes", "No"]
+        }
+      ],
+      "Compliance with Ethical Requirements": [
+        {
+          "id": "CE-1",
+          "question": "Has the engagement team complied with the requirements of the Professional Code of Ethics including fundamental principles and conceptual framework issued by ICAI?",
+          "type": "radio",
+          "options": ["Yes", "No"],
+          "documentRequired": true
+        },
+        {
+          "id": "CE-2",
+          "question": "Has there been a breach of independence requirement based on engagement team’s assessment of the following threats:\n\n- Self-interest threat (financial/other interest inappropriately influencing behavior)\n- Self-review threat (threat that the results of a previous judgement made will not be appropriately evaluated by the professional accountant or another individual within the accountant’s firm)\n- Familiarity threat (threat of a long or close relationship with the client)\n- Advocacy threat (threat of promotion of client’s or organisation’s position to the extent that professional accountant’s objectivity is compromised)\n- Intimidation threat (threat that professional accountant will be deterred from acting objectively)",
+          "type": "radio",
+          "options": ["Yes", "No"],
+          "documentRequired": true
+        },
+        {
+          "id": "CE-3",
+          "question": "Based on our assessment of independence requirements, we confirm that we have not identified any threats relevant to ethical requirements and if any threat has been identified the following steps have been applied:\n\n- Eliminating the circumstances that are creating the threats;\n- Applying safeguards to reduce the threats to an acceptable level;\n- Declining or ending the specific professional activity.",
+          "type": "checkbox",
+          "documentRequired": true
+        },
+        {
+          "id": "CE-4",
+          "question": "Have any prohibited services u/s 144 of the Companies Act, 2013 as listed below been provided to the entity (directly/indirectly to the company or its holding or subsidiary company)?\n- Accounting and book keeping services;\n- Internal audit;\n- Design and implementation of any financial information system;\n- Actuarial services;\n- Investment advisory services;\n- Investment banking services;\n- Rendering of outsourced financial services;\n- Management services; and\n- Any other kind of services prescribed.",
+          "type": "radio",
+          "options": ["Yes", "No"]
+        }
+      ],
+      "Scope of Review": [
+        {
+          "id": "SR-1",
+          "question": "Is the entity’s engagement required to have an engagement quality review process?",
+          "type": "radio",
+          "options": ["Yes", "No"],
+          "documentRequired": true
+        },
+        {
+          "id": "SR-2",
+          "question": "Is the entity’s engagement required to have a concurring review process?",
+          "type": "radio",
+          "options": ["Yes", "No"],
+          "documentRequired": true
+        }
+      ],
+      "Assess Engagement Risk": [
+        {
+          "id": "ER-1",
+          "question": "Assess engagement risk based on the following external factors:\n- Management characteristics and integrity, the management environment and organizational and management structure;\n- Management’s commitment to the appropriate application of reliable financial reporting framework;\n- Management’s commitment to implementing and maintaining internal control;\n- Financial results and financial viability;\n- Nature of business;\n- Business and regulatory environment;\n- Business relationships and related parties;\n- Other risk factors associated with the prospective or existing Engagement.\n\nIn assessing internal factors, the considerations ordinarily include the following:\n- Availability and competency of Partners and Professional Staff;\n- Compliance with ethical and Independence requirements;\n- Professional Services;\n- Engagement economics.",
+          "type": "radio",
+          "options": ["Normal risk", "Greater than Normal risk", "Much Greater than Normal risk"],
+          "documentRequired": true
+        }
+      ],
+      "Agreeing the Terms of Audit Engagement": [
+        {
+          "id": "AE-1",
+          "question": "**Pre-conditions to audit:**\nUnder the pre-conditions to audit, the auditor shall:\na. Determine whether the financial reporting framework is acceptable;\nb. Obtain the agreement of the management that it acknowledges and understands its responsibility\n- For preparation of financial statements in accordance with applicable financial reporting framework;\n- For design, implementation and maintenance of internal control as management considers necessary; and\n- To provide the auditor with:\n  • Access to all information;\n  • Additional information that the auditor may request from the management for purpose of audit; and\n  • Unrestricted access to persons within the entity from whom the auditor determines it necessary to obtain audit evidence.\n\nHas the engagement team agreed with the management on the pre-conditions of audit in accordance with SA 210 “Agreeing the Terms of Audit Engagements”?",
+          "type": "radio",
+          "options": ["Yes", "No"],
+          "documentRequired": true,
+          "conditions": [
+            {
+              "questionId": "EP-2",
+              "operator": "==",
+              "value": "Yes"
+            }
+          ]
+        },
+        {
+          "id": "AE-2",
+          "question": "**Pre-conditions to audit:**\nUnder the pre-conditions to audit, the auditor shall:\na. Determine whether the financial reporting framework is acceptable;\nb. Obtain the agreement of the management that it acknowledges and understands its responsibility\n- For preparation of financial statements in accordance with applicable financial reporting framework;\n- For design, implementation and maintenance of internal control as management considers necessary; and\n- To provide the auditor with:\n  • Access to all information;\n  • Additional information that the auditor may request from the management for purpose of audit; and\n  • Unrestricted access to persons within the entity from whom the auditor determines it necessary to obtain audit evidence.\n\nHas the management or those charged with governance imposed any limitation on scope on auditor’s work where the auditor is required to accept the engagement due to legal or regulatory requirements?",
+          "type": "radio",
+          "options": ["Yes", "No"],
+          "documentRequiredIf": "Yes",
+          "conditions": [
+            {
+              "questionId": "EP-2",
+              "operator": "==",
+              "value": "Yes"
+            }
+          ]
+        },
+        {
+          "id": "AE-3",
+          "question": "**Pre-conditions to audit:**\nUnder the pre-conditions to audit, the auditor shall:\na. Determine whether the financial reporting framework is acceptable;\nb. Obtain the agreement of the management that it acknowledges and understands its responsibility\n- For preparation of financial statements in accordance with applicable financial reporting framework;\n- For design, implementation and maintenance of internal control as management considers necessary; and\n- To provide the auditor with:\n  • Access to all information;\n  • Additional information that the auditor may request from the management for purpose of audit; and\n  • Unrestricted access to persons within the entity from whom the auditor determines it necessary to obtain audit evidence.\n\nDocument the considerations of the provisions of clause (8) and clause (9) of Part – I of the First Schedule of the Chartered Accountants Act, 1949.",
+          "type": "document",
+          "conditions": [
+            {
+              "questionId": "EP-2",
+              "operator": "==",
+              "value": "Yes"
+            }
+          ]
+        },
+        {
+          "id": "AE-4",
+          "question": "Have there been any circumstances that require the terms of audit engagement to be revised?",
+          "type": "radio",
+          "options": [
+            "No, there has been no change.",
+            "Yes, there has been a change in the terms of the audit engagement and we determined that there is a reasonable justification for doing so. A revised engagement letter or other suitable form of written agreement has been included in the audit documentation.",
+            "Yes, there has been a change in the terms of the audit engagement; we were unable to agree on the new terms of engagement and are not permitted by the management to continue the original audit engagement."
+          ],
+          "documentRequiredIf": ["Yes, there has been a change in the terms of the audit engagement and we determined that there is a reasonable justification for doing so. A revised engagement letter or other suitable form of written agreement has been included in the audit documentation.", "Yes, there has been a change in the terms of the audit engagement; we were unable to agree on the new terms of engagement and are not permitted by the management to continue the original audit engagement."],
+          "conditions": [
+            {
+              "questionId": "EP-2",
+              "operator": "==",
+              "value": "No"
+            }
+          ]
+        },
+        {
+          "id": "AE-5",
+          "question": "Record the agreed terms of the audit engagement in an audit engagement letter or other suitable form of written agreement which includes:\n- The objective and scope of audit of financial statements;\n- The responsibilities of the auditor;\n- The responsibilities of the management;\n- A statement that because of the inherent limitations of an audit together with the inherent limitations of the internal control, an unavoidable risk exists that some material misstatements may not be detected even though audit is properly planned and performed in accordance with relevant auditing standards;\n- The applicable financial reporting framework for preparation of the financial statements; and\n- Reference to the expected form and content of any reports to be issued by the auditor including a statement that there may be circumstances in which a report may differ from its expected form and content.",
+          "type": "document"
+        },
+        {
+          "id": "AE-6",
+          "question": "Are any fees payable by the client or its affiliates (for audit engagement or services other than audit, including those provided by other network firms) overdue during the period of audit engagement?",
+          "type": "radio",
+          "options": ["Yes", "No"],
+          "documentRequiredIf": "Yes",
+          "noteIf": {
+            "Yes": "If all overdue fees will not be paid when the audit report is issued, evaluate the threats to independence from having such fees overdue."
+          }
+        },
+        {
+          "id": "AE-7",
+          "question": "Have all fees for professional services related to the audit engagement or other services (including those provided by network firms) provided more than one year prior to the date of audit report been paid by the client and its affiliates before the issuance of the audit report for the current year?",
+          "type": "radio",
+          "options": ["Yes", "No"],
+          "noteIf": {
+            "No": "Coordinate with client and its affiliates to clear outstanding balances. Confirm that all such fees have been paid before the issuance of audit report for the current year."
+          }
+        }
+      ]
+    }
+  }

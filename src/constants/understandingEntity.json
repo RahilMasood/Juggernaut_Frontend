@@ -1,0 +1,325 @@
+{
+    "Understanding the Entity and its Environment": {
+      "External Factors": [
+        {
+          "id": "EF-1",
+          "question": "Describe the relevant general economic and industry conditions such as the competitive environment, supplier and customer relationships, technological developments applicable to the entity, and any changes occurred during the period that might impact the entity\u2019s business.",
+          "type": "document"
+        },
+        {
+          "id": "EF-2",
+          "question": "Is the entity involved in cyclical or seasonal business?",
+          "type": "radio",
+          "options": [
+            "Yes",
+            "No"
+          ],
+          "documentRequiredIf": "Yes"
+        },
+        {
+          "id": "EF-3",
+          "question": "Describe the legal and regulatory framework applicable to the entity and the industry or the sector in which the entity operates and how the entity is complying with that framework (include tax laws applicable to the entity).",
+          "type": "document"
+        },
+        {
+          "id": "EF-4",
+          "question": "Describe the complexity of, or changes in the regulatory environment.",
+          "type": "document"
+        },
+        {
+          "id": "EF-5",
+          "question": "Are there any other communications and/or findings from regulators that have direct impact on audit?",
+          "type": "radio",
+          "options": [
+            "Yes",
+            "No"
+          ],
+          "documentRequiredIf": "Yes"
+        },
+        {
+          "id": "EF-6",
+          "question": "Are there any regulatory factors relevant to the entity\u2019s accounting estimates, including, when applicable, regulatory frameworks related to prudential supervision?",
+          "type": "radio",
+          "options": [
+            "Yes",
+            "No"
+          ],
+          "documentRequiredIf": "Yes"
+        },
+        {
+          "id": "EF-7",
+          "question": "Are there any ESG-related matters affecting the entity\u2019s external environment including industry, regulatory and policy changes?",
+          "type": "radio",
+          "options": [
+            "Yes",
+            "No"
+          ],
+          "documentRequiredIf": "Yes"
+        },
+        {
+          "id": "EF-8",
+          "question": "Are there any changes in the tax legislations, rulings, and/or interpretations of existing tax legislations?",
+          "type": "radio",
+          "options": [
+            "Yes",
+            "No"
+          ],
+          "documentRequiredIf": "Yes"
+        }
+      ],
+      "Internal Factors": [
+        {
+          "id": "IF-1",
+          "question": "Provide a description of the entity’s business operations, including major aspects of production, distribution, sales, and marketing (how they operate, what they produce, how they sell it, new products, etc.) and changes to the nature or profitability of the products or services offered.",
+          "type": "document"
+        },
+        {
+          "id": "IF-2",
+          "question": "What is the determined functional currency of the entity as per AS 11 – The Effects of Changes in Foreign Exchange Rates?",
+          "type": "dropdown"
+        },
+        {
+          "id": "IF-3",
+          "question": "Are there any transactions and events or other conditions that may give rise to accounting estimates with relatively high estimation uncertainty?",
+          "type": "radio",
+          "options": ["Yes", "No"],
+          "documentRequiredIf": "Yes"
+        },
+        {
+          "id": "IF-4",
+          "question": "Describe the ownership and governance structure of the entity and changes, if any.",
+          "type": "document"
+        },
+        {
+          "id": "IF-5",
+          "question": "Describe the types of investments that the entity has made or plans to make, including investments in special-purpose entities.",
+          "type": "document"
+        },
+        {
+          "id": "IF-6",
+          "question": "In the period under audit, did the entity have business acquisitions that individually or in the aggregate affected revenues, total assets, or net income of the acquirer by more than 20 percent on a proforma basis?",
+          "type": "radio",
+          "options": ["Yes", "No"],
+          "tooltip": "Proforma adjustments include the relevant financial information of a business that has been, or is to be, acquired (“acquiree”), or a business that has been or is to be, divested (“divestee”). Proforma financial information is financial information shown together with adjustments to illustrate the impact of an event or transaction on unadjusted financial information as if the event had occurred or the transaction had been undertaken at an earlier date selected for the purposes of the illustration."
+        },
+        {
+          "id": "IF-7",
+          "question": "Will the engagement team be involving a fair value specialist in the audit engagement?",
+          "type": "radio",
+          "options": ["Yes", "No"],
+          "condition": {
+            "questionId": "IF-6",
+            "operator": "==",
+            "value": "Yes"
+          },
+          "noteIf": {
+            "Yes": "Document the work performed in relation to the involvement of auditor’s specialists in WP XXXX Specialists."
+          }
+        },
+        {
+          "id": "IF-8",
+          "question": "Does the entity have related parties identified based on the definitions as per the applicable financial reporting framework or where the framework establishes minimal or no related party requirements:\n- Person or other entity that has control or significant influence over the reporting entity; \n- Another entity over which the reporting entity has control or significant influence; \n- Another entity which is under common control with the reporting entity through having common controlling ownership or owners who are close family members or common key management.",
+          "type": "radio",
+          "options": ["Yes", "No"],
+          "noteIf": {
+            "Yes": "Document the considerations and procedures for related party relationships and transactions in WP XXXX Related Parties."
+          }
+        },
+        {
+          "id": "IF-9",
+          "question": "Does the entity use one or more service organizations related to one or more significant ABCOTDs?",
+          "type": "radio",
+          "options": ["Yes", "No"],
+          "tooltip": "Service Organisation is a third party that provides services that are part of the user entity’s information systems relevant to financial reporting.",
+          "noteIf": {
+            "Yes": "Document our understanding of the service organisations in WP XXX Service Organisations."
+          }
+        },
+        {
+          "id": "IF-10",
+          "question": "Describe how the entity finances its operations and the complexity of or changes in capital and financing structure (sources of funding, noncapital funding, significant investment, etc.).",
+          "type": "document"
+        },
+        {
+          "id": "IF-11",
+          "question": "Describe how the entity develops its long-term and short-term business plans, how it identifies the key business risks it faces, what these business risks are, and their approach to addressing them.",
+          "type": "document"
+        },
+        {
+          "id": "IF-12",
+          "question": "As needed describe any other internal factors affecting the entity.",
+          "type": "document"
+        }
+      ],
+      "Accounting Policies": [
+        {
+          "id": "AP-1",
+          "question": "Provide a description of the key accounting policies, financial/reporting framework and, if applicable, the reason for any changes in the accounting policies adopted during the current audit. Document any new/forthcoming changes including when they will be adopted by the entity.",
+          "type": "document"
+        },
+        {
+          "id": "AP-2",
+          "question": "Has the entity adopted an early application of a new accounting standard (where permitted by law/regulation) that has a material effect on the financial statements?",
+          "type": "radio",
+          "options": ["Yes", "No"],
+          "documentRequiredIf": "Yes",
+          "noteIf": {
+            "Yes": "Document the provisions permitting early application and include in 'Emphasis of Matter' pursuant to SA 706."
+          }
+        },
+        {
+          "id": "AP-3",
+          "question": "Was there a tax inspection initiated during the period or is there an ongoing tax inspection?",
+          "type": "radio",
+          "options": ["Yes", "No"],
+          "documentRequiredIf": "Yes",
+          "noteIf": {
+            "Yes": "Document the outcome of any concluded tax inspections and/or potential tax matters raised."
+          }
+        },
+        {
+          "id": "AP-4",
+          "question": "Describe how the entity develops its current-period plans and budgets and the approval process. Describe the key indicators that the management uses for evaluating financial performance and for taking appropriate actions. (eg. KPIs, key ratios, operating statistics).",
+          "type": "document"
+        },
+        {
+          "id": "AP-5",
+          "question": "As needed, describe any other considerations related to financial reporting requirements and the entity’s selection and application of accounting policies and measurement and review of the entity’s financial performance, including changes occurred during the period.",
+          "type": "radio",
+          "options": ["Yes", "No"],
+          "documentRequiredIf": "Yes"
+        }
+      ],
+      "Other Considerations": [
+        {
+          "id": "OC-1",
+          "question": "Were there any unusual or complex transactions or events, including significant transactions, that are outside the normal course of business in the current period?",
+          "type": "radio",
+          "options": ["Yes", "No"],
+          "documentRequiredIf": "Yes"
+        },
+        {
+          "id": "OC-2",
+          "question": "Has the entity entered into or does it have plans to enter into any unique contractual agreements?",
+          "type": "radio",
+          "options": ["Yes", "No"],
+          "documentRequiredIf": "Yes"
+        },
+        {
+          "id": "OC-3",
+          "question": "Does the entity have any significant accounting estimates in the current year?",
+          "type": "radio",
+          "options": ["Yes", "No"],
+          "noteIf": {
+            "Yes": "Document our review for the indicators of management bias and judgements in WP XXX Review of estimates."
+          }
+        },
+        {
+          "id": "OC-4",
+          "question": "Does the entity have any key suppliers or customers and if so, what is the relationship with them? Are they identified as related parties?",
+          "type": "radio",
+          "options": ["Yes", "No"],
+          "dynamicTableIf": "Yes"
+        },
+        {
+          "id": "OC-5",
+          "question": "Where are the entity’s locations that make up a significant percentage of accounting transactions?",
+          "type": "document"
+        }
+      ],
+      "Understanding Internal Controls": [
+        {
+          "id": "UIC-1",
+          "question": "Document our understanding of the entity’s control environment including all of the following elements:\nAssignment of authority and responsibility;\n- Communication and enforcement of integrity and ethical values;\n- Commitment to competence;\n- Participation by those charged with governance;\n- Organizational structure;\n- Management’s philosophy and operating style;\n- Human resource policies and practices.",
+          "type": "document"
+        },
+        {
+          "id": "UIC-2",
+          "question": "Evaluate whether the management, with the oversight of those charged with governance, has created and maintained a culture of honesty and ethical behavior?",
+          "type": "radio",
+          "options": ["Yes", "No"],
+          "documentRequiredIf": "No"
+        },
+        {
+          "id": "UIC-3",
+          "question": "Does the control environment provide an appropriate foundation for the other components of the entity’s system of internal control considering the nature and complexity of the entity?",
+          "type": "radio",
+          "options": ["Yes", "No"],
+          "documentRequiredIf": "No"
+        },
+        {
+          "id": "UIC-4",
+          "question": "Do control deficiencies identified in the control environment undermine other components of the entity’s system of internal control?",
+          "type": "radio",
+          "options": ["Yes", "No"],
+          "documentRequiredIf": "Yes"
+        },
+        {
+          "id": "UIC-5",
+          "question": "Document our understanding of whether the entity has a process for:\n- Identifying business risks relevant to financial reporting objectives;\n- Estimating the significance of the risks;\n- Assessing the likelihood of their occurrence;\n- Deciding about actions to address those risks; and\n- Identifying and addressing risks relating to accounting estimates.",
+          "type": "document"
+        },
+        {
+          "id": "UIC-6",
+          "question": "Is the entity’s risk assessment process appropriate to the entity’s circumstances considering the nature and complexity of the entity?",
+          "type": "radio",
+          "options": ["Yes", "No"],
+          "documentRequiredIf": "No"
+        },
+        {
+          "id": "UIC-7",
+          "question": "Document whether we identified any RoMMs that the management failed to identify, and if there were, whether there was an underlying risk of a kind that we expect would have been identified by the entity’s risk assessment process.",
+          "type": "document"
+        },
+        {
+          "id": "UIC-8",
+          "question": "Obtain an understanding of the entity’s information system, including related business processes, relevant to financial reporting, including the following:\n- The significant classes of transactions;\n- Procedures by which transactions are initiated, recorded, processed, corrected as necessary, transferred to the general ledger and reported in the financial statements;\n- How the information system captures events and conditions that are significant to the financial statements;\n- The financial reporting process used to prepare the entity’s financial statements.",
+          "type": "document"
+        },
+        {
+          "id": "UIC-9",
+          "question": "Document controls surrounding journal entries, including nonstandard journal entries used to record nonrecurring, unusual transactions or adjustments.",
+          "type": "document"
+        },
+        {
+          "id": "UIC-10",
+          "question": "Document our understanding of how the entity communicated financial reporting roles and responsibilities and significant matters relating to financial reporting, including:\n- Communications between management and those charged with governance, and between the people within the entity. (eg. Policies and procedures, periodic internal newsletters and presentations, targeted email communications)\n- External communications, such as those with regulatory authorities.",
+          "type": "document"
+        },
+        {
+          "id": "UIC-11",
+          "question": "Does the entity’s information system and communication appropriately support the preparation of the entity’s financial statements in accordance with the applicable financial reporting framework?",
+          "type": "radio",
+          "options": ["Yes", "No"],
+          "documentRequiredIf": "No"
+        },
+        {
+          "id": "UIC-12",
+          "question": "Obtain an understanding of the entity’s control activities relevant to audit, which is considered necessary to assess the risk of material misstatement. This includes:\n- Control activities that relate to significant risks;\n- Controls that are considered to be relevant in the auditor’s judgement; and\n- Controls for which substantive procedures alone do not provide sufficient appropriate audit evidence.",
+          "type": "document"
+        },
+        {
+          "id": "UIC-13",
+          "question": "Obtain an understanding of the entity’s process for monitoring the system of internal control relevant to the preparation of the financial statements by:\n- Understanding those aspects of the entity’s process that address ongoing activities and separate evaluations for assessing the effectiveness of controls;\n- How the entity initiates remedial actions to deficiencies in its controls;\n- The sources of information used in the entity’s monitoring activities and the basis upon which management considers the information to be sufficiently reliable for the purpose.",
+          "type": "document"
+        },
+        {
+          "id": "UIC-14",
+          "question": "Does the entity have an internal audit function?",
+          "type": "radio",
+          "options": ["Yes", "No"],
+          "documentRequiredIf": "Yes",
+          "noteIf": {
+            "Yes": "Document the entity’s internal audit function’s nature, responsibilities, its organizational status, and the activities performed or to be performed."
+          }
+        },
+        {
+          "id": "UIC-15",
+          "question": "Is the entity’s process for monitoring the system of internal control appropriate to the entity’s circumstances considering the nature and complexity of the entity?",
+          "type": "radio",
+          "options": ["Yes", "No"],
+          "documentRequiredIf": "No"
+        }
+      ]
+    }
+  }

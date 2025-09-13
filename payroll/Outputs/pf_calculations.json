@@ -1,0 +1,375 @@
+{
+    "Particulars": {
+        "Recorded Amount": 21707405.0,
+        "Salary Amount": 56268793.0,
+        "Percentage": 10,
+        "Expected PF": 5626879.300000001,
+        "Difference": -16080525.7,
+        "Threshold": 5426851.25,
+        "Within Threshold": "No"
+    },
+    "Recorded Amount Ledgers": [
+        "Provident Fund - Employers Contribution",
+        "Provident Fund - Employers Contribution"
+    ],
+    "Salary Amount Ledgers": [
+        "Salary"
+    ],
+    "All PF Ledgers": [
+        {
+            "Index": 1,
+            "Ledger Name": "Apprentice Cost_x000D_\n",
+            "Closing Balance": 0.0
+        },
+        {
+            "Index": 2,
+            "Ledger Name": "Books and Periodicals",
+            "Closing Balance": 23534.0
+        },
+        {
+            "Index": 3,
+            "Ledger Name": "Educational Assistance",
+            "Closing Balance": 0.0
+        },
+        {
+            "Index": 4,
+            "Ledger Name": "Employee Recognition And Award",
+            "Closing Balance": 88662.0
+        },
+        {
+            "Index": 5,
+            "Ledger Name": "Employer Labour Welfare Fund",
+            "Closing Balance": 2125.0
+        },
+        {
+            "Index": 6,
+            "Ledger Name": "ESI Employer Contribution",
+            "Closing Balance": 0.0
+        },
+        {
+            "Index": 7,
+            "Ledger Name": "Ex-Gratia",
+            "Closing Balance": 0.0
+        },
+        {
+            "Index": 8,
+            "Ledger Name": "Gratuity",
+            "Closing Balance": 1341220.0
+        },
+        {
+            "Index": 9,
+            "Ledger Name": "Gratuity Additional - 15%",
+            "Closing Balance": 0.0
+        },
+        {
+            "Index": 10,
+            "Ledger Name": "Insurance - Employees",
+            "Closing Balance": 0.0
+        },
+        {
+            "Index": 11,
+            "Ledger Name": "Insurance - GMC",
+            "Closing Balance": 395945.58
+        },
+        {
+            "Index": 12,
+            "Ledger Name": "Insurance - GPA",
+            "Closing Balance": 44612.0
+        },
+        {
+            "Index": 13,
+            "Ledger Name": "Insurance - Life Insurance",
+            "Closing Balance": 207909.0
+        },
+        {
+            "Index": 14,
+            "Ledger Name": "Interest Subsidy",
+            "Closing Balance": 16839.0
+        },
+        {
+            "Index": 15,
+            "Ledger Name": "Joining / Referral Bonus_x000D_\n",
+            "Closing Balance": 30000.0
+        },
+        {
+            "Index": 16,
+            "Ledger Name": "Kit Allowance",
+            "Closing Balance": 60000.0
+        },
+        {
+            "Index": 17,
+            "Ledger Name": "Leave Encashment",
+            "Closing Balance": 793421.0
+        },
+        {
+            "Index": 18,
+            "Ledger Name": "Leave Travel Allowance",
+            "Closing Balance": 315409.0
+        },
+        {
+            "Index": 19,
+            "Ledger Name": "Loyalty Bonus",
+            "Closing Balance": 0.0
+        },
+        {
+            "Index": 20,
+            "Ledger Name": "Medical Allowance",
+            "Closing Balance": 0.0
+        },
+        {
+            "Index": 21,
+            "Ledger Name": "Mobile Allowance",
+            "Closing Balance": 25000.0
+        },
+        {
+            "Index": 22,
+            "Ledger Name": "New Pension Scheme(NPS)",
+            "Closing Balance": 1152417.0
+        },
+        {
+            "Index": 23,
+            "Ledger Name": "Performance Incentive",
+            "Closing Balance": 1542834.0
+        },
+        {
+            "Index": 24,
+            "Ledger Name": "Provident Fund - Employers Contribution",
+            "Closing Balance": 2567551.0
+        },
+        {
+            "Index": 25,
+            "Ledger Name": "Salary",
+            "Closing Balance": 56268793.0
+        },
+        {
+            "Index": 26,
+            "Ledger Name": "Staff Welfare - Others",
+            "Closing Balance": 15745.0
+        },
+        {
+            "Index": 27,
+            "Ledger Name": "Statutory Bonus",
+            "Closing Balance": 0.0
+        },
+        {
+            "Index": 28,
+            "Ledger Name": "Stipend",
+            "Closing Balance": 130166.0
+        },
+        {
+            "Index": 29,
+            "Ledger Name": "Telecommunication - Employee",
+            "Closing Balance": 146782.0
+        },
+        {
+            "Index": 30,
+            "Ledger Name": "Transport - Employees",
+            "Closing Balance": 0.0
+        },
+        {
+            "Index": 31,
+            "Ledger Name": "Apprentice Cost",
+            "Closing Balance": 0.0
+        },
+        {
+            "Index": 32,
+            "Ledger Name": "Educational Assistance",
+            "Closing Balance": 288500.0
+        },
+        {
+            "Index": 33,
+            "Ledger Name": "Employee Recognition And Award",
+            "Closing Balance": 2248213.0
+        },
+        {
+            "Index": 34,
+            "Ledger Name": "Employer Labour Welfare Fund",
+            "Closing Balance": 0.0
+        },
+        {
+            "Index": 35,
+            "Ledger Name": "ESI Employer Contribution",
+            "Closing Balance": 0.0
+        },
+        {
+            "Index": 36,
+            "Ledger Name": "Expat Charges - Car Benefits",
+            "Closing Balance": 0.0
+        },
+        {
+            "Index": 37,
+            "Ledger Name": "Expat Charges - Car Lease",
+            "Closing Balance": 0.0
+        },
+        {
+            "Index": 38,
+            "Ledger Name": "Expat Charges - Compensation & Benefits",
+            "Closing Balance": 0.0
+        },
+        {
+            "Index": 39,
+            "Ledger Name": "Expat Charges - Compensation & Benefits (Taxable)",
+            "Closing Balance": 0.0
+        },
+        {
+            "Index": 40,
+            "Ledger Name": "Expat Charges - House Rent",
+            "Closing Balance": 0.0
+        },
+        {
+            "Index": 41,
+            "Ledger Name": "Expat Charges - PF Contribution",
+            "Closing Balance": 0.0
+        },
+        {
+            "Index": 42,
+            "Ledger Name": "Expat Charges - Withholding Taxes",
+            "Closing Balance": 0.0
+        },
+        {
+            "Index": 43,
+            "Ledger Name": "Expat Charges ? Compensation & Benefits ( Non Taxable)",
+            "Closing Balance": 0.0
+        },
+        {
+            "Index": 44,
+            "Ledger Name": "Expat Charges ? Compensation & Benefits (Taxable Under IT Valuation Rules)",
+            "Closing Balance": 0.0
+        },
+        {
+            "Index": 45,
+            "Ledger Name": "Gratuity",
+            "Closing Balance": 18514905.0
+        },
+        {
+            "Index": 46,
+            "Ledger Name": "Gratuity Additional - 15%",
+            "Closing Balance": 0.0
+        },
+        {
+            "Index": 47,
+            "Ledger Name": "Insurance - Employees",
+            "Closing Balance": 0.0
+        },
+        {
+            "Index": 48,
+            "Ledger Name": "Insurance - GMC",
+            "Closing Balance": 7771232.15
+        },
+        {
+            "Index": 49,
+            "Ledger Name": "Insurance - GPA",
+            "Closing Balance": 344826.0
+        },
+        {
+            "Index": 50,
+            "Ledger Name": "Insurance - Metlife",
+            "Closing Balance": 1956000.0
+        },
+        {
+            "Index": 51,
+            "Ledger Name": "Interest Subsidy",
+            "Closing Balance": 348922.0
+        },
+        {
+            "Index": 52,
+            "Ledger Name": "Kit Allowance",
+            "Closing Balance": 260000.0
+        },
+        {
+            "Index": 53,
+            "Ledger Name": "Leave Encashment",
+            "Closing Balance": 12333667.0
+        },
+        {
+            "Index": 54,
+            "Ledger Name": "Leave Travel Allowance",
+            "Closing Balance": 2007185.0
+        },
+        {
+            "Index": 55,
+            "Ledger Name": "Loyalty Bonus",
+            "Closing Balance": 0.0
+        },
+        {
+            "Index": 56,
+            "Ledger Name": "Medical Allowance",
+            "Closing Balance": 0.0
+        },
+        {
+            "Index": 57,
+            "Ledger Name": "Mobile and Accessories",
+            "Closing Balance": 0.0
+        },
+        {
+            "Index": 58,
+            "Ledger Name": "Mobile-P&L",
+            "Closing Balance": 0.0
+        },
+        {
+            "Index": 59,
+            "Ledger Name": "New Pension Scheme(NPS)",
+            "Closing Balance": 5732103.0
+        },
+        {
+            "Index": 60,
+            "Ledger Name": "Notice Pay Recovery",
+            "Closing Balance": -689696.0
+        },
+        {
+            "Index": 61,
+            "Ledger Name": "Overseas Travel - Salary",
+            "Closing Balance": 0.0
+        },
+        {
+            "Index": 62,
+            "Ledger Name": "Provident Fund - Employers Contribution",
+            "Closing Balance": 19139854.0
+        },
+        {
+            "Index": 63,
+            "Ledger Name": "Re-Location Charges",
+            "Closing Balance": 349000.0
+        },
+        {
+            "Index": 64,
+            "Ledger Name": "Salary",
+            "Closing Balance": 419610939.0
+        },
+        {
+            "Index": 65,
+            "Ledger Name": "Scholarship",
+            "Closing Balance": 0.0
+        },
+        {
+            "Index": 66,
+            "Ledger Name": "Staff Welfare - Committee Cost",
+            "Closing Balance": 277758.0
+        },
+        {
+            "Index": 67,
+            "Ledger Name": "Staff Welfare - Others",
+            "Closing Balance": 548138.43
+        },
+        {
+            "Index": 68,
+            "Ledger Name": "Statutory Bonus",
+            "Closing Balance": 1939238.0
+        },
+        {
+            "Index": 69,
+            "Ledger Name": "Stipend",
+            "Closing Balance": 5385559.0
+        },
+        {
+            "Index": 70,
+            "Ledger Name": "Training and Awards",
+            "Closing Balance": 0.0
+        },
+        {
+            "Index": 71,
+            "Ledger Name": "Training and Development",
+            "Closing Balance": 2457277.08
+        }
+    ]
+}
