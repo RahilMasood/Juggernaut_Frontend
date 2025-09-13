@@ -1,0 +1,107 @@
+[
+  {
+    "control_id": "IC001",
+    "control_name": "Payroll Authorization Controls",
+    "control_type": "Preventive",
+    "control_attribute": "Authorization",
+    "control_description": "Controls to ensure payroll transactions are properly authorized before processing"
+  },
+  {
+    "control_id": "IC002",
+    "control_name": "Employee Data Validation",
+    "control_type": "Detective",
+    "control_attribute": "Validation",
+    "control_description": "Automated validation of employee data against HR records before payroll processing"
+  },
+  {
+    "control_id": "IC003",
+    "control_name": "Payroll Calculation Review",
+    "control_type": "Preventive",
+    "control_attribute": "Calculation",
+    "control_description": "Manual review and approval of payroll calculations by authorized personnel"
+  },
+  {
+    "control_id": "IC004",
+    "control_name": "Bank Reconciliation Controls",
+    "control_type": "Detective",
+    "control_attribute": "Reconciliation",
+    "control_description": "Monthly reconciliation of payroll bank accounts with supporting documentation"
+  },
+  {
+    "control_id": "IC005",
+    "control_name": "Access Controls - Payroll System",
+    "control_type": "Preventive",
+    "control_attribute": "Access",
+    "control_description": "Role-based access controls for payroll system with regular access reviews"
+  },
+  {
+    "control_id": "IC006",
+    "control_name": "Segregation of Duties - Payroll",
+    "control_type": "Preventive",
+    "control_attribute": "Segregation",
+    "control_description": "Separation of payroll preparation, review, and approval functions"
+  },
+  {
+    "control_id": "IC007",
+    "control_name": "Payroll Exception Monitoring",
+    "control_type": "Detective",
+    "control_attribute": "Monitoring",
+    "control_description": "Automated monitoring and reporting of payroll exceptions and anomalies"
+  },
+  {
+    "control_id": "IC008",
+    "control_name": "Employee Termination Controls",
+    "control_type": "Preventive",
+    "control_attribute": "Termination",
+    "control_description": "Controls to ensure timely removal of terminated employees from payroll"
+  },
+  {
+    "control_id": "IC009",
+    "control_name": "Payroll Data Backup",
+    "control_type": "Preventive",
+    "control_attribute": "Backup",
+    "control_description": "Regular backup and recovery procedures for payroll data and systems"
+  },
+  {
+    "control_id": "IC010",
+    "control_name": "Payroll Audit Trail",
+    "control_type": "Detective",
+    "control_attribute": "Audit",
+    "control_description": "Comprehensive audit trail for all payroll transactions and changes"
+  },
+  {
+    "control_id": "IC011",
+    "control_name": "Overtime Approval Controls",
+    "control_type": "Preventive",
+    "control_attribute": "Approval",
+    "control_description": "Pre-approval requirements for overtime hours and associated costs"
+  },
+  {
+    "control_id": "IC012",
+    "control_name": "Payroll Variance Analysis",
+    "control_type": "Detective",
+    "control_attribute": "Analysis",
+    "control_description": "Monthly analysis of payroll variances with investigation of significant differences"
+  },
+  {
+    "control_id": "IC013",
+    "control_name": "Employee Classification Controls",
+    "control_type": "Preventive",
+    "control_attribute": "Classification",
+    "control_description": "Controls to ensure proper employee classification for tax and benefit purposes"
+  },
+  {
+    "control_id": "IC014",
+    "control_name": "Payroll Tax Compliance",
+    "control_type": "Preventive",
+    "control_attribute": "Compliance",
+    "control_description": "Controls to ensure accurate calculation and timely remittance of payroll taxes"
+  },
+  {
+    "control_id": "IC015",
+    "control_name": "Payroll System Change Management",
+    "control_type": "Preventive",
+    "control_attribute": "Change Management",
+    "control_description": "Formal change management process for payroll system modifications and updates"
+  }
+]

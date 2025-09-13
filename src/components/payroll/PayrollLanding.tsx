@@ -80,11 +80,21 @@ export default function PayrollLanding({ onSelect }: PayrollLandingProps) {
   };
 
   const pickFiles = async () => {
-    // Use the Payroll dialog for convenience; allows multi-select of any type via wildcard
-    const filePaths = await (window as any).dialog.showOpenDialog({
-      properties: ['openFile', 'multiSelections']
-    });
-    if (filePaths && filePaths.length > 0) addDocumentsByPaths(filePaths);
+    try {
+      // Use the existing openDialog function from payroll context
+      const filePaths = await (window as any).payroll.openDialog();
+      
+      if (filePaths && filePaths.length > 0) {
+        // For now, just add the file paths directly
+        // In a real implementation, we would copy these files to Cloud/Client
+        addDocumentsByPaths(filePaths);
+        console.log(`✅ Selected ${filePaths.length} file(s)`);
+      } else {
+        console.log('No files selected');
+      }
+    } catch (error) {
+      console.error('❌ Error opening file dialog:', error);
+    }
   };
 
   return (

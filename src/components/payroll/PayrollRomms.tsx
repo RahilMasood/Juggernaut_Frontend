@@ -2,12 +2,12 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
-import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
-import { Label } from "../ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-import { Separator } from "../ui/separator";
-import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { Textarea } from "../ui/textarea";
+import { AlertCircle, CheckCircle2, Shield, Plus, X, Play } from "lucide-react";
 import combinedData from "../../data/Combined.json";
+import ControlSelectorModal from "./ControlSelectorModal";
+import ProcedureSelectorModal from "./ProcedureSelectorModal";
 
 interface RommItem {
   id: string;
@@ -15,6 +15,31 @@ interface RommItem {
   assertion: string;
   options: string[];
   selectedOption?: string;
+}
+
+interface InternalControl {
+  control_id: string;
+  control_name: string;
+  control_type: string;
+  control_attribute: string;
+  control_description: string;
+}
+
+interface SubstantiveProcedure {
+  id: string;
+  name: string;
+  description: string;
+  requiredFiles: string[];
+  optionalFiles?: string[];
+  questions?: QuestionConfig[];
+}
+
+interface QuestionConfig {
+  id: string;
+  question: string;
+  type: string;
+  required: boolean;
+  options?: string[];
 }
 
 interface PayrollRommsProps {
@@ -29,9 +54,11 @@ export default function PayrollRomms({
   const [romms, setRomms] = useState<RommItem[]>([]);
   const [selectedRommId, setSelectedRommId] = useState<string | null>(null);
   const [rommSelections, setRommSelections] = useState<Record<string, string>>({});
-  const [ebeNoteLines, setEbeNoteLines] = useState<string[]>([]);
-  const [isLoadingEbe, setIsLoadingEbe] = useState(true);
-  const [ebeError, setEbeError] = useState<string | null>(null);
+  const [rommDocumentation, setRommDocumentation] = useState<Record<string, string>>({});
+  const [associatedControls, setAssociatedControls] = useState<Record<string, InternalControl[]>>({});
+  const [associatedProcedures, setAssociatedProcedures] = useState<Record<string, SubstantiveProcedure[]>>({});
+  const [isControlSelectorOpen, setIsControlSelectorOpen] = useState(false);
+  const [isProcedureSelectorOpen, setIsProcedureSelectorOpen] = useState(false);
   const [employeeBenefitsNoteLines, setEmployeeBenefitsNoteLines] = useState<string[]>([]);
 
   // Load ROMMS data from Instructions.json
@@ -94,34 +121,34 @@ export default function PayrollRomms({
         // Fallback to hardcoded data if file loading fails
         const fallbackData: RommItem[] = [
           {
-            id: "romm-1",
-            risk: "Payroll expenses is recorded that did not occur",
-            assertion: "Occurrence",
-            options: ["Lower", "Higher", "Significant", "NRPMM"],
+            "id": "EBE.SR.001",
+            "risk": "Payroll expenses is recorded that did not occur",
+            "assertion": "Occurrence",
+            "options": ["Lower", "Higher", "Significant", "NRPMM"]
           },
           {
-            id: "romm-2",
-            risk: "Payroll expenses is incomplete",
-            assertion: "C",
-            options: ["Lower", "Higher", "Significant", "NRPMM"],
+            "id": "EBE.SR.002",
+            "risk": "Payroll expenses is incomplete",
+            "assertion": "Completeness",
+            "options": ["Lower", "Higher", "Significant", "NRPMM"]
           },
           {
-            id: "romm-3",
-            risk: "Payroll expenses is recorded in incorrect period",
-            assertion: "Cu",
-            options: ["Lower", "Higher", "Significant", "NRPMM"],
+            "id": "EBE.SR.003",
+            "risk": "Payroll expenses is recorded in incorrect period",
+            "assertion": "Cutoff",
+            "options": ["Lower", "Higher", "Significant", "NRPMM"]
           },
           {
-            id: "romm-4",
-            risk: "Payroll expenses is not recorded at proper amount",
-            assertion: "A",
-            options: ["Lower", "Higher", "Significant", "NRPMM"],
+            "id": "EBE.SR.004",
+            "risk": "Payroll expenses is not recorded at proper amount",
+            "assertion": "Accuracy",
+            "options": ["Lower", "Higher", "Significant", "NRPMM"]
           },
           {
-            id: "romm-5",
-            risk: "Payroll expenses is not recorded in proper account",
-            assertion: "Cl",
-            options: ["Lower", "Higher", "Significant", "NRPMM"],
+            "id": "EBE.SR.005",
+            "risk": "Payroll expenses is not recorded in proper account",
+            "assertion": "Classification",
+            "options": ["Lower", "Higher", "Significant", "NRPMM"]
           },
         ];
         setRomms(fallbackData);
@@ -136,37 +163,6 @@ export default function PayrollRomms({
 
   const selectedRomm = romms.find((r) => r.id === selectedRommId);
 
-  // Load Combined.json and extract note lines for Employee Benefits Expense
-  useEffect(() => {
-    let isMounted = true;
-    const loadEbeNotes = async () => {
-      try {
-        setIsLoadingEbe(true);
-        setEbeError(null);
-        const combined = (await window.planning.readCombinedData()) as {
-          data?: Array<{ par?: string; note_line?: string }>;
-        };
-        const raw = combined?.data ?? [];
-        const filtered = raw.filter(
-          (item) => (item?.par || "").trim() === "Employee Benefits Expense",
-        );
-        const notes = new Set<string>();
-        for (const entry of filtered) {
-          const note = entry?.note_line;
-          if (note && typeof note === "string") notes.add(note);
-        }
-        if (isMounted) setEbeNoteLines(Array.from(notes));
-      } catch {
-        if (isMounted) setEbeError("Failed to load financial data");
-      } finally {
-        if (isMounted) setIsLoadingEbe(false);
-      }
-    };
-    loadEbeNotes();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
 
   // Extract Employee Benefits Expense note lines from Combined.json
   useEffect(() => {
@@ -192,6 +188,45 @@ export default function PayrollRomms({
     }));
   };
 
+  const handleDocumentationChange = (rommId: string, documentation: string) => {
+    setRommDocumentation((prev) => ({
+      ...prev,
+      [rommId]: documentation,
+    }));
+  };
+
+  const handleAssociateControls = (selectedControls: InternalControl[]) => {
+    if (selectedRommId) {
+      setAssociatedControls(prev => ({
+        ...prev,
+        [selectedRommId]: selectedControls
+      }));
+    }
+  };
+
+  const handleRemoveControl = (rommId: string, controlId: string) => {
+    setAssociatedControls(prev => ({
+      ...prev,
+      [rommId]: prev[rommId]?.filter(control => control.control_id !== controlId) || []
+    }));
+  };
+
+  const handleAssociateProcedures = (selectedProcedures: SubstantiveProcedure[]) => {
+    if (selectedRommId) {
+      setAssociatedProcedures(prev => ({
+        ...prev,
+        [selectedRommId]: selectedProcedures
+      }));
+    }
+  };
+
+  const handleRemoveProcedure = (rommId: string, procedureId: string) => {
+    setAssociatedProcedures(prev => ({
+      ...prev,
+      [rommId]: prev[rommId]?.filter(procedure => procedure.id !== procedureId) || []
+    }));
+  };
+
   const isRommComplete = (rommId: string) => {
     return rommSelections[rommId] !== undefined;
   };
@@ -201,13 +236,13 @@ export default function PayrollRomms({
   const getRiskLevelColor = (option: string) => {
     switch (option) {
       case "Lower":
-        return "bg-green-500/20 text-green-400 border-green-500/30";
+        return "bg-yellow-300/20 text-yellow-300 border-yellow-300/30";
       case "Higher":
-        return "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
+        return "bg-yellow-700/30 text-yellow-400 border-yellow-700/30";
       case "Significant":
         return "bg-red-500/20 text-red-400 border-red-500/30";
       case "NRPMM":
-        return "bg-blue-500/20 text-blue-400 border-blue-500/30";
+        return "bg-green-500/20 text-green-400 border-green-500/30";
       default:
         return "bg-gray-500/20 text-gray-400 border-gray-500/30";
     }
@@ -229,7 +264,11 @@ export default function PayrollRomms({
   };
 
   const handleComplete = () => {
-    onComplete(rommSelections);
+    const completeData = {
+      selections: rommSelections,
+      documentation: rommDocumentation,
+    };
+    onComplete(completeData);
   };
 
   return (
@@ -276,7 +315,7 @@ export default function PayrollRomms({
                   <div className="flex-1">
                     <div className="mb-2 flex items-center gap-2">
                       <Badge variant="outline" className="text-xs">
-                        {romm.assertion}
+                        {romm.id}
                       </Badge>
                       {isRommComplete(romm.id) ? (
                         <CheckCircle2 className="h-4 w-4 text-green-400" />
@@ -289,11 +328,40 @@ export default function PayrollRomms({
                     </p>
                     {rommSelections[romm.id] && (
                       <div className="mt-2">
-                        <Badge
-                          className={`text-xs ${getRiskLevelColor(rommSelections[romm.id])}`}
-                        >
-                          {rommSelections[romm.id]}
-                        </Badge>
+                        {rommSelections[romm.id] === 'Lower' && 
+                          <svg width="16" height="16" viewBox="0 0 16 16" style={{verticalAlign: 'middle'}}>
+                            <defs>
+                              <mask id={`lowerMaskLeft${romm.id}`}>
+                                <rect width="16" height="16" fill="black"/>
+                                <polygon points="8,2 14,14 2,14" fill="white"/>
+                              </mask>
+                            </defs>
+                            <polygon points="8,2 14,14 2,14" fill="none" stroke="#CCCC00" strokeWidth="1"/>
+                            <rect x="0" y="10" width="16" height="6" fill="#CCCC00" mask={`url(#lowerMaskLeft${romm.id})`}/>
+                          </svg>
+                        }
+                        {rommSelections[romm.id] === 'Higher' && 
+                          <svg width="16" height="16" viewBox="0 0 16 16" style={{verticalAlign: 'middle'}}>
+                            <defs>
+                              <mask id={`higherMaskLeft${romm.id}`}>
+                                <rect width="16" height="16" fill="black"/>
+                                <polygon points="8,2 14,14 2,14" fill="white"/>
+                              </mask>
+                            </defs>
+                            <polygon points="8,2 14,14 2,14" fill="none" stroke="#FFA500" strokeWidth="1"/>
+                            <rect x="0" y="8" width="16" height="8" fill="#FFA500" mask={`url(#higherMaskLeft${romm.id})`}/>
+                          </svg>
+                        }
+                        {rommSelections[romm.id] === 'Significant' && 
+                          <svg width="16" height="16" viewBox="0 0 16 16" style={{verticalAlign: 'middle'}}>
+                            <polygon points="8,2 14,14 2,14" fill="#FF0000"/>
+                          </svg>
+                        }
+                        {rommSelections[romm.id] === 'NRPMM' && 
+                          <svg width="16" height="16" viewBox="0 0 16 16" style={{verticalAlign: 'middle'}}>
+                            <polygon points="8,2 14,14 2,14" fill="none" stroke="#008000" strokeWidth="2"/>
+                          </svg>
+                        }
                       </div>
                     )}
                   </div>
@@ -307,7 +375,7 @@ export default function PayrollRomms({
         <Card className="border-white/10 bg-white/5 text-white lg:w-[70%] lg:flex-shrink-0">
           <CardHeader>
             <CardTitle className="text-lg">
-              PRCOR007 - COT-Payroll expenses
+              {selectedRomm?.id || "Select a ROMM"}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -319,18 +387,18 @@ export default function PayrollRomms({
               <div className="text-sm font-semibold text-white">Assessment</div>
             </div>
 
-            {/* Table Rows */}
+            {/* Table Rows - Show only selected ROMM */}
             <div className="space-y-4">
-              {romms.map((romm) => (
+              {selectedRomm && (
                 <div
-                  key={romm.id}
+                  key={selectedRomm.id}
                   className="rounded-lg border border-white/10 bg-white/5 p-4 transition-colors hover:bg-white/10 md:grid md:grid-cols-4 md:gap-4 md:p-3"
                 >
                   {/* Description Column */}
                   <div className="mb-4 md:mb-0">
                     <div className="mb-2 block text-xs font-semibold text-white/60 md:hidden">Description</div>
                     <div className="text-sm text-white/80">
-                      {romm.risk}
+                      {selectedRomm.risk}
                     </div>
                   </div>
 
@@ -354,15 +422,15 @@ export default function PayrollRomms({
                   {/* Assertions/Type Column */}
                   <div className="mb-4 md:mb-0">
                     <div className="mb-2 block text-xs font-semibold text-white/60 md:hidden">Assertions/Type</div>
-                    <div className="flex items-center group relative">
-                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-xs font-bold text-white cursor-pointer" title={romm.assertion}>
-                        {romm.assertion === 'Completeness' ? 'C' : 
-                         romm.assertion === 'Classification' ? 'Cl' : 
-                         romm.assertion === 'Cutoff' ? 'Cu' : 
-                         romm.assertion === 'Accuracy' ? 'A' : 
-                         romm.assertion === 'Occurrence' ? 'O' : romm.assertion}
+                    <div className="flex items-center">
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-xs font-bold text-white">
+                        {selectedRomm.assertion === 'Completeness' ? 'C' : 
+                         selectedRomm.assertion === 'Classification' ? 'Cl' : 
+                         selectedRomm.assertion === 'Cutoff' ? 'Cu' : 
+                         selectedRomm.assertion === 'Accuracy' ? 'A' : 
+                         selectedRomm.assertion === 'Occurrence' ? 'O' : selectedRomm.assertion}
                       </div>
-                      <span className="ml-2 text-sm text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200">{romm.assertion}</span>
+                      <span className="ml-2 text-sm text-white">{selectedRomm.assertion}</span>
                     </div>
                   </div>
 
@@ -372,38 +440,128 @@ export default function PayrollRomms({
                     <div className="flex items-center gap-2">
                       {/* Triangle indicator on the left */}
                       <div className="flex-shrink-0">
-                        {rommSelections[romm.id] === 'lower' && <span style={{color: "#FFFF00"}}>▼</span>}
-                        {rommSelections[romm.id] === 'higher' && <span style={{color: "#FFA500"}}>▲</span>}
-                        {rommSelections[romm.id] === 'significant' && <span style={{color: "#FFA500"}}>▲</span>}
-                        {rommSelections[romm.id] === 'nrpmm' && <span style={{color: "#008000"}}>●</span>}
+                        {rommSelections[selectedRomm.id] === 'Lower' && 
+                          <svg width="16" height="16" viewBox="0 0 16 16" style={{verticalAlign: 'middle'}}>
+                            <defs>
+                              <mask id="lowerMask">
+                                <rect width="16" height="16" fill="black"/>
+                                <polygon points="8,2 14,14 2,14" fill="white"/>
+                              </mask>
+                            </defs>
+                            <polygon points="8,2 14,14 2,14" fill="none" stroke="#CCCC00" strokeWidth="1"/>
+                            <rect x="0" y="10" width="16" height="6" fill="#CCCC00" mask="url(#lowerMask)"/>
+                          </svg>
+                        }
+                        {rommSelections[selectedRomm.id] === 'Higher' && 
+                          <svg width="16" height="16" viewBox="0 0 16 16" style={{verticalAlign: 'middle'}}>
+                            <defs>
+                              <mask id="higherMask">
+                                <rect width="16" height="16" fill="black"/>
+                                <polygon points="8,2 14,14 2,14" fill="white"/>
+                              </mask>
+                            </defs>
+                            <polygon points="8,2 14,14 2,14" fill="none" stroke="#FFA500" strokeWidth="1"/>
+                            <rect x="0" y="8" width="16" height="8" fill="#FFA500" mask="url(#higherMask)"/>
+                          </svg>
+                        }
+                        {rommSelections[selectedRomm.id] === 'Significant' && 
+                          <svg width="16" height="16" viewBox="0 0 16 16" style={{verticalAlign: 'middle'}}>
+                            <polygon points="8,2 14,14 2,14" fill="#FF0000"/>
+                          </svg>
+                        }
+                        {rommSelections[selectedRomm.id] === 'NRPMM' && 
+                          <svg width="16" height="16" viewBox="0 0 16 16" style={{verticalAlign: 'middle'}}>
+                            <polygon points="8,2 14,14 2,14" fill="none" stroke="#008000" strokeWidth="2"/>
+                          </svg>
+                        }
                       </div>
                       <Select
-                        value={rommSelections[romm.id] || ""}
-                        onValueChange={(value) => handleRommSelection(romm.id, value)}
+                        value={rommSelections[selectedRomm.id] || ""}
+                        onValueChange={(value) => handleRommSelection(selectedRomm.id, value)}
                       >
                         <SelectTrigger className="w-full">
                            <SelectValue placeholder="Select assessment">
-                             {rommSelections[romm.id] && (
+                             {rommSelections[selectedRomm.id] && (
                                <div className="flex items-center gap-2">
-                                 {rommSelections[romm.id] === 'lower' && <span style={{color: "#FFFF00"}}>▼</span>}
-                                  {rommSelections[romm.id] === 'higher' && <span style={{color: "#FFA500"}}>▲</span>}
-                                  {rommSelections[romm.id] === 'significant' && <span style={{color: "#FFA500"}}>▲</span>}
-                                  {rommSelections[romm.id] === 'nrpmm' && <span style={{color: "#008000"}}>●</span>}
-                                 <Badge className={`text-xs ${getRiskLevelColor(rommSelections[romm.id])}`}>
-                                   {rommSelections[romm.id]}
+                                 {rommSelections[selectedRomm.id] === 'Lower' && 
+                                   <svg width="16" height="16" viewBox="0 0 16 16" style={{verticalAlign: 'middle'}}>
+                                     <defs>
+                                       <mask id="lowerMaskSelect">
+                                         <rect width="16" height="16" fill="black"/>
+                                         <polygon points="8,2 14,14 2,14" fill="white"/>
+                                       </mask>
+                                     </defs>
+                                     <polygon points="8,2 14,14 2,14" fill="none" stroke="#CCCC00" strokeWidth="1"/>
+                                     <rect x="0" y="10" width="16" height="6" fill="#CCCC00" mask="url(#lowerMaskSelect)"/>
+                                   </svg>
+                                 }
+                                 {rommSelections[selectedRomm.id] === 'Higher' && 
+                                   <svg width="16" height="16" viewBox="0 0 16 16" style={{verticalAlign: 'middle'}}>
+                                     <defs>
+                                       <mask id="higherMaskSelect">
+                                         <rect width="16" height="16" fill="black"/>
+                                         <polygon points="8,2 14,14 2,14" fill="white"/>
+                                       </mask>
+                                     </defs>
+                                     <polygon points="8,2 14,14 2,14" fill="none" stroke="#FFA500" strokeWidth="1"/>
+                                     <rect x="0" y="8" width="16" height="8" fill="#FFA500" mask="url(#higherMaskSelect)"/>
+                                   </svg>
+                                 }
+                                 {rommSelections[selectedRomm.id] === 'Significant' && 
+                                   <svg width="16" height="16" viewBox="0 0 16 16" style={{verticalAlign: 'middle'}}>
+                                     <polygon points="8,2 14,14 2,14" fill="#FF0000"/>
+                                   </svg>
+                                 }
+                                 {rommSelections[selectedRomm.id] === 'NRPMM' && 
+                                   <svg width="16" height="16" viewBox="0 0 16 16" style={{verticalAlign: 'middle'}}>
+                                     <polygon points="8,2 14,14 2,14" fill="none" stroke="#008000" strokeWidth="2"/>
+                                   </svg>
+                                 }
+                                 <Badge className={`text-xs ${getRiskLevelColor(rommSelections[selectedRomm.id])}`}>
+                                   {rommSelections[selectedRomm.id]}
                                  </Badge>
                                </div>
                              )}
                            </SelectValue>
                          </SelectTrigger>
                         <SelectContent>
-                           {romm.options.map((option) => (
+                           {selectedRomm.options.map((option) => (
                              <SelectItem key={option} value={option}>
                                <div className="flex items-center gap-2">
-                                 {option === 'lower' && <span style={{color: "#FFFF00"}}>▼</span>}
-                                 {option === 'higher' && <span style={{color: "#FFA500"}}>▲</span>}
-                                 {option === 'significant' && <span style={{color: "#FFA500"}}>▲</span>}
-                                 {option === 'nrpmm' && <span style={{color: "#008000"}}>●</span>}
+                                 {option === 'Lower' && 
+                                   <svg width="16" height="16" viewBox="0 0 16 16" style={{verticalAlign: 'middle'}}>
+                                     <defs>
+                                       <mask id={`lowerMaskItem${option}`}>
+                                         <rect width="16" height="16" fill="black"/>
+                                         <polygon points="8,2 14,14 2,14" fill="white"/>
+                                       </mask>
+                                     </defs>
+                                     <polygon points="8,2 14,14 2,14" fill="none" stroke="#CCCC00" strokeWidth="1"/>
+                                     <rect x="0" y="10" width="16" height="6" fill="#CCCC00" mask={`url(#lowerMaskItem${option})`}/>
+                                   </svg>
+                                 }
+                                 {option === 'Higher' && 
+                                   <svg width="16" height="16" viewBox="0 0 16 16" style={{verticalAlign: 'middle'}}>
+                                     <defs>
+                                       <mask id={`higherMaskItem${option}`}>
+                                         <rect width="16" height="16" fill="black"/>
+                                         <polygon points="8,2 14,14 2,14" fill="white"/>
+                                       </mask>
+                                     </defs>
+                                     <polygon points="8,2 14,14 2,14" fill="none" stroke="#FFA500" strokeWidth="1"/>
+                                     <rect x="0" y="8" width="16" height="8" fill="#FFA500" mask={`url(#higherMaskItem${option})`}/>
+                                   </svg>
+                                 }
+                                 {option === 'Significant' && 
+                                   <svg width="16" height="16" viewBox="0 0 16 16" style={{verticalAlign: 'middle'}}>
+                                     <polygon points="8,2 14,14 2,14" fill="#FF0000"/>
+                                   </svg>
+                                 }
+                                 {option === 'NRPMM' && 
+                                   <svg width="16" height="16" viewBox="0 0 16 16" style={{verticalAlign: 'middle'}}>
+                                     <polygon points="8,2 14,14 2,14" fill="none" stroke="#008000" strokeWidth="2"/>
+                                   </svg>
+                                 }
                                  <Badge className={`text-xs ${getRiskLevelColor(option)}`}>
                                    {option}
                                  </Badge>
@@ -415,31 +573,174 @@ export default function PayrollRomms({
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
-
-            {/* Employee Benefits Expense Note Lines */}
-            <Separator className="my-6 bg-white/10" />
-            <div className="space-y-3">
-              <h4 className="text-md font-medium text-white">
-                Employee Benefits Expense Note Lines
-              </h4>
-              {isLoadingEbe ? (
-                <p className="text-sm text-white/60">Loading...</p>
-              ) : ebeError ? (
-                <p className="text-sm text-red-400">{ebeError}</p>
-              ) : ebeNoteLines.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {ebeNoteLines.map((note) => (
-                    <Badge key={note} variant="outline" className="text-xs">
-                      {note}
-                    </Badge>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-white/60">No note lines found.</p>
               )}
             </div>
+
+            {/* Risk Assessment Documentation */}
+            {selectedRomm && (
+              <div className="mt-6 space-y-3">
+                <h4 className="text-md font-medium text-white">
+                  Risk Assessment Documentation
+                </h4>
+                <Textarea
+                  placeholder="Enter your risk assessment documentation here..."
+                  value={rommDocumentation[selectedRomm.id] || ""}
+                  onChange={(e) => handleDocumentationChange(selectedRomm.id, e.target.value)}
+                  className="min-h-[120px] bg-white/5 border-white/20 text-white placeholder:text-white/50 focus:border-blue-500/50 focus:ring-blue-500/20"
+                />
+              </div>
+            )}
+
+            {/* Associated Controls */}
+            {selectedRomm && (
+              <div className="mt-6 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-md font-medium text-white flex items-center gap-2">
+                    <Shield className="h-4 w-4" />
+                    Associated Controls
+                  </h4>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsControlSelectorOpen(true)}
+                    className="flex items-center gap-2 border-white/20 bg-white/5 text-white hover:bg-white/10"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Associate Control
+                  </Button>
+                </div>
+                
+                {associatedControls[selectedRomm.id] && associatedControls[selectedRomm.id].length > 0 ? (
+                  <div className="space-y-2">
+                    {associatedControls[selectedRomm.id].map((control) => (
+                      <Card key={control.control_id} className="border-white/10 bg-white/5">
+                        <CardContent className="p-3">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h5 className="text-sm font-medium text-white">
+                                  {control.control_name}
+                                </h5>
+                                <Badge variant="outline" className="text-xs">
+                                  {control.control_id}
+                                </Badge>
+                              </div>
+                              <p className="text-xs text-white/70 mb-2">
+                                {control.control_description}
+                              </p>
+                              <div className="flex gap-2">
+                                <Badge variant="outline" className="text-xs">
+                                  {control.control_type}
+                                </Badge>
+                                <Badge variant="outline" className="text-xs">
+                                  {control.control_attribute}
+                                </Badge>
+                              </div>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRemoveControl(selectedRomm.id, control.control_id)}
+                              className="text-white/60 hover:text-white hover:bg-white/10"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-6 text-white/60 border border-white/10 rounded-lg bg-white/5">
+                    <Shield className="h-8 w-8 mx-auto mb-2 text-white/40" />
+                    <p className="text-sm">No controls associated with this ROMM</p>
+                    <p className="text-xs mt-1">Click "Associate Control" to add controls from the Internal Control Library</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Substantive Procedures */}
+            {selectedRomm && (
+              <div className="mt-6 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-md font-medium text-white flex items-center gap-2">
+                    <Play className="h-4 w-4" />
+                    Substantive Procedures
+                  </h4>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsProcedureSelectorOpen(true)}
+                    className="flex items-center gap-2 border-white/20 bg-white/5 text-white hover:bg-white/10"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Associate Procedure
+                  </Button>
+                </div>
+                
+                {associatedProcedures[selectedRomm.id] && associatedProcedures[selectedRomm.id].length > 0 ? (
+                  <div className="space-y-2">
+                    {associatedProcedures[selectedRomm.id].map((procedure) => (
+                      <Card key={procedure.id} className="border-white/10 bg-white/5">
+                        <CardContent className="p-3">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h5 className="text-sm font-medium text-white">
+                                  {procedure.name}
+                                </h5>
+                                <Badge variant="outline" className="text-xs">
+                                  {procedure.id}
+                                </Badge>
+                              </div>
+                              <p className="text-xs text-white/70 mb-2">
+                                {procedure.description}
+                              </p>
+                              
+                              {/* Required Files */}
+                              <div className="space-y-1 mb-2">
+                                <div className="flex items-center gap-1">
+                                  <span className="text-xs text-white/60">Required Files:</span>
+                                </div>
+                                <div className="flex flex-wrap gap-1">
+                                  {procedure.requiredFiles.map((file, index) => (
+                                    <Badge key={index} variant="outline" className="text-xs">
+                                      {file}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </div>
+
+                              {/* Questions Count */}
+                              {procedure.questions && procedure.questions.length > 0 && (
+                                <Badge variant="outline" className="text-xs">
+                                  {procedure.questions.length} question(s)
+                                </Badge>
+                              )}
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRemoveProcedure(selectedRomm.id, procedure.id)}
+                              className="text-white/60 hover:text-white hover:bg-white/10"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-6 text-white/60 border border-white/10 rounded-lg bg-white/5">
+                    <Play className="h-8 w-8 mx-auto mb-2 text-white/40" />
+                    <p className="text-sm">No procedures associated with this ROMM</p>
+                    <p className="text-xs mt-1">Click "Associate Procedure" to add procedures from Substantive Procedures</p>
+                  </div>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -457,6 +758,22 @@ export default function PayrollRomms({
           Complete Risk Assessment
         </Button>
       </div>
+
+      {/* Control Selector Modal */}
+      <ControlSelectorModal
+        isOpen={isControlSelectorOpen}
+        onClose={() => setIsControlSelectorOpen(false)}
+        onControlsSelected={handleAssociateControls}
+        existingControls={selectedRommId ? associatedControls[selectedRommId] || [] : []}
+      />
+
+      {/* Procedure Selector Modal */}
+      <ProcedureSelectorModal
+        isOpen={isProcedureSelectorOpen}
+        onClose={() => setIsProcedureSelectorOpen(false)}
+        onProceduresSelected={handleAssociateProcedures}
+        existingProcedures={selectedRommId ? associatedProcedures[selectedRommId] || [] : []}
+      />
     </div>
   );
 }

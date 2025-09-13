@@ -11,6 +11,7 @@ import {
   PAYROLL_PROGRESS_CHANNEL,
   PAYROLL_RUN_SCRIPT_CHANNEL,
   PAYROLL_OPEN_DIALOG_CHANNEL,
+  PAYROLL_UPLOAD_FILE_CHANNEL,
 } from "./payroll-channels";
 
 type ScriptMap = Record<string, { file: string; label: string; produces?: string[] }>;
@@ -422,6 +423,67 @@ export function addPayrollEventListeners(mainWindow: BrowserWindow) {
     if (result.canceled || !result.filePath) return { ok: false };
     await fsp.copyFile(item.filePath, result.filePath);
     return { ok: true, filePath: result.filePath };
+  });
+
+  // Handle file upload to Cloud/Client folder
+  ipcMain.handle(PAYROLL_UPLOAD_FILE_CHANNEL, async () => {
+    try {
+      // Show file selection dialog
+      const { canceled, filePaths } = await dialog.showOpenDialog({
+        title: 'Select files to upload',
+        properties: ['openFile', 'multiSelections'],
+        filters: [
+          { name: 'All Files', extensions: ['*'] },
+          { name: 'Documents', extensions: ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'] },
+          { name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'tiff'] },
+          { name: 'Text Files', extensions: ['txt', 'csv', 'json', 'xml'] }
+        ]
+      });
+
+      if (canceled || filePaths.length === 0) {
+        return { ok: false, error: 'No files selected' };
+      }
+
+      // Create Cloud/Client directory if it doesn't exist
+      const cloudClientPath = path.join(process.cwd(), 'Cloud', 'Client');
+      if (!fs.existsSync(cloudClientPath)) {
+        fs.mkdirSync(cloudClientPath, { recursive: true });
+      }
+
+      const uploadedFiles: Array<{ originalPath: string; savedPath: string; fileName: string }> = [];
+
+      // Copy each selected file to Cloud/Client folder
+      for (const selectedFile of filePaths) {
+        try {
+          const fileName = path.basename(selectedFile);
+          const timestamp = Date.now();
+          const uniqueFileName = `${timestamp}_${fileName}`;
+          const destPath = path.join(cloudClientPath, uniqueFileName);
+
+          // Copy the file
+          await fsp.copyFile(selectedFile, destPath);
+
+          uploadedFiles.push({
+            originalPath: selectedFile,
+            savedPath: destPath,
+            fileName: uniqueFileName
+          });
+
+          console.log(`✅ File copied to: ${destPath}`);
+        } catch (error) {
+          console.error(`❌ Error copying file ${selectedFile}:`, error);
+        }
+      }
+
+      return { 
+        ok: true, 
+        files: uploadedFiles,
+        message: `Successfully uploaded ${uploadedFiles.length} file(s) to Cloud/Client folder`
+      };
+    } catch (error) {
+      console.error('❌ Error in file upload handler:', error);
+      return { ok: false, error: 'Failed to upload files' };
+    }
   });
 }
 

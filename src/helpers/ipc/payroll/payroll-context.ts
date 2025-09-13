@@ -5,6 +5,7 @@ import {
   PAYROLL_PROGRESS_CHANNEL,
   PAYROLL_RUN_SCRIPT_CHANNEL,
   PAYROLL_OPEN_DIALOG_CHANNEL,
+  PAYROLL_UPLOAD_FILE_CHANNEL,
 } from "./payroll-channels";
 
 export function exposePayrollContext() {
@@ -40,6 +41,12 @@ export function exposePayrollContext() {
       const res = await ipcRenderer.invoke(PAYROLL_OPEN_DIALOG_CHANNEL);
       return Array.isArray(res) ? res : [];
     },
+    uploadFile: (): Promise<{
+      ok: boolean;
+      files?: Array<{ originalPath: string; savedPath: string; fileName: string }>;
+      message?: string;
+      error?: string;
+    }> => ipcRenderer.invoke(PAYROLL_UPLOAD_FILE_CHANNEL),
     onProgress: (
       handler: (payload: {
         runId: string;

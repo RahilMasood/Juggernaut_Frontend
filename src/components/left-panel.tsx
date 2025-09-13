@@ -28,6 +28,12 @@ import {
   Target,
   Flag,
   ChartBar,
+  BookOpen,
+  Shield,
+  AlertTriangle,
+  Monitor,
+  Workflow,
+  XCircle,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -72,10 +78,10 @@ const mainCategories = [
     description: "Financial analysis & reports",
   },
   {
-    id: "documents",
-    title: "Documents",
-    icon: Download,
-    description: "Upload & manage files",
+    id: "libraries",
+    title: "Libraries",
+    icon: Database,
+    description: "Access various libraries",
   },
   {
     id: "engagement-diagnostics",
@@ -123,6 +129,58 @@ const financialMenuItems = [
     title: "Trial Balance",
     icon: FileText,
     description: "Account balances",
+  },
+];
+
+// Library items
+const libraryItems = [
+  {
+    id: "information-library",
+    title: "Information Library",
+    description: "Access to information resources",
+    icon: BookOpen,
+  },
+  {
+    id: "internal-control-library",
+    title: "Internal Control Library",
+    description: "Internal control frameworks",
+    icon: Shield,
+  },
+  {
+    id: "romm-library",
+    title: "ROMM Library",
+    description: "Risk of Material Misstatement",
+    icon: AlertTriangle,
+  },
+  {
+    id: "control-owner-library",
+    title: "Control Owner Library",
+    description: "Control ownership matrix",
+    icon: Users,
+  },
+  {
+    id: "it-elements-library",
+    title: "IT Elements Library",
+    description: "IT controls and systems",
+    icon: Monitor,
+  },
+  {
+    id: "business-process-library",
+    title: "Business Process Library",
+    description: "Business process documentation",
+    icon: Workflow,
+  },
+  {
+    id: "document-library",
+    title: "Document Library",
+    description: "Upload and manage documents",
+    icon: FileText,
+  },
+  {
+    id: "deficiency-library",
+    title: "Deficiency Library",
+    description: "Track audit deficiencies",
+    icon: XCircle,
   },
 ];
 
@@ -321,6 +379,53 @@ export function LeftPanel({ activeSection, setActiveSection }: LeftPanelProps) {
     </>
   );
 
+  const renderLibrariesContent = () => (
+    <>
+      <div className="border-b border-white/10 bg-white/5 p-4 backdrop-blur-sm">
+        <h3 className="mb-1 text-sm font-semibold text-white">Libraries</h3>
+        <p className="text-xs text-white/60">Access various libraries and resources</p>
+      </div>
+      <div className="flex-1 p-4">
+        <div className="space-y-1">
+          {libraryItems.map((library) => {
+            const isActive = activeSection === library.id;
+            const Icon = library.icon;
+            return (
+              <button
+                key={library.id}
+                onClick={() => setActiveSection(library.id)}
+                className={`group flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm transition-all duration-200 ${
+                  isActive
+                    ? "border border-[#4da3ff]/30 bg-[#4da3ff]/15 text-white shadow-lg shadow-[#4da3ff]/10"
+                    : "text-white/70 hover:bg-white/5 hover:text-white"
+                }`}
+              >
+                <Icon
+                  className={`h-4 w-4 ${
+                    isActive
+                      ? "text-[#4da3ff]"
+                      : "text-white/50 group-hover:text-white"
+                  }`}
+                />
+                <div className="flex-1 text-left">
+                  <div className="font-medium">{library.title}</div>
+                  <div
+                    className={`text-xs ${
+                      isActive ? "text-[#4da3ff]/70" : "text-white/50"
+                    }`}
+                  >
+                    {library.description}
+                  </div>
+                </div>
+                {isActive && <ChevronRight className="h-4 w-4" />}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </>
+  );
+
   const renderPlaceholderContent = (
     categoryTitle: string,
     categoryIcon: React.ComponentType<{ className?: string }>,
@@ -505,6 +610,8 @@ export function LeftPanel({ activeSection, setActiveSection }: LeftPanelProps) {
         return renderPlanningContent();
       case "execution":
         return renderExecutionContent();
+      case "libraries":
+        return renderLibrariesContent();
       default:
         return renderPlaceholderContent(
           category?.title || "Section",
@@ -533,8 +640,8 @@ export function LeftPanel({ activeSection, setActiveSection }: LeftPanelProps) {
                       // Reset active section when switching categories
                       if (category.id === "financial-data") {
                         setActiveSection("overview");
-                      } else if (category.id === "documents") {
-                        setActiveSection("documents");
+                      } else if (category.id === "libraries") {
+                        setActiveSection("libraries");
                       } else if (category.id === "planning-overview") {
                         setActiveSection("planning");
                       }

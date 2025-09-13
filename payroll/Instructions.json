@@ -23,37 +23,36 @@
   ],
   "romms": [
     {
-      "id": "romm-1",
+      "id": "EBE.SR.001",
       "risk": "Payroll expenses is recorded that did not occur",
       "assertion": "Occurrence",
       "options": ["Lower", "Higher", "Significant", "NRPMM"]
     },
     {
-      "id": "romm-2",
+      "id": "EBE.SR.002",
       "risk": "Payroll expenses is incomplete",
       "assertion": "Completeness",
       "options": ["Lower", "Higher", "Significant", "NRPMM"]
     },
     {
-      "id": "romm-3",
+      "id": "EBE.SR.003",
       "risk": "Payroll expenses is recorded in incorrect period",
       "assertion": "Cutoff",
       "options": ["Lower", "Higher", "Significant", "NRPMM"]
     },
     {
-      "id": "romm-4",
+      "id": "EBE.SR.004",
       "risk": "Payroll expenses is not recorded at proper amount",
       "assertion": "Accuracy",
       "options": ["Lower", "Higher", "Significant", "NRPMM"]
     },
     {
-      "id": "romm-5",
+      "id": "EBE.SR.005",
       "risk": "Payroll expenses is not recorded in proper account",
       "assertion": "Classification",
       "options": ["Lower", "Higher", "Significant", "NRPMM"]
     }
   ],
-   
   "controls":[],
   "substantive_procedures":[
     {
@@ -75,12 +74,12 @@
       "Salary Analytical": "increment.py",
       "question": [
         {
-          "id": "sa-1",
+          "id": "Payroll-4",
           "question": "Assessment of risk",
           "options": ["Lower", "Higher", "Significant"]
         },
         {
-          "id": "sa-2",
+          "id": "Payroll-5",
           "question": "Control reliance approach ",
           "options": ["Relying on controls", "Not relying on controls"]
         }
@@ -90,19 +89,19 @@
       "PF Analytical": "increment.py",
       "question": [
         {
-          "id": "pa-1",
+          "id": "Payroll-6",
           "question": "Select the ledger accounts comprising of provident fund for substantive analytical procedures on provident fund.",
           "options": "List there in pf_calculations.json",
           "type": "multi-correct Dropdown"
         },
         {
-          "id": "pa-2",
+          "id": "Payroll-7",
           "question": "Select the ledger accounts comprising balances such as basic salary, etc. on which the substantive analytical procedures are to be performed.",
           "options": "List there in pf_calculations.json",
           "type": "multi-correct Dropdown"
         },
         {
-          "id": "pa-3",
+          "id": "Payroll-8",
           "question": "Mention the percentage to be used for the analytical procedure.",
           "type": "text",
           "Document": true

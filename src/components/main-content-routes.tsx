@@ -6,6 +6,7 @@ import { TrialBalanceSection } from "./trial-balance-section";
 import { ProfitLossSection } from "./profit-loss-section";
 import { ChartsSection } from "./charts-section";
 import DocumentsPage from "./documents/DocumentsPage";
+import LibrariesPage from "./libraries/LibrariesPage";
 import PayrollRunner from "./payroll/PayrollRunner";
 import PayrollLanding from "./payroll/PayrollLanding";
 import PayrollRomms from "./payroll/PayrollRomms";
@@ -49,8 +50,32 @@ export const mainContentRoutes: Record<string, RouteConfig> = {
   charts: {
     component: ChartsSection,
   },
-  documents: {
+  libraries: {
+    component: LibrariesPage,
+  },
+  "information-library": {
+    component: LibrariesPage,
+  },
+  "internal-control-library": {
+    component: LibrariesPage,
+  },
+  "romm-library": {
+    component: LibrariesPage,
+  },
+  "control-owner-library": {
+    component: LibrariesPage,
+  },
+  "it-elements-library": {
+    component: LibrariesPage,
+  },
+  "business-process-library": {
+    component: LibrariesPage,
+  },
+  "document-library": {
     component: DocumentsPage,
+  },
+  "deficiency-library": {
+    component: LibrariesPage,
   },
   "execution-payroll": {
     component: PayrollRunner,

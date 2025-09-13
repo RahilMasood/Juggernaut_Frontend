@@ -4,6 +4,7 @@ import React from "react";
 import { Building2 } from "lucide-react";
 import { getCompanyName } from "../lib/textron-data-processor";
 import PayrollLanding from "./payroll/PayrollLanding";
+import LibrariesPage from "./libraries/LibrariesPage";
 import {
   mainContentRoutes,
   specialRoutes,
@@ -43,6 +44,11 @@ export function MainContent({
       // Replace searchTerm placeholder with actual value
       if (props.searchTerm === true) {
         props.searchTerm = searchTerm;
+      }
+
+      // Pass activeSection to LibrariesPage
+      if (Component === LibrariesPage) {
+        props.activeSection = activeSection;
       }
 
       // Handle components that need setActiveSection

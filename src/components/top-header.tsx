@@ -1,4 +1,4 @@
-import { Bell, HelpCircle, User, Wifi, Search, Files } from "lucide-react";
+import { Bell, HelpCircle, User, Wifi, Search, Database, Plus } from "lucide-react";
 import { Input } from "./ui/input";
 import { Badge } from "./ui/badge";
 import {
@@ -10,13 +10,15 @@ import React from "react";
 interface TopHeaderProps {
   searchTerm: string;
   setSearchTerm: (term: string) => void;
-  onToggleDocuments?: () => void;
+  onToggleLibraries?: () => void;
+  onAddFile?: () => void;
 }
 
 export function TopHeader({
   searchTerm,
   setSearchTerm,
-  onToggleDocuments,
+  onToggleLibraries,
+  onAddFile,
 }: TopHeaderProps) {
   const companyName = getCompanyName();
   const financialYear = getFinancialYear();
@@ -50,10 +52,10 @@ export function TopHeader({
           <div className="flex items-center gap-4">
             <button
               className="rounded-lg p-1.5 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
-              title="Documents"
-              onClick={onToggleDocuments}
+              title="Libraries"
+              onClick={onToggleLibraries}
             >
-              <Files className="h-5 w-5" />
+              <Database className="h-5 w-5" />
             </button>
             <HelpCircle className="h-5 w-5 cursor-pointer text-white/70 transition-colors hover:text-white" />
             <div className="relative">
@@ -93,6 +95,14 @@ export function TopHeader({
               className="border-white/10 bg-transparent pl-10 text-white placeholder:text-white/40 focus-visible:border-[#4da3ff]/60 focus-visible:ring-[#4da3ff]/40"
             />
           </div>
+          <button
+            onClick={onAddFile}
+            className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/80 transition-all hover:bg-white/10 hover:text-white"
+            title="Add file to library"
+          >
+            <Plus className="h-4 w-4" />
+            Add
+          </button>
         </div>
       </div>
     </div>

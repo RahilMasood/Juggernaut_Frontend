@@ -5,6 +5,7 @@ import {
   isPreviewableImage,
   toFileUrl,
 } from "./PayrollDocumentsContext";
+import TailoringQuestions from "./TailoringQuestions";
 
 type PlaceholderProps = {
   title: string;
@@ -60,12 +61,7 @@ function Placeholder({ title, blurb }: PlaceholderProps) {
 }
 
 export function TailoringQuestionsPanel() {
-  return (
-    <Placeholder
-      title="Tailoring Questions"
-      blurb="Placeholder: Dynamic tailoring questionnaire will appear here."
-    />
-  );
+  return <TailoringQuestions />;
 }
 
 export function RommsPanel() {
