@@ -9,7 +9,17 @@ import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { File, Play, X } from "lucide-react";
 import { usePayrollDocuments, type PayrollDocument } from "@/components/payroll/PayrollDocumentsContext";
-import { type Module } from "@/components/payroll/SubstantiveProcedures";
+// Note: Module type is no longer exported from SubstantiveProcedures
+// This file may need to be updated or removed as it appears to be using old interfaces
+
+// Define the Module interface locally since it's no longer exported
+interface Module {
+  id: string;
+  name: string;
+  description: string;
+  requiredFiles: string[];
+  status: "pending" | "running" | "completed" | "error";
+}
 
 const MODULES: Module[] = [
   {
