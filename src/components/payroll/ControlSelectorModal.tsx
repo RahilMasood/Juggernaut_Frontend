@@ -52,68 +52,50 @@ export default function ControlSelectorModal({
   const loadControls = async () => {
     setLoading(true);
     try {
-      // In a real implementation, this would load from the JSON file
-      // For now, we'll use mock data
-      const mockControls: InternalControl[] = [
-        {
-          control_id: "IC001",
-          control_name: "Payroll Authorization Controls",
-          control_type: "Preventive",
-          control_attribute: "Authorization",
-          control_description: "Controls to ensure payroll transactions are properly authorized before processing"
-        },
-        {
-          control_id: "IC002",
-          control_name: "Employee Data Validation",
-          control_type: "Detective",
-          control_attribute: "Validation",
-          control_description: "Automated validation of employee data against HR records before payroll processing"
-        },
-        {
-          control_id: "IC003",
-          control_name: "Payroll Calculation Review",
-          control_type: "Preventive",
-          control_attribute: "Calculation",
-          control_description: "Manual review and approval of payroll calculations by authorized personnel"
-        },
-        {
-          control_id: "IC004",
-          control_name: "Bank Reconciliation Controls",
-          control_type: "Detective",
-          control_attribute: "Reconciliation",
-          control_description: "Monthly reconciliation of payroll bank accounts with supporting documentation"
-        },
-        {
-          control_id: "IC005",
-          control_name: "Access Controls - Payroll System",
-          control_type: "Preventive",
-          control_attribute: "Access",
-          control_description: "Role-based access controls for payroll system with regular access reviews"
-        },
-        {
-          control_id: "IC006",
-          control_name: "Segregation of Duties - Payroll",
-          control_type: "Preventive",
-          control_attribute: "Segregation",
-          control_description: "Separation of payroll preparation, review, and approval functions"
-        },
-        {
-          control_id: "IC007",
-          control_name: "Payroll Exception Monitoring",
-          control_type: "Detective",
-          control_attribute: "Monitoring",
-          control_description: "Automated monitoring and reporting of payroll exceptions and anomalies"
-        },
-        {
-          control_id: "IC008",
-          control_name: "Employee Termination Controls",
-          control_type: "Preventive",
-          control_attribute: "Termination",
-          control_description: "Controls to ensure timely removal of terminated employees from payroll"
-        }
-      ];
+      // Load controls from Internal Control Library (localStorage)
+      const savedControls = localStorage.getItem('internalControls');
+      let libraryControls: InternalControl[] = [];
       
-      setControls(mockControls);
+      if (savedControls) {
+        const parsedControls = JSON.parse(savedControls);
+        // Transform the library controls to match the expected interface
+        libraryControls = parsedControls.map((control: any) => ({
+          control_id: control.controlMetadata.controlId,
+          control_name: control.controlMetadata.controlName,
+          control_type: control.controlMetadata.subtype === 'Manual' ? 'Manual' : 'Automated',
+          control_attribute: control.controlMetadata.typeOfControl,
+          control_description: control.control_summary?.control_description || `${control.controlMetadata.controlName} - ${control.controlMetadata.typeOfControl} control`
+        }));
+      }
+      
+      // Also load from the payroll internal control library as fallback
+      try {
+        const response = await fetch('/payroll/InternalControlLibrary.json');
+        if (response.ok) {
+          const payrollControls = await response.json();
+          const transformedPayrollControls = payrollControls.map((control: any) => ({
+            control_id: control.control_id,
+            control_name: control.control_name,
+            control_type: control.control_type,
+            control_attribute: control.control_attribute,
+            control_description: control.control_description
+          }));
+          
+          // Combine library controls with payroll controls, avoiding duplicates
+          const allControls = [...libraryControls];
+          transformedPayrollControls.forEach((payrollControl: InternalControl) => {
+            if (!allControls.some(c => c.control_id === payrollControl.control_id)) {
+              allControls.push(payrollControl);
+            }
+          });
+          
+          libraryControls = allControls;
+        }
+      } catch (error) {
+        console.warn('Could not load payroll controls, using only library controls');
+      }
+      
+      setControls(libraryControls);
     } catch (error) {
       console.error("Error loading controls:", error);
       setControls([]);

@@ -1,0 +1,409 @@
+Internal Controls
+
+There are three types of controls:
+
+
+Things to ask at the time of control creation:
+i. Direct/Indirect/GITC
+ii. Control ID
+iii. Control Name
+iv. Workspace to be linked to
+v. Once Direct/Indirect/GITC selected to also ask – Manual/Automated
+
+1. Direct Controls
+Direct controls are of three types of nature:
+
+
+i. Manual Controls:
+It has 6 attributes:
+
+
+
+
+
+
+
+
+
+a. Control Summary
+This has three parts:
+- Control Details
+Control ID (to be entered by user at the time of control creation)
+Control Name (to be entered by user at the time of control creation)
+Workspace Linked (this has to be all the areas it is linked to)
+Control Description (rich text editor)
+Control Attributes
+1. Type of Control (Direct/Indirect/GITC)
+2. Nature (Manual/Automated/Service Organization Control)
+3. Approach (User to choose between preventive and detective)
+4. Type 
+Multiple choice dropdown for the below:
+Verification
+Authorizations & Approvals
+Physical Controls & Counts
+Controls over IUC
+Reconciliations
+Control with review element
+GITC Control
+Tailoring Questions
+1. The engagement team is planning to test the operating effectiveness of the control. (Toggle on or off)
+2. The control addresses a significant risk. (Toggle on or off)
+3. The control includes a review element and addresses a significant accounting estimate. (Toggle on or off)
+
+- Related Accounts and Areas
+Every control has to be associated to atleast one RoMM because the point of a control is to mitigate RoMM. So the RoMMs will be displayed here that the control is linked to. The respective RoMMs will have Note Line IDs linked to them, so those note line IDs will also be displayed, basically in the below format:
+Note Line ID linked
+    RoMM 1 linked
+    RoMM 2 linked
+
+- Detailed Description
+First the control description entered by the user in Control Summary has to be displayed on the top of this screen.
+1. Detailed description of how the control is expected to be performed. (Toggle option for the user to turn on or off)
+If the option is toggled on then the below details to come:
+
+Separately document each relevant step of the control performer’s activities.
+Option to user to add multiple number of steps (each step to have rich text editor)
+
+2. Information used in control (IUC)
+Here user should be able to associate any information from information library.
+
+3. Outputs of the control
+Understand the output of the control, which includes understanding the specific evidence that supports that the control activity that occurred.
+Give option to user to add output. The output will be a rich text editor.
+
+b. Evaluate Design and Determine Implementation
+1. Design & Implementation
+First the control description entered by the user in control summary to be displayed here.
+
+Then if the user has toggled on Detailed Description, the below should be shown for each step added by the user.
+
+First the description of the step entered by the user in Detailed description.
+Then the user should have the below:
+Procedures performed to evaluate the design and implementation of control.
+i. Nature of testing procedure (user to have multiple choice dropdown for Inquiry + Observation, Inquiry + Inspection, Observation, Inspection)
+ii. Procedure Description (rich text editor)
+iii. Test of design and implementation (rich text editor)
+
+The above three should come for each step added by the user in detailed description. If detailed description is toggled off then the above three points to be given only once after the control description is displayed.
+
+Evidence of Design & Implementation
+Add audit evidence obtained in evaluating design and determining implementation of control, if deemed appropriate.
+[Document – but no text box here]
+
+2. Design Factors
+i. Design Factor 1: Appropriateness of the purpose of control and its correlation to the risk/assertion identified and/or RAIT
+Here we have to show all risks which are associated with the control along with a summary of it and then give a rich text editor for it.
+ii. Design Factor 2: Competence and authority of the person(s) performing the control (option to toggle it on or off)
+This part will be connected to our control owner library. In the control owner library, the user has option to create control owners. For each control owner the user has to mandatorily add Name, Designation and Background details – Background having rich text editor. Email ID is optional to be added. Once the user has created a control owner, that control owner can be associated here. The associated owners to be displayed in the below format:
+Control OwnerJob TitleBackground InformationName of the ownerDesignationBackgroundiii. Design Factor 3: Frequency and consistency with which the control is performed (option to toggle it on or off)
+For frequency user to have a single-choice dropdown with following options:
+Annually
+Quarterly
+Monthly
+Weekly
+Daily
+As needed
+Many times per day
+
+For consistency, to give rich text editor.
+
+iv. Design Factor 4: Level of aggregation and predictability (option to toggle it on or off)
+Rich text editor
+v. Design Factor 5: Criteria for investigation (threshold) and process for follow-up (option to toggle it on or off)
+Rich text editor
+
+3. Dependent Controls
+Is the control dependent on other controls? [Yes/no]
+If the answer is Yes, then the user to be given an option to associate control from the control library. Associated controls to be displayed in the below format:
+Control IDControl NameControl DescriptionDesign & ImplementationOperating EffectivenessOf the controlOf the controlOf the controlConclusion given by the user in the respective controlConclusion given by the user in the respective control
+4. Effectiveness of Design & Implementation
+i. Is the design of this control effective?
+[Yes/No/Not Yet Concluded]
+ii. Is this control properly implemented?
+[Yes/No/Not Yet Concluded]
+
+c. Prior Year Audit Evidence (does not come if tailoring question 1 in control summary is toggled off)
+i. Are we planning on using prior year audit evidence to test the operating effectiveness of the control?
+[Yes/no – If Yes, then Risk Associated with Control and Operating Effectiveness should not come]
+If Yes,
+- Considering the current-year design and implementation testing, have there been any changes in the process and/or control that occurred subsequent to previous testing?
+[Rich text editor]
+- Are the above changes considered significant? [Yes/No]
+- Have you tested the operating effectiveness of atleast one control for the current year? [Yes/No – if Yes, to give option to user to associate control just like dependency on control section]
+Note: if the answer to the above two questions is No and Yes respectively, only then it should be considered valid. If the answer is no, then to display a note saying, “The answers to the questions suggest that prior year audit evidence cannot be used to test the operating effectiveness of controls. Please revisit OE strategy.”
+
+-  For each control for which we are using prior year audit evidence, include a sufficient description of the testing performed (may include copies of previous year working papers) to enable an experienced auditor, having no previous connection with the engagement, to understand the nature, timing, extent and results of the procedures performed, evidence obtained and conclusions reached. [Document]
+
+d. Risk Associated with Control (does not come if tailoring question 1 in control summary is toggled off)
+Factors that affect the risk associated with a control include:
+* The nature and materiality of misstatements that the control is intended to prevent or detect,
+* Whether there have been changes in the volume or nature of transactions that might adversely affect control design or operating effectiveness,
+* Whether the account balance, class of transaction or disclosure has a history of errors,
+* The effectiveness of entity-level controls, especially controls that monitor other controls,
+* The nature of the control and the frequency with which it operates,
+* The degree to which the control relies on the effectiveness of other controls
+* The competence of the personnel who perform the control or monitor its performance and whether there have been any changes in authority and responsibility,
+* Whether the control relies on performance by an individual or is automated (an automated control would generally have lower risk if relevant ITGC controls are effective)
+* The complexity of the control and the significance of the judgements that must be made in connection with its operation.
+
+- What is the risk associated with the control? [Higher/Not Higher]
+- Document the basis for the conclusion on the Risk associated with the control.
+[Rich Text Editor]
+
+e. Operating Effectiveness (does not come if tailoring question 1 in control summary is toggled off)
+i. Timing & Extent of procedures
+- What is the timing of procedure?
+Apportion (Apportion the control test over the year, i.e., spread the total number of selections throughout the year)
+Conclude at Interim (Perform a complete test of the control at an interim date. This approach requires us to perform sufficient testing to enable us to reach a preliminary conclusion regarding the operating effectiveness of controls tested at interim date)
+[Document – only text box]
+- Extent of Procedures
+Document the frequency of performance of control. (User has to enter the number of times control is performed in the current year)
+
+The following table to be shown first
+ParticularsAssessmentFrequencyAs entered aboveRisk of Material MisstatementThe highest of all risks associated with this controlRisk Associated with ControlAssessment done in RAWC areaSuggested Minimum Sample SizeBased on sampling guide matrix in the images below
+
+
+Are we planning for deviations in our tests of operating effectiveness? [Yes/No – if Yes,
+Document what constitutes a deviation in the control. – Rich text editor
+Document rationale behind planning for deviation in test of operating effectiveness. – Rich text editor]
+
+Use suggested minimum sample size for testing? [Yes/No, if No,
+Enter actual number of samples (User to enter actual number of samples)
+Document rationale for a different sample size. – Rich text editor]
+Note: If the deviation question is Yes, then the sample size question is by default No.
+
+ii. Nature of Procedures
+The steps in detailed description have to come here.
+To give option to user to copy procedures from Design and Implementation under Evaluate Design & Implementation
+Then the user should have option to add more procedures as below:
+Procedures performed to evaluate the operating effectiveness of control.
+- Nature of testing procedure (user to have multiple choice dropdown for Inquiry + Observation, Inquiry + Inspection, Observation, Inspection)
+- Procedure Description (rich text editor)
+
+The above two should come for each step added by the user in detailed description. If detailed description is toggled off then the above two points to be given only once after the control description is displayed.
+
+- Perform tests of operating effectiveness
+For each activity, we document the procedures performed to test the operating effectiveness.
+[Document – no text box]
+
+iii. Operating Effectiveness Testing Conclusion
+Is the control operating effectively?
+[Yes/No/Not Yet Concluded]
+
+f. Rollforward
+This section will only come if the answer to the first question in operating effectiveness is Conclude at Interim.
+First the control description is to be displayed.
+
+What is the length of the rollforward period?
+Date range to be entered by user as From date and To date.
+
+Rollforward Inquiry
+i. Who did we inquire with to identify if significant changes to the control or process have occurred since interim testing?
+Name of respective SPOCDate of InquiryEntered by userCalendar dropdown
+ii. Have there been any changes in the ICFR (internal control over financial reporting) that would impact the design and operating effectiveness of control? [Yes/No – if Yes, 
+What were the changes? – Rich text editor text box
+Additional procedures performed – Rich text editor text box]
+iii. Are the relevant general IT control(s) that the automated control is dependent upon operating effectively? [Yes/No]
+[Text box]
+iv. Is inquiry & testing performed sufficient for rollforward? 
+[Yes/No – if No,
+Procedures performed to evaluate the operating effectiveness of control.
+To give option to user to Copy Interim Procedures from the operating effectiveness area.
+Then to give user the option to add more procedures as below:
+- Nature of testing procedure (user to have multiple choice dropdown for Inquiry + Observation, Inquiry + Inspection, Observation, Inspection)
+- Procedure Description (rich text editor)
+
+The above two should come for each step added by the user in detailed description. If detailed description is toggled off then the above two points to be given only once after the control description is displayed.
+
+- Perform tests of operating effectiveness
+For each activity, we document the procedures performed to test the operating effectiveness.
+[Document – no text box]
+]
+
+v. Operating Effectiveness Testing Conclusion
+Is the control operating effectively?
+[Yes/No/Not Yet Concluded]
+
+
+i. Automated Controls:
+a. Control Summary
+This has two parts:
+- Control Details
+Control ID (to be entered by user at the time of control creation)
+Control Name (to be entered by user at the time of control creation)
+Workspace Linked (this has to be all the areas it is linked to)
+Control Description (rich text editor)
+Control Attributes
+1. Type of Control (Direct/Indirect/GITC)
+2. Nature (Manual/Automated/Service Organization Control)
+3. Approach (User to choose between preventive and detective)
+4. Type 
+Multiple choice dropdown for the below:
+Automated Input Control
+Automated processing control
+Automated output control
+Automated calculation control
+Automated application access control
+Tailoring Questions
+1. The engagement team is planning to test the operating effectiveness of the control. (Toggle on or off)
+- Related Accounts and Areas
+Every control has to be associated to atleast one RoMM because the point of a control is to mitigate RoMM. So the RoMMs will be displayed here that the control is linked to. The respective RoMMs will have Note Line IDs linked to them, so those note line IDs will also be displayed, basically in the below format:
+Note Line ID linked
+    RoMM 1 linked
+    RoMM 2 linked
+
+b. Evaluate Design and Determine Implementation
+First the control description is to be displayed on top.
+Associated IT Element
+User can associate IT elements here (to be explained in detail in future)
+i. Design & Implementation
+- Identify GITC(s) over access and changes to the automated control programmed functionality.
+User to have option to associate GITC controls created in the following table format:
+Control IDDescriptionThe control ID of the control selectedThe control description of the GITC
+- Does the automated control rely on a system configuration that is tailored through user defined settings?
+[Yes/No]
+If Yes,
+List the configuration setting name or screen name. (user to have option to add name of the configuration with a description in the below format)
+Configuration NameConfiguration DescriptionTo be entered by userTo be entered by userUser to have option to add more rows
+What is the management’s intended design of the configured values/settings? [Rich text editor – text box]
+How is access to modify the configuration controlled? [Rich text editor – text box]
+Does the configuration change frequently? [Rich text editor – text box]
+
+Whether Yes or No
+Procedures to understand design of automated functionality and system configuration [Rich text editor – text box]
+
+- Identify GITC(s) over access and changes to system configuration.
+User to have option to associate GITC controls created in the following table format:
+Control IDDescriptionThe control ID of the control selectedThe control description of the GITC
+- Are there any variations in how the automated control is applied? [Yes/No]
+Procedures to understand and identify potential variants. [Rich text editor – text box]
+Additional procedures to understand design and determine implementation of the control. [Rich text editor – text box]
+If Yes,
+(User to have option to add name of the variant with a description in the below format)
+Variant NameVariant DescriptionTo be entered by userTo be entered by userUser to have option to add more rows
+ii. Source Data
+Understand the source data from which internal information is created and maintained in IT system. Such data may or may not be subject to general IT controls. Evaluate the sufficiency and appropriateness of internal information that is used as audit evidence.
+User to have option to add multiple source data. Each source data will contain the following:
+Source Data Name [text box]
+Describe the information (or source data) used in the automated control. [Rich text editor – text box]
+Are there any GITCs over the system(s) that contains relevant source data relevant to the audit?
+[Yes/No]
+[Rich text editor – text box]
+If Yes,
+User to have option to associate GITC controls created in the following table format:
+Control IDDescriptionThe control ID of the control selectedThe control description of the GITC
+Are there any business controls over the source data?
+[Yes/No]
+[Rich text editor – text box]
+If Yes,
+User to have option to associate Direct controls created in the following table format:
+Control IDDescriptionThe control ID of the control selectedThe control description of the Direct control
+iii. Design Factors
+Design Factor 1: Appropriateness of the purpose of control and its correlation to the risk/assertion identified and/or RAIT
+Here we have to show all risks which are associated with the control along with a summary of it and then give a rich text editor for it.
+Design Factor 2: Competence and authority of the person(s) performing the control (option to toggle it on or off)
+This part will be connected to our control owner library. In the control owner library, the user has option to create control owners. For each control owner the user has to mandatorily add Name, Designation and Background details – Background having rich text editor. Email ID is optional to be added. Once the user has created a control owner, that control owner can be associated here. The associated owners to be displayed in the below format:
+Control OwnerJob TitleBackground InformationName of the ownerDesignationBackgroundDesign Factor 3: Frequency and consistency with which the control is performed (option to toggle it on or off)
+For frequency user to have a single-choice dropdown with following options:
+Annually
+Quarterly
+Monthly
+Weekly
+Daily
+As needed
+Many times per day
+
+For consistency, to give rich text editor.
+
+Design Factor 4: Level of aggregation and predictability (option to toggle it on or off)
+Rich text editor
+Design Factor 5: Criteria for investigation (threshold) and process for follow-up (option to toggle it on or off)
+Rich text editor
+
+iv. Effectiveness of Design & Implementation
+- Is the design of this control effective?
+[Yes/No/Not Yet Concluded]
+- Is this control properly implemented?
+[Yes/No/Not Yet Concluded]
+
+c. Risk Associated with Control (does not come if tailoring question 1 in control summary is toggled off)
+Factors that affect the risk associated with a control include:
+* The nature and materiality of misstatements that the control is intended to prevent or detect,
+* Whether there have been changes in the volume or nature of transactions that might adversely affect control design or operating effectiveness,
+* Whether the account balance, class of transaction or disclosure has a history of errors,
+* The effectiveness of entity-level controls, especially controls that monitor other controls,
+* The nature of the control and the frequency with which it operates,
+* The degree to which the control relies on the effectiveness of other controls
+* The competence of the personnel who perform the control or monitor its performance and whether there have been any changes in authority and responsibility,
+* Whether the control relies on performance by an individual or is automated (an automated control would generally have lower risk if relevant ITGC controls are effective)
+* The complexity of the control and the significance of the judgements that must be made in connection with its operation.
+
+- What is the risk associated with the control? [Higher/Not Higher]
+- Document the basis for the conclusion on the Risk associated with the control.
+[Rich Text Editor]
+
+d. Operating Effectiveness (does not come if tailoring question 1 in control summary is toggled off)
+i. Timing & Extent of procedures
+- What is the timing of procedure?
+Here it should always shows as below
+Conclude at Interim (Perform a complete test of the control at an interim date. This approach requires us to perform sufficient testing to enable us to reach a preliminary conclusion regarding the operating effectiveness of controls tested at interim date)
+- Extent of Procedures
+ParticularsAssessmentRisk of Material MisstatementThe highest of all risks associated with this controlRisk Associated with ControlAssessment done in RAWC area
+Sample size [Text box]
+[Document rationale for sample size. – text box]
+- Using the work of others? [Yes/No – if Yes, Approach to testing the work performed by others is – dropdown with two options – Selected For Reperformance/Not Selected For Reperformance]
+- Is information used in testing operating effectiveness? [Yes/No – if Yes, option to associate information, more details later]
+
+ii. Nature of Procedures
+User should have option to add procedures as below:
+Procedures performed to evaluate the operating effectiveness of control.
+- Nature of testing procedure (user to have multiple choice dropdown for Inquiry + Observation, Inquiry + Inspection, Observation, Inspection)
+- Procedure Description (rich text editor)
+- Test of operating effectiveness (rich text editor)
+
+The above three should come for each procedure added by the user in detailed description. If detailed description is toggled off then the above two points to be given only once after the control description is displayed.
+
+- Perform tests of operating effectiveness
+For each activity, we document the procedures performed to test the operating effectiveness.
+[Document – no text box]
+
+iii. Operating Effectiveness Testing Conclusion
+Is the control operating effectively?
+[Yes/No/Not Yet Concluded]
+
+e. Rollforward
+First the control description is to be displayed.
+
+What is the length of the rollforward period?
+Date range to be entered by user as From date and To date.
+
+Rollforward Inquiry
+i. Who did we inquire with to identify if significant changes to the control or process have occurred since interim testing?
+Name of respective SPOCDate of InquiryEntered by userCalendar dropdown
+ii. Have there been any changes in the ICFR (internal control over financial reporting) that would impact the design and operating effectiveness of control? [Yes/No – if Yes, 
+What were the changes? – Rich text editor text box
+Additional procedures performed – Rich text editor text box]
+iii. Are the relevant general IT control(s) that the automated control is dependent upon operating effectively? [Yes/No]
+[Text box]
+iv. Is inquiry & testing performed sufficient for rollforward? 
+[Yes/No – if No,
+Procedures performed to evaluate the operating effectiveness of control.
+To give option to user to Copy Interim Procedures from the operating effectiveness area.
+Then to give user the option to add more procedures as below:
+- Nature of testing procedure (user to have multiple choice dropdown for Inquiry + Observation, Inquiry + Inspection, Observation, Inspection)
+- Procedure Description (rich text editor)
+
+The above two should come for each step added by the user in detailed description. If detailed description is toggled off then the above two points to be given only once after the control description is displayed.
+
+- Perform tests of operating effectiveness
+For each activity, we document the procedures performed to test the operating effectiveness.
+[Document – no text box]
+]
+
+v. Operating Effectiveness Testing Conclusion
+Is the control operating effectively?
+[Yes/No/Not Yet Concluded]
+
+
+
+

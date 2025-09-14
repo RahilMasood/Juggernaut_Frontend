@@ -19,6 +19,7 @@ import {
 import DocumentsPage from "../documents/DocumentsPage";
 import { logger } from "../../utils/logger";
 import { fileManager, FileMetadata } from "../../utils/file-manager";
+import InternalControlViewerModal from "./InternalControlViewerModal";
 
 interface LibraryItem {
   id: string;
@@ -96,6 +97,19 @@ interface RommData {
   section: string;
 }
 
+interface InternalControl {
+  id: string;
+  controlMetadata: {
+    typeOfControl: string;
+    subtype: string;
+    controlId: string;
+    controlName: string;
+    workspace: string;
+  };
+  createdAt: string;
+  template: string;
+}
+
 interface LibrariesPageProps {
   onBack?: () => void;
   activeSection?: string;
@@ -105,8 +119,14 @@ export default function LibrariesPage({ onBack, activeSection }: LibrariesPagePr
   const [selectedLibrary, setSelectedLibrary] = useState<string | null>(null);
   const [rommData, setRommData] = useState<RommData[]>([]);
   const [libraryFiles, setLibraryFiles] = useState<FileMetadata[]>([]);
+  const [internalControls, setInternalControls] = useState<InternalControl[]>([]);
   const [loading, setLoading] = useState(false);
   const [filesLoading, setFilesLoading] = useState(false);
+  
+  // Control viewer modal state
+  const [selectedControl, setSelectedControl] = useState<any>(null);
+  const [controlTemplate, setControlTemplate] = useState<any>(null);
+  const [isControlViewerOpen, setIsControlViewerOpen] = useState(false);
 
   // Load ROMM data from Structure.json
   useEffect(() => {
@@ -219,6 +239,9 @@ export default function LibrariesPage({ onBack, activeSection }: LibrariesPagePr
   useEffect(() => {
     if (selectedLibrary) {
       loadLibraryFiles(selectedLibrary);
+      if (selectedLibrary === 'internal-control-library') {
+        loadInternalControls();
+      }
     }
   }, [selectedLibrary]);
 
@@ -232,6 +255,39 @@ export default function LibrariesPage({ onBack, activeSection }: LibrariesPagePr
       setLibraryFiles([]);
     } finally {
       setFilesLoading(false);
+    }
+  };
+
+  const loadInternalControls = async () => {
+    try {
+      // In a real implementation, this would load from a backend or local storage
+      // For now, we'll use localStorage to simulate persistence
+      const savedControls = localStorage.getItem('internalControls');
+      if (savedControls) {
+        setInternalControls(JSON.parse(savedControls));
+      } else {
+        // Load from the existing payroll internal control library as examples
+        const response = await fetch('/payroll/InternalControlLibrary.json');
+        if (response.ok) {
+          const existingControls = await response.json();
+          const formattedControls = existingControls.map((control: any, index: number) => ({
+            id: `ic-${index}`,
+            controlMetadata: {
+              typeOfControl: 'Direct',
+              subtype: control.control_type === 'Detective' ? 'Manual' : 'Manual',
+              controlId: control.control_id,
+              controlName: control.control_name,
+              workspace: 'Payroll'
+            },
+            createdAt: new Date().toISOString(),
+            template: 'manual'
+          }));
+          setInternalControls(formattedControls);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading internal controls:', error);
+      setInternalControls([]);
     }
   };
 
@@ -255,6 +311,54 @@ export default function LibrariesPage({ onBack, activeSection }: LibrariesPagePr
     }
   };
 
+  const handleControlClick = async (control: InternalControl) => {
+    try {
+      // Load the control template
+      const response = await fetch('/Internal%20Controls%20Updated.json');
+      
+      if (response.ok) {
+        const templateData = await response.json();
+        
+        // Determine template type from multiple possible sources
+        let templateType = 'manual'; // default
+        if (control.template === 'automated' || 
+            control.controlMetadata?.subtype === 'Automated') {
+          templateType = 'automated';
+        }
+        
+        const template = templateType === 'automated'
+          ? templateData.templates?.automated 
+          : templateData.templates?.manual;
+        
+        setSelectedControl(control);
+        setControlTemplate(template);
+        setIsControlViewerOpen(true);
+        
+        logger.dataAccess("Internal Control", control.controlMetadata?.controlId || control.id);
+      }
+    } catch (error) {
+      console.error('Error loading control template:', error);
+    }
+  };
+
+  const handleControlSave = (updatedControl: any) => {
+    // Update the control in localStorage
+    try {
+      const savedControls = JSON.parse(localStorage.getItem('internalControls') || '[]');
+      const updatedControls = savedControls.map((c: any) => 
+        c.id === updatedControl.id ? updatedControl : c
+      );
+      localStorage.setItem('internalControls', JSON.stringify(updatedControls));
+      
+      // Refresh the controls list
+      setInternalControls(updatedControls);
+      
+      logger.dataSave("Internal Control Update", updatedControl.controlMetadata?.controlId);
+    } catch (error) {
+      console.error('Error saving updated control:', error);
+    }
+  };
+
   const renderLibraryContent = () => {
     if (!selectedLibrary) return null;
 
@@ -265,6 +369,92 @@ export default function LibrariesPage({ onBack, activeSection }: LibrariesPagePr
       case "document-library":
         return <DocumentsPage />;
       
+      case "internal-control-library":
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedLibrary(null)}
+                className="flex items-center gap-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to Libraries
+              </Button>
+              <div>
+                <h2 className="text-xl font-semibold text-white">Internal Control Library</h2>
+                <p className="text-sm text-white/60">
+                  Internal control frameworks and procedures
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-medium text-white">Controls</h3>
+                <Badge variant="outline" className="text-xs">
+                  {internalControls.length} control(s)
+                </Badge>
+              </div>
+
+              {filesLoading ? (
+                <div className="text-center text-white/60 py-8">
+                  Loading controls...
+                </div>
+              ) : internalControls.length === 0 ? (
+                <Card className="border-white/10 bg-white/5 text-white">
+                  <CardContent className="p-6">
+                    <div className="text-center text-white/60">
+                      <Shield className="mx-auto h-12 w-12 mb-4 text-white/40" />
+                      <p>No internal controls created yet.</p>
+                      <p className="text-sm mt-2">Use the "Add" button to create new internal controls.</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-2">
+                  {internalControls.map((control) => (
+                    <div
+                      key={control.id}
+                      onClick={() => handleControlClick(control)}
+                      className="cursor-pointer rounded-lg border border-white/10 bg-white/5 p-4 text-white transition-all hover:border-white/20 hover:bg-white/10"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="text-sm font-medium text-white">
+                              {control.controlMetadata.controlId}
+                            </h3>
+                            <Badge variant="outline" className="text-xs">
+                              {control.controlMetadata.typeOfControl}
+                            </Badge>
+                            <Badge variant="outline" className="text-xs">
+                              {control.controlMetadata.subtype}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-white/80 mb-2">
+                            {control.controlMetadata.controlName}
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-xs">
+                              {control.controlMetadata.workspace}
+                            </Badge>
+                            <span className="text-xs text-white/50">
+                              Created: {new Date(control.createdAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-white/40" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+
       case "romm-library":
         return (
           <div className="space-y-6">
@@ -457,6 +647,16 @@ export default function LibrariesPage({ onBack, activeSection }: LibrariesPagePr
           );
         })}
       </div>
+      
+      {/* Control Viewer Modal */}
+      <InternalControlViewerModal
+        isOpen={isControlViewerOpen}
+        onClose={() => setIsControlViewerOpen(false)}
+        onSave={handleControlSave}
+        control={selectedControl}
+        template={controlTemplate}
+        mode="view"
+      />
     </div>
   );
 }

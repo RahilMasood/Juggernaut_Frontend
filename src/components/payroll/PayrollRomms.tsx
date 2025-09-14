@@ -8,6 +8,7 @@ import { AlertCircle, CheckCircle2, Shield, Plus, X, Play } from "lucide-react";
 import combinedData from "../../data/Combined.json";
 import ControlSelectorModal from "./ControlSelectorModal";
 import ProcedureSelectorModal from "./ProcedureSelectorModal";
+import InternalControlViewerModal from "../libraries/InternalControlViewerModal";
 
 interface RommItem {
   id: string;
@@ -60,6 +61,23 @@ export default function PayrollRomms({
   const [isControlSelectorOpen, setIsControlSelectorOpen] = useState(false);
   const [isProcedureSelectorOpen, setIsProcedureSelectorOpen] = useState(false);
   const [employeeBenefitsNoteLines, setEmployeeBenefitsNoteLines] = useState<string[]>([]);
+  
+  // Control viewer modal state
+  const [selectedControlForViewing, setSelectedControlForViewing] = useState<any>(null);
+  const [controlViewerTemplate, setControlViewerTemplate] = useState<any>(null);
+  const [isControlViewerOpen, setIsControlViewerOpen] = useState(false);
+
+  // Load persisted ROMM-control linkages
+  useEffect(() => {
+    try {
+      const savedLinkages = localStorage.getItem('rommControlLinkages');
+      if (savedLinkages) {
+        setAssociatedControls(JSON.parse(savedLinkages));
+      }
+    } catch (error) {
+      console.error('Error loading ROMM-control linkages:', error);
+    }
+  }, []);
 
   // Load ROMMS data from Instructions.json
   useEffect(() => {
@@ -197,18 +215,32 @@ export default function PayrollRomms({
 
   const handleAssociateControls = (selectedControls: InternalControl[]) => {
     if (selectedRommId) {
-      setAssociatedControls(prev => ({
-        ...prev,
+      const newAssociations = {
+        ...associatedControls,
         [selectedRommId]: selectedControls
-      }));
+      };
+      setAssociatedControls(newAssociations);
+      
+      // Save ROMM-control linkages to localStorage for persistence
+      localStorage.setItem('rommControlLinkages', JSON.stringify(newAssociations));
+      
+      // Dispatch custom event to notify other components
+      window.dispatchEvent(new CustomEvent('rommControlLinkagesUpdated'));
     }
   };
 
   const handleRemoveControl = (rommId: string, controlId: string) => {
-    setAssociatedControls(prev => ({
-      ...prev,
-      [rommId]: prev[rommId]?.filter(control => control.control_id !== controlId) || []
-    }));
+    const newAssociations = {
+      ...associatedControls,
+      [rommId]: associatedControls[rommId]?.filter(control => control.control_id !== controlId) || []
+    };
+    setAssociatedControls(newAssociations);
+    
+    // Save updated ROMM-control linkages to localStorage
+    localStorage.setItem('rommControlLinkages', JSON.stringify(newAssociations));
+    
+    // Dispatch custom event to notify other components
+    window.dispatchEvent(new CustomEvent('rommControlLinkagesUpdated'));
   };
 
   const handleAssociateProcedures = (selectedProcedures: SubstantiveProcedure[]) => {
@@ -232,6 +264,51 @@ export default function PayrollRomms({
   };
 
   const allRommsComplete = romms.every((r) => isRommComplete(r.id));
+
+  const handleControlClickInRomm = async (control: InternalControl) => {
+    try {
+      // Load the control template
+      const response = await fetch('/Internal%20Controls%20Updated.json');
+      if (response.ok) {
+        const templateData = await response.json();
+        
+        // Determine template type from multiple possible sources
+        let templateType = 'manual'; // default
+        if (control.template === 'automated' || 
+            control.control_type === 'Automated' || 
+            control.control_type === 'automated' ||
+            (control as any).controlMetadata?.subtype === 'Automated') {
+          templateType = 'automated';
+        }
+        
+        const template = templateType === 'automated'
+          ? templateData.templates?.automated 
+          : templateData.templates?.manual;
+        
+        setSelectedControlForViewing(control);
+        setControlViewerTemplate(template);
+        setIsControlViewerOpen(true);
+      }
+    } catch (error) {
+      console.error('Error loading control template:', error);
+    }
+  };
+
+  const handleControlSaveInRomm = (updatedControl: any) => {
+    // Update the control in localStorage
+    try {
+      const savedControls = JSON.parse(localStorage.getItem('internalControls') || '[]');
+      const updatedControls = savedControls.map((c: any) => 
+        c.id === updatedControl.id ? updatedControl : c
+      );
+      localStorage.setItem('internalControls', JSON.stringify(updatedControls));
+      
+      // Trigger refresh of linked controls
+      window.dispatchEvent(new CustomEvent('rommControlLinkagesUpdated'));
+    } catch (error) {
+      console.error('Error saving updated control:', error);
+    }
+  };
 
   const getRiskLevelColor = (option: string) => {
     switch (option) {
@@ -613,10 +690,13 @@ export default function PayrollRomms({
                 {associatedControls[selectedRomm.id] && associatedControls[selectedRomm.id].length > 0 ? (
                   <div className="space-y-2">
                     {associatedControls[selectedRomm.id].map((control) => (
-                      <Card key={control.control_id} className="border-white/10 bg-white/5">
+                      <Card key={control.control_id} className="border-white/10 bg-white/5 cursor-pointer transition-all hover:border-white/20 hover:bg-white/10">
                         <CardContent className="p-3">
                           <div className="flex items-start justify-between">
-                            <div className="flex-1">
+                            <div 
+                              className="flex-1"
+                              onClick={() => handleControlClickInRomm(control)}
+                            >
                               <div className="flex items-center gap-2 mb-1">
                                 <h5 className="text-sm font-medium text-white">
                                   {control.control_name}
@@ -637,14 +717,24 @@ export default function PayrollRomms({
                                 </Badge>
                               </div>
                             </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleRemoveControl(selectedRomm.id, control.control_id)}
-                              className="text-white/60 hover:text-white hover:bg-white/10"
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
+                            <div className="flex items-center gap-1">
+                              <div className="text-white/40">
+                                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                </svg>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRemoveControl(selectedRomm.id, control.control_id);
+                                }}
+                                className="text-white/60 hover:text-white hover:bg-white/10"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
                         </CardContent>
                       </Card>
@@ -773,6 +863,16 @@ export default function PayrollRomms({
         onClose={() => setIsProcedureSelectorOpen(false)}
         onProceduresSelected={handleAssociateProcedures}
         existingProcedures={selectedRommId ? associatedProcedures[selectedRommId] || [] : []}
+      />
+      
+      {/* Control Viewer Modal */}
+      <InternalControlViewerModal
+        isOpen={isControlViewerOpen}
+        onClose={() => setIsControlViewerOpen(false)}
+        onSave={handleControlSaveInRomm}
+        control={selectedControlForViewing}
+        template={controlViewerTemplate}
+        mode="view"
       />
     </div>
   );

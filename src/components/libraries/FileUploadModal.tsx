@@ -19,6 +19,8 @@ import {
   AlertCircle
 } from "lucide-react";
 import { logger } from "../../utils/logger";
+import InternalControlMetadataModal from "./InternalControlMetadataModal";
+import InternalControlForm from "./InternalControlForm";
 
 interface LibraryOption {
   id: string;
@@ -97,11 +99,22 @@ export default function FileUploadModal({
     message: string;
   }>({ type: null, message: '' });
   
+  // Internal Control specific states
+  const [showMetadataModal, setShowMetadataModal] = useState(false);
+  const [showControlForm, setShowControlForm] = useState(false);
+  const [controlMetadata, setControlMetadata] = useState<any>(null);
+  const [controlTemplate, setControlTemplate] = useState<any>(null);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleLibrarySelect = (libraryId: string) => {
     setSelectedLibrary(libraryId);
     setUploadStatus({ type: null, message: '' });
+    
+    // If Internal Control Library is selected, show metadata modal
+    if (libraryId === 'internal-control') {
+      setShowMetadataModal(true);
+    }
   };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -192,10 +205,85 @@ export default function FileUploadModal({
     });
   };
 
+  // Load internal control template data
+  const loadInternalControlTemplate = async () => {
+    try {
+      // Load the template structure from the JSON file
+      const response = await fetch('/Internal%20Controls%20Updated.json');
+      const templateData = await response.json();
+      return templateData;
+    } catch (error) {
+      console.error('Failed to load internal control template:', error);
+      // Fallback to a basic structure if file loading fails
+      return {
+        templates: {
+          manual: { sections: [] },
+          automated: { sections: [] }
+        }
+      };
+    }
+  };
+
+  const handleMetadataSubmitted = async (metadata: any) => {
+    setControlMetadata(metadata);
+    setShowMetadataModal(false);
+    
+    // Load the appropriate template
+    const templateData = await loadInternalControlTemplate();
+    const template = metadata.subtype === 'Manual' 
+      ? templateData.templates?.manual 
+      : templateData.templates?.automated;
+    
+    setControlTemplate(template);
+    setShowControlForm(true);
+  };
+
+  const handleControlSaved = async (controlData: any) => {
+    setShowControlForm(false);
+    
+    // Save to Internal Control Library using localStorage for persistence
+    try {
+      const existingControls = JSON.parse(localStorage.getItem('internalControls') || '[]');
+      const newControl = {
+        id: `ic-${Date.now()}`,
+        ...controlData
+      };
+      existingControls.push(newControl);
+      localStorage.setItem('internalControls', JSON.stringify(existingControls));
+      
+      logger.dataSave("Internal Control", controlData);
+      
+      setUploadStatus({ 
+        type: 'success', 
+        message: `Internal control "${controlData.controlMetadata.controlName}" created successfully!` 
+      });
+
+      // Notify parent component
+      if (onFileUploaded) {
+        onFileUploaded('internal-control', controlData.controlMetadata.controlName);
+      }
+
+      // Reset after successful creation
+      setTimeout(() => {
+        handleClose();
+      }, 2000);
+    } catch (error) {
+      console.error('Error saving control:', error);
+      setUploadStatus({ 
+        type: 'error', 
+        message: 'Failed to save internal control. Please try again.' 
+      });
+    }
+  };
+
   const handleClose = () => {
     setSelectedLibrary(null);
     setSelectedFiles(null);
     setUploadStatus({ type: null, message: '' });
+    setShowMetadataModal(false);
+    setShowControlForm(false);
+    setControlMetadata(null);
+    setControlTemplate(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -352,6 +440,24 @@ export default function FileUploadModal({
           </div>
         </CardContent>
       </Card>
+      
+      {/* Internal Control Metadata Modal */}
+      <InternalControlMetadataModal
+        isOpen={showMetadataModal}
+        onClose={() => setShowMetadataModal(false)}
+        onMetadataSubmitted={handleMetadataSubmitted}
+      />
+      
+      {/* Internal Control Form Modal */}
+      {controlMetadata && controlTemplate && (
+        <InternalControlForm
+          isOpen={showControlForm}
+          onClose={() => setShowControlForm(false)}
+          onSave={handleControlSaved}
+          metadata={controlMetadata}
+          template={controlTemplate}
+        />
+      )}
     </div>
   );
 }
