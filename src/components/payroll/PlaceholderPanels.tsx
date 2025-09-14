@@ -161,9 +161,9 @@ export function ControlsPanel() {
   const handleControlClick = async (control: any) => {
     try {
       // Load the control template based on the control's template type
-      const response = await fetch('/Internal%20Controls%20Updated.json');
-      if (response.ok) {
-        const templateData = await response.json();
+      // Use IPC to read the Internal Controls configuration file
+      const templateData = await window.internalControls?.readTemplate?.();
+      if (templateData) {
         
         // Determine template type from multiple possible sources
         let templateType = 'manual'; // default

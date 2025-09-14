@@ -12,21 +12,31 @@
         {
           "id": "control_summary",
           "label": "Control Summary",
+          "description": "This section has three panes: Control Summary, Related Accounts, and Detailed Description",
+          "panes": [
+            {
+              "id": "control_summary_pane",
+              "label": "Control Summary",
           "fields": [
             { "id": "control_id", "type": "text", "label": "Control ID" },
             { "id": "control_name", "type": "text", "label": "Control Name" },
-            { "id": "workspace", "type": "text", "label": "Workspace Linked (this has to be all the areas it is linked to)" },
+                { 
+                  "id": "workspace", 
+                  "type": "dropdown", 
+                  "label": "Workspace Linked (this has to be all the areas it is linked to)",
+                  "options": ["Equity & Reserves","Borrowings","Lease Liability","Other Liabilities","Trade Payable","Provisions and Contingent Liabilities","Income Tax","Statutory Remittances","Property, Plant & Equipment","Intangible Assets","IAUD","Impairment","Investments","Other Assets","Trade Receivables","Inventory","Cash & Cash Equivalents","Revenue from Operations","Other Income","Cost of materials consumed","Employee Benefits Expense","Depreciation & Amortisation Expense","Finance Costs","Other Expenses","Service Auditor's Report","Use of Auditor Specialist","Management use of Expert","Related Party Transaction","Going Concern","Opening Balance Testing","Litigations & Claims","NOCLAR","Using work of other auditor","Review of estimates for management bias"]
+                },
             { "id": "control_description", "type": "richText", "label": "Control Description" },
             {
               "id": "control_attributes",
               "label": "Control Attributes",
               "fields": [
-                { "id": "type_of_control", "type": "dropdown", "options": ["Direct", "Indirect", "GITC"], "label": "Type of Control" },
-                { "id": "nature", "type": "dropdown", "options": ["Manual", "Automated", "Service Organization Control"], "label": "Nature" },
+                    { "id": "type_of_control", "type": "dropdown", "options": ["Direct", "Indirect", "GITC"], "label": "Type of Control", "readOnly": true },
+                    { "id": "nature", "type": "dropdown", "options": ["Manual", "Automated", "Service Organization Control"], "label": "Nature", "readOnly": true },
                 { "id": "approach", "type": "dropdown", "options": ["Preventive", "Detective"], "label": "Approach" },
                 {
                   "id": "type",
-                  "type": "multiSelectDropdown",
+                      "type": "dropdown",
                   "options": [
                     "Verification",
                     "Authorizations & Approvals",
@@ -42,12 +52,19 @@
             },
             {
               "id": "tailoring_questions",
+                  "label": "Tailoring Questions",
               "fields": [
                 { "id": "test_operating_effectiveness", "type": "toggle", "label": "The engagement team is planning to test the operating effectiveness of the control." },
                 { "id": "significant_risk", "type": "toggle", "label": "The control addresses a significant risk." },
                 { "id": "review_element_estimate", "type": "toggle", "label": "The control includes a review element and addresses a significant accounting estimate." }
+                  ]
+                }
               ]
             },
+            {
+              "id": "related_accounts_pane",
+              "label": "Related Accounts",
+              "fields": [
             {
               "id": "related_accounts",
               "label": "Related Accounts and Areas",
@@ -64,58 +81,56 @@
           ]
         },
         {
-          "id": "evaluate_design_and_implementation",
-          "label": "Evaluate Design and Determine Implementation",
-          "fields": [
-            { "id": "display_control_description", "type": "display", "label": "Control Description from Summary" },
-            {
-              "id": "detailed_description",
+              "id": "detailed_description_pane",
               "label": "Detailed Description",
               "fields": [
                 { 
                   "id": "toggle_detailed", 
                   "type": "toggle", 
-                  "label": "Detailed description of how the control is expected to be performed",
+                  "label": "Provide detailed description of how control is performed?",
                   "description": "Toggle option for the user to turn on or off"
                 },
                 {
-                  "id": "control_steps",
+                  "id": "steps",
                   "type": "repeatableGroup",
                   "label": "Control Steps",
-                  "description": "Separately document each relevant step of the control performer's activities",
+                  "description": "User can add steps and for each step added there should be a large textbox with step numbering (Step 1, Step 2, etc.)",
                   "fields": [
                     { 
                       "id": "step_description", 
-                      "type": "richText", 
+                      "type": "largeTextbox", 
                       "label": "Step Description",
-                      "description": "Each step to have rich text editor"
+                      "description": "Large textbox for step description. Each step will be automatically numbered (Step 1, Step 2, etc.)"
                     }
                   ],
                   "visibilityRules": { "when": "toggle_detailed", "is": true }
                 },
                 {
-                  "id": "information_used_control",
-                  "type": "associationLibrary",
+                  "id": "iuc", 
+                  "type": "association", 
                   "label": "Information used in control (IUC)",
-                  "description": "User should be able to associate any information from information library",
-                  "libraryType": "information"
+                  "visibilityRules": { "when": "toggle_detailed", "is": true }
                 },
-                {
-                  "id": "control_outputs",
-                  "type": "repeatableGroup",
-                  "label": "Outputs of the control",
-                  "description": "Understand the output of the control, which includes understanding the specific evidence that supports that the control activity that occurred",
-                  "fields": [
-                    {
-                      "id": "output_description",
-                      "type": "richText",
-                      "label": "Output Description",
-                      "description": "The output will be a rich text editor"
+                { 
+                  "id": "output", 
+                  "type": "largeTextbox", 
+                  "label": "Output of Control", 
+                  "note": "Understand the output of the control, which includes understanding the specific evidence that supports that the control activity that occurred.",
+                  "visibilityRules": { "when": "toggle_detailed", "is": true }
                     }
                   ]
                 }
               ]
             },
+        {
+          "id": "evaluate_design_and_implementation",
+          "label": "Evaluate Design and Determine Implementation",
+          "description": "This section has four panes: Design & Implementation, Design Factors, Dependent Controls, and Effectiveness of Design & Implementation",
+          "panes": [
+            {
+              "id": "design_implementation_pane",
+              "label": "Design & Implementation",
+              "fields": [
             {
               "id": "design_implementation",
               "label": "Design & Implementation",
@@ -127,40 +142,11 @@
                   "label": "Control Description from Summary" 
                 },
                 {
-                  "id": "step_procedures",
-                  "type": "repeatableGroup",
+                      "id": "procedures_for_control_steps",
+                      "type": "dynamicProceduresDisplay",
                   "label": "Procedures for Control Steps",
-                  "description": "For each step added in detailed description, provide the following procedures",
-                  "fields": [
-                    { 
-                      "id": "step_description_reference", 
-                      "type": "display", 
-                      "label": "Step Description",
-                      "description": "Description of the step entered by the user in Detailed description"
-                    },
-                    { 
-                      "id": "procedures_performed", 
-                      "type": "richText", 
-                      "label": "Procedures performed to evaluate the design and implementation of control" 
-                    },
-                    {
-                      "id": "nature_of_testing",
-                      "type": "dropdown",
-                      "options": ["Inquiry + Observation", "Inquiry + Inspection", "Observation", "Inspection"],
-                      "label": "Nature of testing procedure"
-                    },
-                    { 
-                      "id": "procedure_description", 
-                      "type": "richText", 
-                      "label": "Procedure Description" 
-                    },
-                    { 
-                      "id": "test_of_design", 
-                      "type": "richText", 
-                      "label": "Test of design and implementation" 
-                    }
-                  ],
-                  "dynamicBasedOn": "detailed_description.control_steps"
+                      "description": "Procedures will be automatically generated for each step added in Detailed Description",
+                      "dynamicBasedOn": "detailed_description.steps"
                 }
               ]
             },
@@ -169,8 +155,14 @@
               "label": "Evidence of Design & Implementation",
               "fields": [
                 { "id": "evidence_document", "type": "document", "label": "Upload Evidence of Design & Implementation" }
+                  ]
+                }
               ]
             },
+            {
+              "id": "design_factors_pane",
+              "label": "Design Factors",
+              "fields": [
             {
               "id": "design_factors",
               "label": "Design Factors",
@@ -237,9 +229,15 @@
                   "type": "richText", 
                   "label": "Criteria for investigation and follow-up",
                   "visibilityRules": { "when": "factor5_toggle", "is": true }
+                    }
+                  ]
                 }
               ]
             },
+            {
+              "id": "dependent_controls_pane",
+              "label": "Dependent Controls",
+              "fields": [
             {
               "id": "dependent_controls",
               "label": "Dependent Controls",
@@ -261,15 +259,23 @@
                     "layout": "table"
                   },
                   "visibilityRules": { "when": "is_dependent", "is": "Yes" }
+                    }
+                  ]
                 }
               ]
             },
+            {
+              "id": "effectiveness_design_pane",
+              "label": "Effectiveness of Design & Implementation",
+              "fields": [
             {
               "id": "effectiveness_design",
               "label": "Effectiveness of Design & Implementation",
               "fields": [
                 { "id": "design_effective", "type": "dropdown", "options": ["Yes", "No", "Not Yet Concluded"], "label": "Is the design effective?" },
                 { "id": "implemented", "type": "dropdown", "options": ["Yes", "No", "Not Yet Concluded"], "label": "Is the control properly implemented?" }
+                  ]
+                }
               ]
             }
           ]
@@ -624,11 +630,11 @@
         {
           "id": "control_summary",
           "label": "Control Summary",
-          "description": "This has two parts: Control Details and Related Accounts and Areas",
-          "fields": [
+          "description": "This section has three panes: Control Summary, Related Accounts, and Detailed Description",
+          "panes": [
             {
-              "id": "control_details",
-              "label": "Control Details",
+              "id": "control_summary_pane",
+              "label": "Control Summary",
               "fields": [
                 { 
                   "id": "control_id", 
@@ -644,16 +650,15 @@
                 },
                 { 
                   "id": "workspace", 
-                  "type": "text", 
+                  "type": "dropdown", 
                   "label": "Workspace Linked",
-                  "description": "This has to be all the areas it is linked to"
+                  "description": "This has to be all the areas it is linked to",
+                  "options": ["Equity & Reserves","Borrowings","Lease Liability","Other Liabilities","Trade Payable","Provisions and Contingent Liabilities","Income Tax","Statutory Remittances","Property, Plant & Equipment","Intangible Assets","IAUD","Impairment","Investments","Other Assets","Trade Receivables","Inventory","Cash & Cash Equivalents","Revenue from Operations","Other Income","Cost of materials consumed","Employee Benefits Expense","Depreciation & Amortisation Expense","Finance Costs","Other Expenses","Service Auditor's Report","Use of Auditor Specialist","Management use of Expert","Related Party Transaction","Going Concern","Opening Balance Testing","Litigations & Claims","NOCLAR","Using work of other auditor","Review of estimates for management bias"]
                 },
                 { 
                   "id": "control_description", 
                   "type": "richText", 
                   "label": "Control Description" 
-                }
-              ]
             },
             {
               "id": "control_attributes",
@@ -663,13 +668,15 @@
                   "id": "type_of_control", 
                   "type": "dropdown", 
                   "options": ["Direct", "Indirect", "GITC"], 
-                  "label": "Type of Control"
+                      "label": "Type of Control",
+                      "readOnly": true
                 },
                 { 
                   "id": "nature", 
                   "type": "dropdown", 
                   "options": ["Manual", "Automated", "Service Organization Control"], 
-                  "label": "Nature"
+                      "label": "Nature",
+                      "readOnly": true
                 },
                 { 
                   "id": "approach", 
@@ -680,16 +687,16 @@
                 },
                 {
                   "id": "type",
-                  "type": "multiSelectDropdown",
+                      "type": "dropdown",
                   "options": [
                     "Automated Input Control",
-                    "Automated processing control",
-                    "Automated output control",
-                    "Automated calculation control",
-                    "Automated application access control"
+                        "Automated Processing Control",
+                        "Automated Output Control",
+                        "Automated Calculation Control",
+                        "Automated Application Access Control"
                   ],
                   "label": "Type",
-                  "description": "Multiple choice dropdown for the below options"
+                      "description": "Dropdown for the below options"
                 }
               ]
             },
@@ -702,9 +709,15 @@
                   "type": "toggle", 
                   "label": "The engagement team is planning to test the operating effectiveness of the control.",
                   "description": "Toggle on or off"
+                    }
+                  ]
                 }
               ]
             },
+            {
+              "id": "related_accounts_pane",
+              "label": "Related Accounts",
+              "fields": [
             {
               "id": "related_accounts",
               "label": "Related Accounts and Areas",
@@ -721,16 +734,56 @@
           ]
         },
         {
-          "id": "evaluate_design_and_implementation",
-          "label": "Evaluate Design and Determine Implementation",
-          "description": "First the control description is to be displayed on top",
+              "id": "detailed_description_pane",
+              "label": "Detailed Description",
           "fields": [
             { 
-              "id": "display_control_description", 
-              "type": "display", 
-              "label": "Control Description",
-              "description": "First the control description is to be displayed on top"
-            },
+                  "id": "toggle_detailed", 
+                  "type": "toggle", 
+                  "label": "Provide detailed description of how control is performed?",
+                  "description": "Toggle option for the user to turn on or off"
+                },
+                {
+                  "id": "steps",
+                  "type": "repeatableGroup",
+                  "label": "Control Steps",
+                  "description": "User can add steps and for each step added there should be a large textbox with step numbering (Step 1, Step 2, etc.)",
+                  "fields": [
+                    { 
+                      "id": "step_description", 
+                      "type": "largeTextbox", 
+                      "label": "Step Description",
+                      "description": "Large textbox for step description. Each step will be automatically numbered (Step 1, Step 2, etc.)"
+                    }
+                  ],
+                  "visibilityRules": { "when": "toggle_detailed", "is": true }
+                },
+                { 
+                  "id": "iuc", 
+                  "type": "association", 
+                  "label": "Information used in control (IUC)",
+                  "visibilityRules": { "when": "toggle_detailed", "is": true }
+                },
+                { 
+                  "id": "output", 
+                  "type": "largeTextbox", 
+                  "label": "Output of Control", 
+                  "note": "Understand the output of the control, which includes understanding the specific evidence that supports that the control activity that occurred.",
+                  "visibilityRules": { "when": "toggle_detailed", "is": true }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "evaluate_design_and_implementation",
+          "label": "Evaluate Design and Determine Implementation",
+          "description": "This section has four panes: Design & Implementation, Design Factors, Dependent Controls, and Effectiveness of Design & Implementation",
+          "panes": [
+            {
+              "id": "design_implementation_pane",
+              "label": "Design & Implementation",
+              "fields": [
             {
               "id": "associated_it_element",
               "type": "associationLibrary",
@@ -916,11 +969,17 @@
                         "fields": ["control_id", "description"],
                         "layout": "table"
                       }
+                        }
+                      ]
                     }
                   ]
                 }
               ]
             },
+            {
+              "id": "design_factors_pane",
+              "label": "Design Factors",
+              "fields": [
             {
               "id": "design_factors",
               "label": "Design Factors",
@@ -987,9 +1046,45 @@
                   "type": "richText", 
                   "label": "Criteria for investigation and follow-up",
                   "visibilityRules": { "when": "factor5_toggle", "is": true }
+                    }
+                  ]
                 }
               ]
             },
+            {
+              "id": "dependent_controls_pane",
+              "label": "Dependent Controls",
+              "fields": [
+                {
+                  "id": "dependent_controls",
+                  "label": "Dependent Controls",
+                  "fields": [
+                    { 
+                      "id": "is_dependent", 
+                      "type": "dropdown", 
+                      "options": ["Yes", "No"], 
+                      "label": "Is the control dependent on other controls?" 
+                    },
+                    {
+                      "id": "associated_controls",
+                      "type": "associationLibrary",
+                      "label": "Associated Controls",
+                      "libraryType": "internalControl",
+                      "description": "Display format: Control ID, Control Name, Control Description, Design & Implementation Conclusion, Operating Effectiveness Conclusion",
+                      "displayFormat": {
+                        "fields": ["control_id", "control_name", "control_description", "design_conclusion", "operating_effectiveness_conclusion"],
+                        "layout": "table"
+                      },
+                      "visibilityRules": { "when": "is_dependent", "is": "Yes" }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "effectiveness_design_pane",
+              "label": "Effectiveness of Design & Implementation",
+              "fields": [
             {
               "id": "effectiveness_design_implementation",
               "label": "Effectiveness of Design & Implementation",
@@ -1005,8 +1100,74 @@
                   "type": "dropdown", 
                   "options": ["Yes", "No", "Not Yet Concluded"], 
                   "label": "Is this control properly implemented?" 
+                    }
+                  ]
                 }
               ]
+            }
+          ]
+        },
+        {
+          "id": "prior_year_audit_evidence",
+          "label": "Prior Year Audit Evidence",
+          "description": "Does not come if tailoring question 1 in control summary is toggled off",
+          "visibilityRules": { "when": "control_summary.tailoring_questions.test_operating_effectiveness", "is": true },
+          "fields": [
+            { 
+              "id": "using_prior_year", 
+              "type": "dropdown", 
+              "options": ["Yes", "No"], 
+              "label": "Are we planning on using prior year audit evidence to test the operating effectiveness of the control?",
+              "description": "If Yes, then Risk Associated with Control and Operating Effectiveness should not come"
+            },
+            { 
+              "id": "changes_description", 
+              "type": "richText", 
+              "label": "Considering the current-year design and implementation testing, have there been any changes in the process and/or control that occurred subsequent to previous testing?",
+              "visibilityRules": { "when": "using_prior_year", "is": "Yes" }
+            },
+            { 
+              "id": "changes_significant", 
+              "type": "dropdown", 
+              "options": ["Yes", "No"], 
+              "label": "Are the above changes considered significant?",
+              "visibilityRules": { "when": "using_prior_year", "is": "Yes" }
+            },
+            { 
+              "id": "tested_current_year", 
+              "type": "dropdown", 
+              "options": ["Yes", "No"], 
+              "label": "Have you tested the operating effectiveness of atleast one control for the current year?",
+              "visibilityRules": { "when": "using_prior_year", "is": "Yes" }
+            },
+            {
+              "id": "associated_tested_controls",
+              "type": "associationLibrary",
+              "label": "Associated Controls Tested",
+              "libraryType": "internalControl",
+              "description": "Option to associate control just like dependency on control section",
+              "visibilityRules": { "when": "tested_current_year", "is": "Yes" }
+            },
+            {
+              "id": "prior_year_validation_note",
+              "type": "display",
+              "label": "Validation Note",
+              "content": "The answers to the questions suggest that prior year audit evidence cannot be used to test the operating effectiveness of controls. Please revisit OE strategy.",
+              "visibilityRules": { 
+                "when": "changes_significant", 
+                "is": "Yes",
+                "and": {
+                  "when": "tested_current_year",
+                  "is": "No"
+                }
+              }
+            },
+            {
+              "id": "prior_year_testing_description",
+              "type": "document",
+              "label": "For each control for which we are using prior year audit evidence, include a sufficient description of the testing performed",
+              "description": "May include copies of previous year working papers to enable an experienced auditor, having no previous connection with the engagement, to understand the nature, timing, extent and results of the procedures performed, evidence obtained and conclusions reached",
+              "visibilityRules": { "when": "using_prior_year", "is": "Yes" }
             }
           ]
         },
@@ -1275,5 +1436,3 @@
     }
   }
 }
-
-

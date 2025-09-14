@@ -4,6 +4,7 @@ import { addWindowEventListeners } from "./window/window-listeners";
 import { addPlanningEventListeners } from "./planning/planning-listeners";
 import { addDocumentEventListeners } from "./documents/document-listeners";
 import { addPayrollEventListeners } from "./payroll/payroll-listeners";
+import { addInternalControlsEventListeners } from "./internal-controls/internal-controls-listeners";
 
 export default function registerListeners(mainWindow: BrowserWindow) {
   addWindowEventListeners(mainWindow);
@@ -11,4 +12,5 @@ export default function registerListeners(mainWindow: BrowserWindow) {
   addPlanningEventListeners(mainWindow);
   addDocumentEventListeners(mainWindow);
   addPayrollEventListeners(mainWindow);
+  addInternalControlsEventListeners(mainWindow);
 }

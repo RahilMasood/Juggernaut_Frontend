@@ -3,6 +3,7 @@ import { exposeWindowContext } from "./window/window-context";
 import { exposePlanningContext } from "./planning/planning-context";
 import { exposeDocumentContext } from "./documents/document-context";
 import { exposePayrollContext } from "./payroll/payroll-context";
+import { exposeInternalControlsContext } from "./internal-controls/internal-controls-context";
 
 export default function exposeContexts() {
   exposeWindowContext();
@@ -10,4 +11,5 @@ export default function exposeContexts() {
   exposePlanningContext();
   exposeDocumentContext();
   exposePayrollContext();
+  exposeInternalControlsContext();
 }

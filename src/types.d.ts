@@ -70,11 +70,16 @@ interface DocumentsContext {
   ) => () => void;
 }
 
+interface InternalControlsContext {
+  readTemplate: () => Promise<any>;
+}
+
 declare interface Window {
   themeMode: ThemeModeContext;
   electronWindow: ElectronWindow;
   planning: PlanningContext;
   documents: DocumentsContext;
+  internalControls: InternalControlsContext;
   payroll: {
     acceptedInputs: () => Promise<string[]>;
     run: (

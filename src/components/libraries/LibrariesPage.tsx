@@ -313,11 +313,35 @@ export default function LibrariesPage({ onBack, activeSection }: LibrariesPagePr
 
   const handleControlClick = async (control: InternalControl) => {
     try {
-      // Load the control template
-      const response = await fetch('/Internal%20Controls%20Updated.json');
+      console.log('Loading control template for:', control);
+      console.log('window.internalControls:', window.internalControls);
       
-      if (response.ok) {
-        const templateData = await response.json();
+      let templateData;
+      
+      // Check if we're in Electron mode
+      if (window.internalControls?.readTemplate) {
+        // Use IPC to read the Internal Controls configuration file
+        templateData = await window.internalControls.readTemplate();
+        console.log('Loaded template data via IPC:', templateData);
+      } else {
+        console.log('Not in Electron mode, trying to load from public folder...');
+        // Fallback: try to load from public folder (for web mode)
+        try {
+          const response = await fetch('/Internal%20Controls%20Updated.json');
+          if (response.ok) {
+            templateData = await response.json();
+            console.log('Loaded template data from public folder:', templateData);
+          } else {
+            console.error('Failed to load from public folder');
+            return;
+          }
+        } catch (fetchError) {
+          console.error('Failed to load from public folder:', fetchError);
+          return;
+        }
+      }
+      
+      if (templateData) {
         
         // Determine template type from multiple possible sources
         let templateType = 'manual'; // default
@@ -329,6 +353,8 @@ export default function LibrariesPage({ onBack, activeSection }: LibrariesPagePr
         const template = templateType === 'automated'
           ? templateData.templates?.automated 
           : templateData.templates?.manual;
+        
+        console.log('Using template type:', templateType, 'Template:', template);
         
         setSelectedControl(control);
         setControlTemplate(template);

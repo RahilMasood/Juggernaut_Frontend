@@ -208,31 +208,86 @@ export default function FileUploadModal({
   // Load internal control template data
   const loadInternalControlTemplate = async () => {
     try {
-      // Load the template structure from the JSON file
-      const response = await fetch('/Internal%20Controls%20Updated.json');
-      const templateData = await response.json();
-      return templateData;
+      console.log('Loading internal control template...');
+      console.log('window.internalControls:', window.internalControls);
+      
+      // Check if we're in Electron mode
+      if (window.internalControls?.readTemplate) {
+        // Use IPC to read the Internal Controls configuration file
+        const templateData = await window.internalControls.readTemplate();
+        console.log('Loaded template data via IPC:', templateData);
+        return templateData;
+      } else {
+        console.log('Not in Electron mode, trying to load from public folder...');
+        // Fallback: try to load from public folder (for web mode)
+        try {
+          const response = await fetch('/Internal%20Controls%20Updated.json');
+          if (response.ok) {
+            const templateData = await response.json();
+            console.log('Loaded template data from public folder:', templateData);
+            return templateData;
+          } else {
+            console.error('Failed to fetch from public folder, status:', response.status);
+          }
+        } catch (fetchError) {
+          console.error('Failed to load from public folder:', fetchError);
+        }
+        
+        console.error('Internal Controls IPC not available and public folder fallback failed');
+        throw new Error('Internal Controls template not available');
+      }
     } catch (error) {
       console.error('Failed to load internal control template:', error);
-      // Fallback to a basic structure if file loading fails
+      // Return a more complete fallback structure
       return {
         templates: {
-          manual: { sections: [] },
-          automated: { sections: [] }
+          manual: { 
+            sections: [
+              {
+                id: "control_summary",
+                label: "Control Summary",
+                fields: [
+                  { id: "control_id", type: "text", label: "Control ID" },
+                  { id: "control_name", type: "text", label: "Control Name" }
+                ]
+              }
+            ]
+          },
+          automated: { 
+            sections: [
+              {
+                id: "control_summary",
+                label: "Control Summary",
+                fields: [
+                  { id: "control_id", type: "text", label: "Control ID" },
+                  { id: "control_name", type: "text", label: "Control Name" }
+                ]
+              }
+            ]
+          }
         }
       };
     }
   };
 
   const handleMetadataSubmitted = async (metadata: any) => {
+    console.log('Metadata submitted:', metadata);
     setControlMetadata(metadata);
     setShowMetadataModal(false);
     
     // Load the appropriate template
     const templateData = await loadInternalControlTemplate();
+    console.log('Template data loaded:', templateData);
+    
+    console.log('Metadata subtype:', metadata.subtype);
+    console.log('Available templates:', Object.keys(templateData.templates || {}));
+    
     const template = metadata.subtype === 'Manual' 
       ? templateData.templates?.manual 
       : templateData.templates?.automated;
+    
+    console.log('Selected template:', template);
+    console.log('Template sections:', template?.sections?.length);
     
     setControlTemplate(template);
     setShowControlForm(true);

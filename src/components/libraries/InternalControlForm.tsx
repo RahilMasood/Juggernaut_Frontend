@@ -42,6 +42,7 @@ export default function InternalControlForm({
 }: InternalControlFormProps) {
   const [formData, setFormData] = useState<any>({});
   const [activeSection, setActiveSection] = useState<string>("");
+  const [activePane, setActivePane] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<{
     type: 'success' | 'error' | null;
@@ -49,17 +50,38 @@ export default function InternalControlForm({
   }>({ type: null, message: '' });
 
   useEffect(() => {
+    console.log('InternalControlForm useEffect - isOpen:', isOpen, 'template:', template);
     if (isOpen && template) {
+      console.log('Template sections:', template.sections?.length);
+      console.log('Template structure:', template);
+      
       // Initialize form data with metadata
+      const initializedData = initializeFormData(template);
+      console.log('Initialized form data:', initializedData);
+      
       setFormData({
         controlMetadata: metadata,
-        ...initializeFormData(template)
+        ...initializedData
       });
       
-      // Set first section as active
+      // Set first section as active - ensure this always happens
       if (template.sections && template.sections.length > 0) {
-        setActiveSection(template.sections[0].id);
+        const firstSectionId = template.sections[0].id;
+        setActiveSection(firstSectionId);
+        console.log('Set active section to:', firstSectionId);
+        
+        // Set first pane as active if the section has panes
+        const firstSection = template.sections[0];
+        if (firstSection.panes && firstSection.panes.length > 0) {
+          const firstPaneId = firstSection.panes[0].id;
+          setActivePane(firstPaneId);
+          console.log('Set active pane to:', firstPaneId);
+        }
+      } else {
+        console.error('No sections found in template');
       }
+    } else if (isOpen && !template) {
+      console.error('Template is null or undefined when form is open');
     }
   }, [isOpen, template, metadata]);
 
@@ -69,7 +91,26 @@ export default function InternalControlForm({
     if (template.sections) {
       template.sections.forEach((section: any) => {
         data[section.id] = {};
-        if (section.fields) {
+        
+        // Handle sections with panes
+        if (section.panes) {
+          section.panes.forEach((pane: any) => {
+            if (pane.fields) {
+              pane.fields.forEach((field: any) => {
+                // Handle nested fields (like control_attributes)
+                if (field.fields) {
+                  field.fields.forEach((nestedField: any) => {
+                    data[section.id][nestedField.id] = getDefaultValueWithMetadata(nestedField, section.id);
+                  });
+                } else {
+                  data[section.id][field.id] = getDefaultValueWithMetadata(field, section.id);
+                }
+              });
+            }
+          });
+        }
+        // Handle sections with direct fields (legacy support)
+        else if (section.fields) {
           section.fields.forEach((field: any) => {
             // Handle nested fields (like control_attributes)
             if (field.fields) {
@@ -223,6 +264,204 @@ export default function InternalControlForm({
           </div>
         );
 
+      case 'dynamicProceduresDisplay':
+        const controlSteps = formData.control_summary?.steps || [];
+        return (
+          <div key={field.id} className="space-y-4">
+            <Label className="text-sm font-medium text-white">
+              {field.label}
+            </Label>
+            <div className="text-sm text-white/60 mb-4">
+              {field.description}
+            </div>
+            <div className="space-y-4">
+              {controlSteps.length > 0 ? (
+                controlSteps.map((step: any, index: number) => (
+                  <div key={index} className="rounded-lg border border-white/10 bg-white/5 p-4">
+                    <div className="mb-3">
+                      <h5 className="text-sm font-medium text-white">
+                        Step {index + 1}: {step.step_description || 'No description provided'}
+                      </h5>
+                    </div>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-white">
+                          Procedures performed to evaluate the design and implementation of control
+                        </Label>
+                        <Textarea
+                          className="min-h-[100px] border-white/10 bg-white/5 text-white placeholder:text-white/40"
+                          placeholder="Enter procedures for this step..."
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-white">
+                          Nature of testing procedure
+                        </Label>
+                        <select className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white">
+                          <option value="" className="bg-gray-800">Select testing procedure</option>
+                          <option value="Inquiry + Observation" className="bg-gray-800">Inquiry + Observation</option>
+                          <option value="Inquiry + Inspection" className="bg-gray-800">Inquiry + Inspection</option>
+                          <option value="Observation" className="bg-gray-800">Observation</option>
+                          <option value="Inspection" className="bg-gray-800">Inspection</option>
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-white">
+                          Test of design and implementation
+                        </Label>
+                        <Textarea
+                          className="min-h-[100px] border-white/10 bg-white/5 text-white placeholder:text-white/40"
+                          placeholder="Enter test details for this step..."
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="rounded-lg border border-white/10 bg-white/5 p-4">
+                  <div className="mb-3">
+                    <h5 className="text-sm font-medium text-white">
+                      General Control Procedures
+                    </h5>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-white">
+                        Procedures performed to evaluate the design and implementation of control
+                      </Label>
+                      <Textarea
+                        className="min-h-[100px] border-white/10 bg-white/5 text-white placeholder:text-white/40"
+                        placeholder="Enter general procedures for this control..."
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-white">
+                        Nature of testing procedure
+                      </Label>
+                      <select className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white">
+                        <option value="" className="bg-gray-800">Select testing procedure</option>
+                        <option value="Inquiry + Observation" className="bg-gray-800">Inquiry + Observation</option>
+                        <option value="Inquiry + Inspection" className="bg-gray-800">Inquiry + Inspection</option>
+                        <option value="Observation" className="bg-gray-800">Observation</option>
+                        <option value="Inspection" className="bg-gray-800">Inspection</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-white">
+                        Test of design and implementation
+                      </Label>
+                      <Textarea
+                        className="min-h-[100px] border-white/10 bg-white/5 text-white placeholder:text-white/40"
+                        placeholder="Enter test details for this control..."
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+
+      case 'largeTextbox':
+        return (
+          <div key={field.id} className="space-y-2">
+            <Label className="text-sm font-medium text-white">
+              {field.label}
+            </Label>
+            <Textarea
+              value={value || ''}
+              onChange={(e) => updateFormData(sectionId, field.id, e.target.value)}
+              className="min-h-[120px] border-white/10 bg-white/5 text-white placeholder:text-white/40"
+              placeholder={`Enter ${field.label.toLowerCase()}`}
+            />
+          </div>
+        );
+
+      case 'repeatableGroup':
+        return (
+          <div key={field.id} className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium text-white">
+                {field.label}
+              </Label>
+              <Button
+                type="button"
+                onClick={() => {
+                  const currentItems = value || [];
+                  const newItem: any = {};
+                  field.fields?.forEach((subField: any) => {
+                    newItem[subField.id] = getDefaultValue(subField);
+                  });
+                  updateFormData(sectionId, field.id, [...currentItems, newItem]);
+                }}
+                className="bg-[#4da3ff] text-white hover:bg-[#4da3ff]/80"
+                size="sm"
+              >
+                {field.id === 'steps' ? 'Add Step' : `Add ${field.label.slice(0, -1)}`}
+              </Button>
+            </div>
+            <div className="space-y-4">
+              {(value || []).map((item: any, index: number) => (
+                <div key={index} className="rounded-lg border border-white/10 bg-white/5 p-4">
+                  <div className="mb-3 flex items-center justify-between">
+                    <h5 className="text-sm font-medium text-white">
+                      {field.id === 'steps' ? `Step ${index + 1}` : `${field.label.slice(0, -1)} ${index + 1}`}
+                    </h5>
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        const currentItems = value || [];
+                        const newItems = currentItems.filter((_: any, i: number) => i !== index);
+                        updateFormData(sectionId, field.id, newItems);
+                      }}
+                      variant="ghost"
+                      size="sm"
+                      className="text-red-400 hover:text-red-300"
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                  <div className="space-y-4">
+                    {field.fields?.map((subField: any) => {
+                      const subFieldValue = item[subField.id];
+                      return (
+                        <div key={subField.id}>
+                          {subField.type === 'largeTextbox' ? (
+                            <div className="space-y-2">
+                              <Label className="text-sm font-medium text-white">
+                                {subField.label}
+                              </Label>
+                              <Textarea
+                                value={subFieldValue || ''}
+                                onChange={(e) => {
+                                  const currentItems = value || [];
+                                  const updatedItems = [...currentItems];
+                                  updatedItems[index] = {
+                                    ...updatedItems[index],
+                                    [subField.id]: e.target.value
+                                  };
+                                  updateFormData(sectionId, field.id, updatedItems);
+                                }}
+                                className="min-h-[120px] border-white/10 bg-white/5 text-white placeholder:text-white/40"
+                                placeholder={`Enter ${subField.label.toLowerCase()}`}
+                              />
+                            </div>
+                          ) : (
+                            renderField({
+                              ...subField,
+                              value: subFieldValue
+                            }, sectionId)
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+
       default:
         return (
           <div key={field.id} className="space-y-2">
@@ -241,7 +480,64 @@ export default function InternalControlForm({
   };
 
   const renderSection = (section: any) => {
-    if (!section.fields) return null;
+    console.log('Rendering section:', section);
+    
+    // Handle sections with panes
+    if (section.panes) {
+      return (
+        <div className="space-y-6">
+          {/* Pane Navigation */}
+          <div className="flex space-x-1 bg-white/5 rounded-lg p-1">
+            {section.panes.map((pane: any) => (
+              <button
+                key={pane.id}
+                onClick={() => setActivePane(pane.id)}
+                className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-all ${
+                  activePane === pane.id
+                    ? "bg-[#4da3ff] text-white"
+                    : "text-white/70 hover:text-white hover:bg-white/10"
+                }`}
+              >
+                {pane.label}
+              </button>
+            ))}
+          </div>
+          
+          {/* Active Pane Content */}
+          {(() => {
+            const currentPane = section.panes.find((p: any) => p.id === activePane) || section.panes[0];
+            if (!currentPane || !currentPane.fields) {
+              return <div className="text-white/60">No content available for this pane.</div>;
+            }
+            
+            return (
+              <div className="space-y-6">
+                {currentPane.fields.map((field: any) => {
+                  // Handle nested fields
+                  if (field.fields) {
+                    return (
+                      <div key={field.id} className="space-y-4">
+                        <h4 className="text-sm font-medium text-white">{field.label}</h4>
+                        <div className="space-y-4 pl-4 border-l border-white/10">
+                          {field.fields.map((nestedField: any) => renderField(nestedField, section.id))}
+                        </div>
+                      </div>
+                    );
+                  }
+                  return renderField(field, section.id);
+                })}
+              </div>
+            );
+          })()}
+        </div>
+      );
+    }
+    
+    // Handle sections with direct fields (legacy support)
+    if (!section.fields) {
+      console.log('Section has no fields:', section);
+      return null;
+    }
 
     return (
       <div className="space-y-6">
@@ -325,7 +621,12 @@ export default function InternalControlForm({
 
   if (!isOpen || !template) return null;
 
-  const currentSection = template.sections?.find((s: any) => s.id === activeSection);
+  console.log('Template in render:', template);
+  console.log('Active section:', activeSection);
+  console.log('Template sections:', template.sections);
+
+  const currentSection = template.sections?.find((s: any) => s.id === activeSection) || template.sections?.[0];
+  console.log('Current section found:', currentSection);
 
   return (
     <div className="fixed inset-0 z-50 flex bg-black/50 backdrop-blur-sm">
@@ -366,7 +667,13 @@ export default function InternalControlForm({
             {template.sections?.map((section: any, index: number) => (
               <button
                 key={section.id}
-                onClick={() => setActiveSection(section.id)}
+                onClick={() => {
+                  setActiveSection(section.id);
+                  // Reset to first pane when switching sections
+                  if (section.panes && section.panes.length > 0) {
+                    setActivePane(section.panes[0].id);
+                  }
+                }}
                 className={`w-full rounded-lg p-3 text-left text-sm transition-all ${
                   activeSection === section.id
                     ? "bg-[#4da3ff]/20 text-[#4da3ff]"
@@ -423,13 +730,24 @@ export default function InternalControlForm({
       {/* Main Content */}
       <div className="flex-1 overflow-y-auto bg-black/80">
         <div className="p-6">
-          {currentSection && (
+          {currentSection ? (
             <Card className="border-white/10 bg-white/5">
               <CardHeader>
                 <CardTitle className="text-white">{currentSection.label}</CardTitle>
               </CardHeader>
               <CardContent>
                 {renderSection(currentSection)}
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="border-white/10 bg-white/5">
+              <CardContent className="p-6">
+                <div className="text-center text-white/60">
+                  <Shield className="mx-auto h-12 w-12 mb-4 text-white/40" />
+                  <p>No section found. Template may not be loaded correctly.</p>
+                  <p className="text-sm mt-2">Active section: {activeSection}</p>
+                  <p className="text-sm">Available sections: {template.sections?.map((s: any) => s.id).join(', ')}</p>
+                </div>
               </CardContent>
             </Card>
           )}
