@@ -4,6 +4,7 @@ import { exposePlanningContext } from "./planning/planning-context";
 import { exposeDocumentContext } from "./documents/document-context";
 import { exposePayrollContext } from "./payroll/payroll-context";
 import { exposeInternalControlsContext } from "./internal-controls/internal-controls-context";
+import { exposeCloudContext } from "./cloud/cloud-context";
 
 export default function exposeContexts() {
   exposeWindowContext();
@@ -12,4 +13,5 @@ export default function exposeContexts() {
   exposeDocumentContext();
   exposePayrollContext();
   exposeInternalControlsContext();
+  exposeCloudContext();
 }

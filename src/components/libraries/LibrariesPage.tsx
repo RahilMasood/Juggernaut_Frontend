@@ -22,6 +22,8 @@ import { fileManager, FileMetadata } from "../../utils/file-manager";
 import InternalControlViewerModal from "./InternalControlViewerModal";
 import InternalControlForm from "./InternalControlForm";
 import { CONTROL_TEMPLATES } from "../../constants/ControlTemplates";
+import { CloudStorageTest } from "../cloud/CloudStorageTest";
+import { CloudStorageDebug } from "../cloud/CloudStorageDebug";
 
 interface LibraryItem {
   id: string;
@@ -142,6 +144,7 @@ export default function LibrariesPage({ onBack, activeSection }: LibrariesPagePr
   const [selectedControlForm, setSelectedControlForm] = useState<{
     metadata: ControlMetadata;
     template: any;
+    existingData?: any;
   } | null>(null);
 
   // Load ROMM data from Structure.json
@@ -279,16 +282,28 @@ export default function LibrariesPage({ onBack, activeSection }: LibrariesPagePr
       const controls: any[] = [];
       
       // Load from cloud storage
-      if (window.cloud) {
+      console.log('Loading internal controls from cloud storage...');
+      console.log('window.cloud:', window.cloud);
+      console.log('typeof window.cloud.list:', typeof window.cloud?.list);
+      
+      if (window.cloud && typeof window.cloud.list === 'function') {
         try {
           const result = await window.cloud.list({ container: 'juggernaut' });
+          console.log('Cloud list result:', result);
+          console.log('Cloud list success:', result.success);
+          console.log('Cloud list files:', result.files);
+          
           if (result.success && result.files) {
-            // Filter for internal control files (JSON files)
+            console.log('Total files in juggernaut container:', result.files.length);
+            
+            // Filter for internal control files with the specific naming pattern
             const controlFiles = result.files.filter((file: any) => 
-              file.name.endsWith('.json') && 
-              file.reference && 
-              file.reference.includes('Internal Control:')
+              file.name.startsWith('Libraries_InternalControlResponses_') && 
+              file.name.endsWith('.json')
             );
+            
+            console.log('Found internal control files:', controlFiles.length);
+            console.log('Control files:', controlFiles.map(f => f.name));
             
             // Load each control file
             for (const file of controlFiles) {
@@ -300,24 +315,55 @@ export default function LibrariesPage({ onBack, activeSection }: LibrariesPagePr
                 });
                 
                 if (downloadResult.success) {
-                  const fs = window.require('fs');
-                  const path = window.require('path');
-                  const os = window.require('os');
+                  const tempFilePath = downloadResult.filePath!;
                   
-                  const tempFilePath = path.join(os.tmpdir(), `temp_${file.name}`);
-                  const fileContent = fs.readFileSync(tempFilePath, 'utf8');
-                  const controlData = JSON.parse(fileContent);
+                  // Read the downloaded file content using IPC
+                  const readResult = await window.cloud.readTempFile(tempFilePath);
                   
-                  // Clean up temp file
-                  fs.unlinkSync(tempFilePath);
-                  
-                  // Add to controls list
-                  controls.push({
-                    id: controlData.controlMetadata.controlId,
-                    ...controlData,
-                    createdAt: file.name.replace('.json', ''), // Use controlId as timestamp for now
-                    template: controlData.controlMetadata.subtype.toLowerCase()
-                  });
+                  if (readResult.success) {
+                    const controlData = JSON.parse(readResult.content!);
+                    
+                    // Clean up temp file
+                    await window.cloud.deleteTempFile(tempFilePath);
+                    
+                    // Add to controls list - parse the new JSON structure
+                    console.log('Parsing control data:', controlData);
+                    
+                    // Extract controlId from the file name (this is the user-entered ControlID)
+                    console.log('Processing file:', file.name);
+                    const controlId = file.name.replace('Libraries_InternalControlResponses_', '').replace('.json', '');
+                    console.log('Extracted controlId:', controlId);
+                    
+                    // Extract other details from the JSON structure
+                    const controlName = controlData.InternalControls?.Control?.ControlSummary?.ControlDetails?.ControlName || 
+                                      'Unknown Control';
+                    
+                    const typeOfControl = controlData.InternalControls?.Control?.ControlSummary?.ControlAttributes?.TypeOfControl || 
+                                        'Unknown';
+                    
+                    const subtype = controlData.InternalControls?.Control?.ControlSummary?.ControlAttributes?.Nature || 
+                                  'Unknown';
+                    
+                    const workspace = controlData.InternalControls?.Control?.ControlSummary?.ControlDetails?.WorkspaceLinked?.[0] || 
+                                    'Unknown';
+                    
+                    controls.push({
+                      id: controlId,
+                      controlMetadata: {
+                        typeOfControl,
+                        subtype,
+                        controlId,
+                        controlName,
+                        workspace
+                      },
+                      ...controlData,
+                      createdAt: controlId, // Use controlId as timestamp for now
+                      template: subtype.toLowerCase(),
+                      originalFileName: file.name // Store original filename for edit mode
+                    });
+                  } else {
+                    console.error(`Error reading control file ${file.name}:`, readResult.error);
+                  }
                 }
               } catch (fileError) {
                 console.error(`Error loading control file ${file.name}:`, fileError);
@@ -329,8 +375,14 @@ export default function LibrariesPage({ onBack, activeSection }: LibrariesPagePr
         }
       }
       
+      console.log('=== LOAD INTERNAL CONTROLS COMPLETE ===');
+      console.log('Total controls loaded:', controls.length);
+      console.log('Controls data:', controls);
+      console.log('Controls array:', JSON.stringify(controls, null, 2));
+      
       // Fallback to localStorage if cloud storage fails or no controls found
       if (controls.length === 0) {
+        console.log('No controls found, trying localStorage fallback...');
         const savedControls = localStorage.getItem('internalControls');
         if (savedControls) {
           const parsedControls = JSON.parse(savedControls);
@@ -357,7 +409,9 @@ export default function LibrariesPage({ onBack, activeSection }: LibrariesPagePr
         }
       }
       
+      console.log('Setting internal controls state with:', controls.length, 'controls');
       setInternalControls(controls);
+      console.log('Internal controls state set successfully');
     } catch (error) {
       console.error('Error loading internal controls:', error);
       setInternalControls([]);
@@ -386,7 +440,10 @@ export default function LibrariesPage({ onBack, activeSection }: LibrariesPagePr
 
   const handleControlClick = async (control: InternalControl) => {
     try {
-      console.log('Loading control template for:', control);
+      console.log('=== CLICK HANDLER TRIGGERED ===');
+      console.log('Control clicked:', control);
+      console.log('Control metadata:', control.controlMetadata);
+      console.log('Control template:', control.template);
       console.log('window.internalControls:', window.internalControls);
       
       let templateData;
@@ -429,11 +486,28 @@ export default function LibrariesPage({ onBack, activeSection }: LibrariesPagePr
         
         console.log('Using template type:', templateType, 'Template:', template);
         
-        setSelectedControl(control);
-        setControlTemplate(template);
-        setIsControlViewerOpen(true);
+        if (!template) {
+          console.error('Template is null or undefined!');
+          return;
+        }
         
+        console.log('Opening control form with data:', {
+          metadata: control.controlMetadata,
+          template: template,
+          existingData: control
+        });
+        
+        // Open the control in edit mode instead of view mode
+        setSelectedControlForm({ 
+          metadata: control.controlMetadata, 
+          template: template, // Pass the actual template object, not just the type
+          existingData: control // Pass the full control data for editing
+        });
+        
+        console.log('Control form state set successfully');
         logger.dataAccess("Internal Control", control.controlMetadata?.controlId || control.id);
+      } else {
+        console.error('No template data loaded');
       }
     } catch (error) {
       console.error('Error loading control template:', error);
@@ -459,7 +533,7 @@ export default function LibrariesPage({ onBack, activeSection }: LibrariesPagePr
 
   const handleSaveControl = (controlData: any) => {
     const newControl = {
-      id: controlData.controlMetadata.controlId,
+      id: controlData.controlMetadata?.controlId || controlData.id || 'unknown',
       ...controlData
     };
     
@@ -469,6 +543,12 @@ export default function LibrariesPage({ onBack, activeSection }: LibrariesPagePr
       localStorage.setItem('internalControls', JSON.stringify(updated));
       return updated;
     });
+    
+    // Refresh the library from cloud storage to show the new control
+    console.log('Refreshing library from cloud storage after save...');
+    setTimeout(() => {
+      loadInternalControls();
+    }, 1000); // Small delay to ensure cloud upload is complete
     
     setSelectedControlForm(null);
   };
@@ -523,6 +603,12 @@ export default function LibrariesPage({ onBack, activeSection }: LibrariesPagePr
             </div>
 
             <div className="space-y-4">
+              {/* Cloud Storage Test */}
+              <CloudStorageTest />
+              
+              {/* Cloud Storage Debug */}
+              <CloudStorageDebug />
+              
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-medium text-white">Controls</h3>
                 <div className="flex items-center gap-2">
@@ -530,6 +616,26 @@ export default function LibrariesPage({ onBack, activeSection }: LibrariesPagePr
                     {internalControls.length} control(s)
                   </Badge>
                   <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        console.log('=== TEST BUTTON CLICKED ===');
+                        console.log('Internal controls:', internalControls);
+                        console.log('Controls length:', internalControls.length);
+                      }}
+                      variant="outline"
+                      className="text-white border-white/20 hover:bg-white/10"
+                    >
+                      Test Click
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => loadInternalControls()}
+                      variant="outline"
+                      className="text-white border-white/20 hover:bg-white/10"
+                    >
+                      Refresh
+                    </Button>
                     <Button
                       size="sm"
                       onClick={() => handleCreateControl("manual")}
@@ -564,31 +670,45 @@ export default function LibrariesPage({ onBack, activeSection }: LibrariesPagePr
                 </Card>
               ) : (
                 <div className="space-y-2">
+                  {(() => {
+                    console.log('=== RENDERING CONTROLS ===');
+                    console.log('Internal controls length:', internalControls.length);
+                    console.log('Internal controls:', internalControls);
+                    console.log('Controls array:', JSON.stringify(internalControls, null, 2));
+                    return null;
+                  })()}
                   {internalControls.map((control) => (
                     <div
                       key={control.id}
-                      onClick={() => handleControlClick(control)}
+                      onClick={(e) => {
+                        console.log('=== DIV CLICKED ===');
+                        console.log('Event:', e);
+                        console.log('Control:', control);
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleControlClick(control);
+                      }}
                       className="cursor-pointer rounded-lg border border-white/10 bg-white/5 p-4 text-white transition-all hover:border-white/20 hover:bg-white/10"
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
                             <h3 className="text-sm font-medium text-white">
-                              {control.controlMetadata.controlId}
+                              {control.controlMetadata?.controlId || control.id || 'Unknown Control ID'}
                             </h3>
                             <Badge variant="outline" className="text-xs">
-                              {control.controlMetadata.typeOfControl}
+                              {control.controlMetadata?.typeOfControl || 'Unknown'}
                             </Badge>
                             <Badge variant="outline" className="text-xs">
-                              {control.controlMetadata.subtype}
+                              {control.controlMetadata?.subtype || 'Unknown'}
                             </Badge>
                           </div>
                           <p className="text-sm text-white/80 mb-2">
-                            {control.controlMetadata.controlName}
+                            {control.controlMetadata?.controlName || 'Unknown Control Name'}
                           </p>
                           <div className="flex items-center gap-2">
                             <Badge variant="outline" className="text-xs">
-                              {control.controlMetadata.workspace}
+                              {control.controlMetadata?.workspace || 'Unknown Workspace'}
                             </Badge>
                             <span className="text-xs text-white/50">
                               Created: {new Date(control.createdAt).toLocaleDateString()}
@@ -816,6 +936,7 @@ export default function LibrariesPage({ onBack, activeSection }: LibrariesPagePr
           onSave={handleSaveControl}
           metadata={selectedControlForm.metadata}
           template={selectedControlForm.template}
+          existingData={selectedControlForm.existingData}
         />
       )}
     </div>

@@ -4,7 +4,6 @@
  * Based on Cloud_logic.py implementation
  */
 
-import { BlobServiceClient } from '@azure/storage-blob';
 import { randomUUID } from 'crypto';
 import fs from 'fs';
 import path from 'path';
@@ -41,7 +40,21 @@ export interface DownloadResult {
 }
 
 // === AZURE CLIENT ===
-const blobServiceClient = BlobServiceClient.fromConnectionString(CONNECTION_STRING);
+let blobServiceClient: any = null;
+
+async function getBlobServiceClient() {
+  if (!blobServiceClient) {
+    try {
+      const { BlobServiceClient } = await import('@azure/storage-blob');
+      blobServiceClient = BlobServiceClient.fromConnectionString(CONNECTION_STRING);
+      console.log('Azure Blob Service Client initialized successfully');
+    } catch (error) {
+      console.error('Error initializing Azure Blob Service Client:', error);
+      throw error;
+    }
+  }
+  return blobServiceClient;
+}
 
 // === HELPER FUNCTIONS ===
 function getMappingFilePath(): string {
@@ -52,13 +65,13 @@ async function loadMapping(): Promise<CloudMapping> {
   const mappingPath = getMappingFilePath();
   try {
     if (!fs.existsSync(mappingPath)) {
-      return { Juggernaut: [], Client: [], Tools: [] };
+      return { Juggernaut: [], Client: [], Tools: [], Recycle_bin: [] };
     }
     const data = fs.readFileSync(mappingPath, 'utf-8');
     return JSON.parse(data);
   } catch (error) {
     console.error('Error loading mapping file:', error);
-    return { Juggernaut: [], Client: [], Tools: [] };
+    return { Juggernaut: [], Client: [], Tools: [], Recycle_bin: [] };
   }
 }
 
@@ -80,7 +93,8 @@ function generateUniqueCode(): string {
 export async function uploadFile(
   container: string,
   filePath: string,
-  reference: string = ""
+  reference: string = "",
+  customFilename?: string
 ): Promise<UploadResult> {
   try {
     // Validate container
@@ -100,29 +114,37 @@ export async function uploadFile(
     }
 
     const mapping = await loadMapping();
-    const filename = path.basename(filePath);
-    const code = generateUniqueCode();
+    const filename = customFilename || path.basename(filePath);
+    
+    // For juggernaut container, use filename as code; for others, generate unique code
+    const code = container.toLowerCase() === 'juggernaut' ? filename : generateUniqueCode();
 
     // Upload file to Azure with blob name = code
-    const blobClient = blobServiceClient.getBlobClient(container, code);
+    const client = await getBlobServiceClient();
+    const containerClient = client.getContainerClient(container);
+    const blobClient = containerClient.getBlobClient(code);
+    const blockBlobClient = blobClient.getBlockBlobClient();
+    
     const fileData = fs.readFileSync(filePath);
     
-    await blobClient.upload(fileData, fileData.length, {
+    await blockBlobClient.upload(fileData, fileData.length, {
       blobHTTPHeaders: {
         blobContentType: getMimeType(filename)
       }
     });
 
-    // Update mapping
-    const entry: CloudFileEntry = {
-      name: filename,
-      code: code,
-      reference: reference
-    };
+    // Update mapping only for non-juggernaut containers
+    if (container.toLowerCase() !== 'juggernaut') {
+      const entry: CloudFileEntry = {
+        name: filename,
+        code: code,
+        reference: reference
+      };
 
-    const containerKey = container.charAt(0).toUpperCase() + container.slice(1) as keyof CloudMapping;
-    mapping[containerKey].push(entry);
-    await saveMapping(mapping);
+      const containerKey = container.charAt(0).toUpperCase() + container.slice(1) as keyof CloudMapping;
+      mapping[containerKey].push(entry);
+      await saveMapping(mapping);
+    }
 
     console.log(`Uploaded ${filename} as blob ${code} in container ${container}`);
     return {
@@ -153,22 +175,28 @@ export async function downloadFile(
       };
     }
 
-    const mapping = await loadMapping();
-    const containerKey = container.charAt(0).toUpperCase() + container.slice(1) as keyof CloudMapping;
+    // For juggernaut container, use filename directly; for others, lookup code from mapping
+    let blobName = filename;
     
-    // Find entry by filename
-    const entry = mapping[containerKey].find(item => item.name === filename);
-    if (!entry) {
-      return {
-        success: false,
-        error: `File ${filename} not found in mapping under ${container}`
-      };
+    if (container.toLowerCase() !== 'juggernaut') {
+      // For other containers, use mapping system
+      const mapping = await loadMapping();
+      const containerKey = container.charAt(0).toUpperCase() + container.slice(1) as keyof CloudMapping;
+      
+      // Find entry by filename
+      const entry = mapping[containerKey].find(item => item.name === filename);
+      if (!entry) {
+        return {
+          success: false,
+          error: `File ${filename} not found in mapping under ${container}`
+        };
+      }
+      blobName = entry.code;
     }
 
-    const code = entry.code;
-
-    // Download file from Azure
-    const blobClient = blobServiceClient.getBlobClient(container, code);
+    const client = await getBlobServiceClient();
+    const containerClient = client.getContainerClient(container);
+    const blobClient = containerClient.getBlobClient(blobName);
     const downloadResponse = await blobClient.download();
     
     if (!downloadResponse.readableStreamBody) {
@@ -193,7 +221,7 @@ export async function downloadFile(
     const fileData = Buffer.concat(chunks);
     fs.writeFileSync(downloadPath, fileData);
 
-    console.log(`Downloaded ${filename} (blob ${code}) from ${container} → ${downloadPath}`);
+    console.log(`Downloaded ${filename} (blob ${blobName}) from ${container} → ${downloadPath}`);
     return {
       success: true,
       filePath: downloadPath
@@ -214,11 +242,33 @@ export async function listFiles(container: string): Promise<CloudFileEntry[]> {
       throw new Error(`Invalid container. Must be one of: ${CONTAINERS.join(', ')}`);
     }
 
-    const mapping = await loadMapping();
-    const containerKey = container.charAt(0).toUpperCase() + container.slice(1) as keyof CloudMapping;
-    return mapping[containerKey];
+    // For juggernaut container, list files directly from Azure; for others, use mapping
+    if (container.toLowerCase() === 'juggernaut') {
+      // List files directly from Azure Blob Storage for juggernaut
+      const client = await getBlobServiceClient();
+      const containerClient = client.getContainerClient(container);
+      
+      const files: CloudFileEntry[] = [];
+      
+      // List all blobs in the container
+      for await (const blob of containerClient.listBlobsFlat()) {
+        files.push({
+          name: blob.name,
+          code: blob.name, // For juggernaut, code = name
+          reference: blob.name
+        });
+      }
+      
+      console.log(`Found ${files.length} files in container ${container}`);
+      return files;
+    } else {
+      // For other containers, use mapping system
+      const mapping = await loadMapping();
+      const containerKey = container.charAt(0).toUpperCase() + container.slice(1) as keyof CloudMapping;
+      return mapping[containerKey];
+    }
   } catch (error) {
-    console.error('Error listing files:', error);
+    console.error('Error listing files from Azure:', error);
     return [];
   }
 }
@@ -229,27 +279,38 @@ export async function deleteFile(container: string, filename: string): Promise<b
       throw new Error(`Invalid container. Must be one of: ${CONTAINERS.join(', ')}`);
     }
 
-    const mapping = await loadMapping();
-    const containerKey = container.charAt(0).toUpperCase() + container.slice(1) as keyof CloudMapping;
+    // For juggernaut container, use filename directly; for others, use mapping
+    let blobName = filename;
     
-    // Find entry by filename
-    const entryIndex = mapping[containerKey].findIndex(item => item.name === filename);
-    if (entryIndex === -1) {
-      return false;
+    if (container.toLowerCase() === 'juggernaut') {
+      // For juggernaut, use filename as blob name directly
+      blobName = filename;
+    } else {
+      // For other containers, use mapping system
+      const mapping = await loadMapping();
+      const containerKey = container.charAt(0).toUpperCase() + container.slice(1) as keyof CloudMapping;
+      
+      // Find entry by filename
+      const entryIndex = mapping[containerKey].findIndex(item => item.name === filename);
+      if (entryIndex === -1) {
+        return false;
+      }
+
+      const entry = mapping[containerKey][entryIndex];
+      blobName = entry.code;
+
+      // Remove from mapping
+      mapping[containerKey].splice(entryIndex, 1);
+      await saveMapping(mapping);
     }
 
-    const entry = mapping[containerKey][entryIndex];
-    const code = entry.code;
-
     // Delete from Azure
-    const blobClient = blobServiceClient.getBlobClient(container, code);
+    const client = await getBlobServiceClient();
+    const containerClient = client.getContainerClient(container);
+    const blobClient = containerClient.getBlobClient(blobName);
     await blobClient.delete();
 
-    // Remove from mapping
-    mapping[containerKey].splice(entryIndex, 1);
-    await saveMapping(mapping);
-
-    console.log(`Deleted ${filename} (blob ${code}) from ${container}`);
+    console.log(`Deleted ${filename} (blob ${blobName}) from ${container}`);
     return true;
 
   } catch (error) {

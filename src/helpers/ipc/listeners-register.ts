@@ -5,12 +5,27 @@ import { addPlanningEventListeners } from "./planning/planning-listeners";
 import { addDocumentEventListeners } from "./documents/document-listeners";
 import { addPayrollEventListeners } from "./payroll/payroll-listeners";
 import { addInternalControlsEventListeners } from "./internal-controls/internal-controls-listeners";
+import { addCloudEventListeners } from "./cloud/cloud-listeners";
+import { addCloudFileOperationListeners } from "./cloud/cloud-file-operations";
+import { addCloudDirectUploadListener } from "./cloud/cloud-direct-upload";
+import { testCloudHandlers } from "./cloud/cloud-handler-test";
 
 export default function registerListeners(mainWindow: BrowserWindow) {
+  console.log('Registering all IPC listeners...');
   addWindowEventListeners(mainWindow);
   addThemeEventListeners();
   addPlanningEventListeners(mainWindow);
   addDocumentEventListeners(mainWindow);
   addPayrollEventListeners(mainWindow);
   addInternalControlsEventListeners(mainWindow);
+  addCloudEventListeners(mainWindow);
+  console.log('About to register cloud file operation listeners...');
+  addCloudFileOperationListeners(mainWindow);
+  addCloudDirectUploadListener(mainWindow);
+  console.log('All IPC listeners registered successfully');
+  
+  // Test cloud handlers registration
+  setTimeout(() => {
+    testCloudHandlers();
+  }, 1000);
 }

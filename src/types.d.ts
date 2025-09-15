@@ -74,12 +74,84 @@ interface InternalControlsContext {
   readTemplate: () => Promise<any>;
 }
 
+interface CloudFileEntry {
+  name: string;
+  code: string;
+  reference: string;
+}
+
+interface CloudUploadRequest {
+  container: string;
+  filePath: string;
+  reference?: string;
+}
+
+interface CloudDownloadRequest {
+  container: string;
+  filename: string;
+  downloadPath: string;
+}
+
+interface CloudListRequest {
+  container: string;
+}
+
+interface CloudDeleteRequest {
+  container: string;
+  filename: string;
+}
+
+interface CloudUploadResult {
+  success: boolean;
+  code?: string;
+  error?: string;
+}
+
+interface CloudDownloadResult {
+  success: boolean;
+  filePath?: string;
+  error?: string;
+}
+
+interface CloudListResult {
+  success: boolean;
+  files?: CloudFileEntry[];
+  error?: string;
+}
+
+interface CloudDeleteResult {
+  success: boolean;
+  error?: string;
+}
+
+interface CloudProgressPayload {
+  operation: "upload" | "download" | "delete";
+  container: string;
+  filename: string;
+  progress: number;
+  status: "started" | "success" | "error";
+  error?: string;
+}
+
+interface CloudContext {
+  upload: (request: CloudUploadRequest) => Promise<CloudUploadResult>;
+  download: (request: CloudDownloadRequest) => Promise<CloudDownloadResult>;
+  list: (request: CloudListRequest) => Promise<CloudListResult>;
+  delete: (request: CloudDeleteRequest) => Promise<CloudDeleteResult>;
+  writeTempFile: (content: string, filename: string) => Promise<{ success: boolean; filePath?: string; error?: string }>;
+  readTempFile: (filePath: string) => Promise<{ success: boolean; content?: string; error?: string }>;
+  deleteTempFile: (filePath: string) => Promise<{ success: boolean; error?: string }>;
+  directUpload: (content: string, filename: string, container: string, reference: string) => Promise<CloudUploadResult>;
+  onProgress: (handler: (payload: CloudProgressPayload) => void) => () => void;
+}
+
 declare interface Window {
   themeMode: ThemeModeContext;
   electronWindow: ElectronWindow;
   planning: PlanningContext;
   documents: DocumentsContext;
   internalControls: InternalControlsContext;
+  cloud: CloudContext;
   payroll: {
     acceptedInputs: () => Promise<string[]>;
     run: (

@@ -81,6 +81,20 @@ export function exposeCloudContext() {
     delete: (request: CloudDeleteRequest): Promise<CloudDeleteResult> =>
       ipcRenderer.invoke(CLOUD_DELETE_CHANNEL, request),
     
+    // File operations
+    writeTempFile: (content: string, filename: string): Promise<{ success: boolean; filePath?: string; error?: string }> =>
+      ipcRenderer.invoke("cloud:write-temp-file", { content, filename }),
+    
+    readTempFile: (filePath: string): Promise<{ success: boolean; content?: string; error?: string }> =>
+      ipcRenderer.invoke("cloud:read-temp-file", { filePath }),
+    
+    deleteTempFile: (filePath: string): Promise<{ success: boolean; error?: string }> =>
+      ipcRenderer.invoke("cloud:delete-temp-file", { filePath }),
+    
+    // Direct upload method
+    directUpload: (content: string, filename: string, container: string, reference: string): Promise<CloudUploadResult> =>
+      ipcRenderer.invoke("cloud:direct-upload", { content, filename, container, reference }),
+    
     onProgress: (
       handler: (payload: CloudProgressPayload) => void,
     ) => {

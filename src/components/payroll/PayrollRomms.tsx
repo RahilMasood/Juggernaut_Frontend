@@ -9,6 +9,12 @@ import combinedData from "../../data/Combined.json";
 import ControlSelectorModal from "./ControlSelectorModal";
 import ProcedureSelectorModal from "./ProcedureSelectorModal";
 import InternalControlViewerModal from "../libraries/InternalControlViewerModal";
+import { 
+  associateControlWithRomm, 
+  disassociateControlFromRomm, 
+  getControlsForRomm,
+  loadPayrollMetadata 
+} from "../../utils/payroll-metadata";
 
 interface RommItem {
   id: string;
@@ -215,13 +221,25 @@ export default function PayrollRomms({
 
   const handleAssociateControls = (selectedControls: InternalControl[]) => {
     if (selectedRommId) {
+      // Update local state
       const newAssociations = {
         ...associatedControls,
         [selectedRommId]: selectedControls
       };
       setAssociatedControls(newAssociations);
       
-      // Save ROMM-control linkages to localStorage for persistence
+      // Update payroll metadata
+      selectedControls.forEach(control => {
+        associateControlWithRomm(control.control_id, selectedRommId, {
+          controlId: control.control_id,
+          controlName: control.control_name,
+          controlType: control.control_type,
+          controlAttribute: control.control_attribute,
+          controlDescription: control.control_description
+        });
+      });
+      
+      // Save ROMM-control linkages to localStorage for persistence (legacy support)
       localStorage.setItem('rommControlLinkages', JSON.stringify(newAssociations));
       
       // Dispatch custom event to notify other components
@@ -236,7 +254,10 @@ export default function PayrollRomms({
     };
     setAssociatedControls(newAssociations);
     
-    // Save updated ROMM-control linkages to localStorage
+    // Update payroll metadata
+    disassociateControlFromRomm(controlId, rommId);
+    
+    // Save updated ROMM-control linkages to localStorage (legacy support)
     localStorage.setItem('rommControlLinkages', JSON.stringify(newAssociations));
     
     // Dispatch custom event to notify other components

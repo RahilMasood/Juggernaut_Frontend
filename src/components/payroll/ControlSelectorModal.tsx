@@ -52,49 +52,113 @@ export default function ControlSelectorModal({
   const loadControls = async () => {
     setLoading(true);
     try {
-      // Load controls from Internal Control Library (localStorage)
-      const savedControls = localStorage.getItem('internalControls');
       let libraryControls: InternalControl[] = [];
       
-      if (savedControls) {
-        const parsedControls = JSON.parse(savedControls);
-        // Transform the library controls to match the expected interface
-        libraryControls = parsedControls.map((control: any) => ({
-          control_id: control.controlMetadata.controlId,
-          control_name: control.controlMetadata.controlName,
-          control_type: control.controlMetadata.subtype === 'Manual' ? 'Manual' : 'Automated',
-          control_attribute: control.controlMetadata.typeOfControl,
-          control_description: control.control_summary?.control_description || `${control.controlMetadata.controlName} - ${control.controlMetadata.typeOfControl} control`
-        }));
-      }
-      
-      // Also load from the payroll internal control library as fallback
-      try {
-        const response = await fetch('/payroll/InternalControlLibrary.json');
-        if (response.ok) {
-          const payrollControls = await response.json();
-          const transformedPayrollControls = payrollControls.map((control: any) => ({
-            control_id: control.control_id,
-            control_name: control.control_name,
-            control_type: control.control_type,
-            control_attribute: control.control_attribute,
-            control_description: control.control_description
-          }));
+      // Use the exact same logic as LibrariesPage
+      if (window.cloud?.list) {
+        try {
+          console.log('=== USING SAME LOGIC AS LIBRARIES PAGE ===');
+          const result = await window.cloud.list({ container: 'juggernaut' });
+          console.log('Cloud list result:', result);
+          console.log('Cloud list success:', result.success);
+          console.log('Cloud list files:', result.files);
           
-          // Combine library controls with payroll controls, avoiding duplicates
-          const allControls = [...libraryControls];
-          transformedPayrollControls.forEach((payrollControl: InternalControl) => {
-            if (!allControls.some(c => c.control_id === payrollControl.control_id)) {
-              allControls.push(payrollControl);
+          if (result.success && result.files) {
+            console.log('Total files in juggernaut container:', result.files.length);
+            // Filter files that start with "Libraries_InternalControlResponses_"
+            const controlFiles = result.files.filter((file: any) => 
+              file.name.startsWith('Libraries_InternalControlResponses_') && 
+              file.name.endsWith('.json')
+            );
+            
+            console.log('Found internal control files:', controlFiles.length);
+            console.log('Control files:', controlFiles.map(f => f.name));
+            
+            // Load each control file using the same logic as LibrariesPage
+            for (const file of controlFiles) {
+              try {
+                const downloadResult = await window.cloud.download({
+                  container: 'juggernaut',
+                  filename: file.name,
+                  downloadPath: `temp_${file.name}`
+                });
+                
+                if (downloadResult.success) {
+                  const tempFilePath = downloadResult.filePath!;
+                  
+                  // Read the downloaded file content using IPC
+                  const readResult = await window.cloud.readTempFile(tempFilePath);
+                  
+                  if (readResult.success) {
+                    const controlData = JSON.parse(readResult.content!);
+                    
+                    // Clean up temp file
+                    await window.cloud.deleteTempFile(tempFilePath);
+                    
+                    // Extract controlId from the file name (this is the user-entered ControlID)
+                    const controlId = file.name.replace('Libraries_InternalControlResponses_', '').replace('.json', '');
+                    
+                    // Extract other details from the JSON structure (same as LibrariesPage)
+                    const controlName = controlData.InternalControls?.Control?.ControlSummary?.ControlDetails?.ControlName || 
+                                      'Unknown Control';
+                    
+                    const typeOfControl = controlData.InternalControls?.Control?.ControlSummary?.ControlAttributes?.TypeOfControl || 
+                                          'Unknown';
+                    
+                    const subtype = controlData.InternalControls?.Control?.ControlSummary?.ControlAttributes?.Nature || 
+                                    'Unknown';
+                    
+                    const controlDescription = controlData.InternalControls?.Control?.ControlSummary?.ControlDetails?.ControlDescription || 
+                                              `${controlName} - ${typeOfControl} control`;
+                    
+                    // Create control object in the same format as LibrariesPage
+                    libraryControls.push({
+                      control_id: controlId,
+                      control_name: controlName,
+                      control_type: subtype === 'Manual' ? 'Manual' : 'Automated',
+                      control_attribute: typeOfControl,
+                      control_description: controlDescription
+                    });
+                  } else {
+                    console.error(`Error reading control file ${file.name}:`, readResult.error);
+                  }
+                }
+              } catch (fileError) {
+                console.error(`Error loading control file ${file.name}:`, fileError);
+              }
             }
-          });
-          
-          libraryControls = allControls;
+          }
+        } catch (cloudError) {
+          console.error('Error loading from cloud storage:', cloudError);
         }
-      } catch (error) {
-        console.warn('Could not load payroll controls, using only library controls');
       }
       
+      // Fallback to localStorage if no controls found
+      if (libraryControls.length === 0) {
+        console.log('=== FALLBACK TO LOCALSTORAGE ===');
+        const savedControls = localStorage.getItem('internalControls');
+        if (savedControls) {
+          const parsedControls = JSON.parse(savedControls);
+          libraryControls = parsedControls.map((control: any) => ({
+            control_id: control.controlMetadata?.controlId || control.id,
+            control_name: control.controlMetadata?.controlName || 'Unknown Control',
+            control_type: control.controlMetadata?.subtype === 'Manual' ? 'Manual' : 'Automated',
+            control_attribute: control.controlMetadata?.typeOfControl || 'Unknown',
+            control_description: control.control_summary?.control_description || `${control.controlMetadata?.controlName || 'Unknown'} - ${control.controlMetadata?.typeOfControl || 'Unknown'} control`
+          }));
+          console.log('Loaded from localStorage:', libraryControls.length, 'controls');
+        }
+      }
+      
+      console.log('=== CONTROL SELECTOR DEBUG ===');
+      console.log('Final controls loaded for selector:', libraryControls);
+      console.log('Number of controls loaded:', libraryControls.length);
+      console.log('Controls details:', libraryControls.map(c => ({
+        id: c.control_id,
+        name: c.control_name,
+        type: c.control_type,
+        attribute: c.control_attribute
+      })));
       setControls(libraryControls);
     } catch (error) {
       console.error("Error loading controls:", error);

@@ -32,6 +32,7 @@ interface InternalControlFormProps {
   onSave: (controlData: any) => void;
   metadata: ControlMetadata;
   template: any;
+  existingData?: any; // For edit mode
 }
 
 export default function InternalControlForm({ 
@@ -39,7 +40,8 @@ export default function InternalControlForm({
   onClose, 
   onSave,
   metadata,
-  template
+  template,
+  existingData
 }: InternalControlFormProps) {
   const [formData, setFormData] = useState<any>({});
   const [activeSection, setActiveSection] = useState<string>("");
@@ -51,7 +53,12 @@ export default function InternalControlForm({
   }>({ type: null, message: '' });
 
   useEffect(() => {
-    console.log('InternalControlForm useEffect - isOpen:', isOpen, 'template:', template);
+    console.log('=== InternalControlForm useEffect ===');
+    console.log('isOpen:', isOpen);
+    console.log('template:', template);
+    console.log('existingData:', existingData);
+    console.log('metadata:', metadata);
+    
     if (isOpen && template) {
       console.log('Template sections:', template.sections?.length);
       console.log('Template structure:', template);
@@ -60,10 +67,20 @@ export default function InternalControlForm({
       const initializedData = initializeFormData(template);
       console.log('Initialized form data:', initializedData);
       
-      setFormData({
-        controlMetadata: metadata,
-        ...initializedData
-      });
+      // If we have existing data (edit mode), populate the form with it
+      if (existingData) {
+        console.log('Edit mode: Populating form with existing data');
+        setFormData({
+          controlMetadata: existingData.controlMetadata || metadata,
+          ...existingData // Use the existing data to populate the form
+        });
+      } else {
+        // Create mode: use initialized data
+        setFormData({
+          controlMetadata: metadata,
+          ...initializedData
+        });
+      }
       
       // Set first section as active - ensure this always happens
       if (template.sections && template.sections.length > 0) {
@@ -587,50 +604,80 @@ export default function InternalControlForm({
         }
       }
 
-      // Create the control data structure according to the specified format
+      // Create the proper JSON structure as specified
       const controlData = {
-        controlMetadata: {
-          typeOfControl: updatedMetadata.typeOfControl,
-          subtype: updatedMetadata.subtype,
-          controlId: updatedMetadata.controlId,
-          controlName: updatedMetadata.controlName,
-          workspace: updatedMetadata.workspace
-        },
-        templates: {
-          [metadata.subtype.toLowerCase()]: {
-            sections: formData
+        InternalControls: {
+          Control: {
+            ControlSummary: {
+              ControlDetails: {
+                ControlID: updatedMetadata.controlId,
+                ControlName: updatedMetadata.controlName,
+                WorkspaceLinked: [updatedMetadata.workspace],
+                ControlDescription: formData.controlDescription || ""
+              },
+              ControlAttributes: {
+                TypeOfControl: updatedMetadata.typeOfControl,
+                Nature: updatedMetadata.subtype === "Manual" ? "Manual" : "Automated",
+                Approach: formData.approach || "Preventive",
+                Type: formData.controlTypes || []
+              },
+              TailoringQuestions: {
+                TestOperatingEffectiveness: formData.testOperatingEffectiveness || false,
+                SignificantRisk: formData.significantRisk || false,
+                ReviewElementWithEstimate: formData.reviewElementWithEstimate || false
+              }
+            },
+            RelatedAccountsAndAreas: formData.relatedAccountsAndAreas || [],
+            DetailedDescription: {
+              ShowToggle: formData.showToggle || false,
+              Steps: formData.steps || []
+            },
+            EvaluateDesignAndImplementation: {
+              DesignImplementation: formData.designImplementation || [],
+              EvidenceOfDesignImplementation: formData.evidenceOfDesignImplementation || "",
+              DesignFactors: formData.designFactors || {}
+            },
+            DependentControls: formData.dependentControls || [],
+            EffectivenessOfDesignImplementation: {
+              DesignEffective: formData.designEffective || "Not Yet Concluded",
+              ProperlyImplemented: formData.properlyImplemented || "Not Yet Concluded"
+            },
+            PriorYearAuditEvidence: formData.priorYearAuditEvidence || {},
+            RiskAssociatedWithControl: formData.riskAssociatedWithControl || {},
+            OperatingEffectiveness: formData.operatingEffectiveness || {},
+            AutomatedControls: formData.automatedControls || {}
           }
         }
       };
 
       // Save to cloud storage
-      if (window.cloud) {
-        const fileName = `${updatedMetadata.controlId}.json`;
+      console.log('Checking cloud storage availability...');
+      console.log('window.cloud:', window.cloud);
+      console.log('typeof window.cloud.upload:', typeof window.cloud?.upload);
+      console.log('typeof window.cloud.directUpload:', typeof window.cloud?.directUpload);
+      
+      if (window.cloud && typeof window.cloud.directUpload === 'function') {
+        console.log('Using direct upload method...');
+        
+        // In edit mode, use the existing filename; in create mode, generate new filename
+        const fileName = existingData 
+          ? existingData.originalFileName || `Libraries_InternalControlResponses_${updatedMetadata.controlId}.json`
+          : `Libraries_InternalControlResponses_${updatedMetadata.controlId}.json`;
+          
         const fileContent = JSON.stringify(controlData, null, 2);
         
-        // Create a temporary file to upload
-        const tempFile = new File([fileContent], fileName, { type: 'application/json' });
-        const tempPath = `temp_${fileName}`;
+        // Use direct upload method
+        console.log('Uploading directly to cloud storage:', fileName);
+        const uploadResult = await window.cloud.directUpload(
+          fileContent,
+          fileName,
+          'juggernaut',
+          `Internal Control: ${updatedMetadata.controlName}`
+        );
         
-        // Write to temporary location
-        const fs = window.require('fs');
-        const path = window.require('path');
-        const os = window.require('os');
-        
-        const tempFilePath = path.join(os.tmpdir(), tempPath);
-        fs.writeFileSync(tempFilePath, fileContent);
-        
-        // Upload to cloud storage
-        const uploadResult = await window.cloud.upload({
-          container: 'juggernaut',
-          filePath: tempFilePath,
-          reference: `Internal Control: ${updatedMetadata.controlName}`
-        });
+        console.log('Upload result:', uploadResult);
         
         if (uploadResult.success) {
-          // Clean up temporary file
-          fs.unlinkSync(tempFilePath);
-          
           setSaveStatus({ 
             type: 'success', 
             message: 'Internal control saved to cloud successfully!' 
@@ -646,8 +693,60 @@ export default function InternalControlForm({
         } else {
           throw new Error(uploadResult.error || 'Failed to upload to cloud storage');
         }
+      } else if (window.cloud && typeof window.cloud.upload === 'function' && typeof window.cloud.writeTempFile === 'function') {
+        console.log('Using temp file method...');
+        const fileName = `Libraries_InternalControlResponses_${updatedMetadata.controlId}.json`;
+        const fileContent = JSON.stringify(controlData, null, 2);
+        
+        // Write to temporary file using IPC
+        console.log('Writing temporary file:', fileName);
+        const tempFileResult = await window.cloud.writeTempFile(fileContent, `temp_${fileName}`);
+        
+        if (!tempFileResult.success) {
+          throw new Error(tempFileResult.error || 'Failed to create temporary file');
+        }
+        
+        const tempFilePath = tempFileResult.filePath!;
+        console.log('Temp file created at:', tempFilePath);
+        
+        // Upload to cloud storage
+        console.log('Uploading to cloud storage with file:', fileName);
+        console.log('Container: juggernaut');
+        console.log('Temp file path:', tempFilePath);
+        
+        const uploadResult = await window.cloud.upload({
+          container: 'juggernaut',
+          filePath: tempFilePath,
+          reference: `Internal Control: ${updatedMetadata.controlName}`
+        });
+        
+        console.log('Upload result:', uploadResult);
+        
+        if (uploadResult.success) {
+          // Clean up temporary file
+          console.log('Cleaning up temporary file...');
+          await window.cloud.deleteTempFile(tempFilePath);
+          
+          setSaveStatus({ 
+            type: 'success', 
+            message: 'Internal control saved to cloud successfully!' 
+          });
+          
+          // Call the onSave callback with the control data
+          onSave(controlData);
+          
+          // Close after successful save
+          setTimeout(() => {
+            onClose();
+          }, 1500);
+        } else {
+          // Clean up temporary file even on failure
+          await window.cloud.deleteTempFile(tempFilePath);
+          throw new Error(uploadResult.error || 'Failed to upload to cloud storage');
+        }
       } else {
-        throw new Error('Cloud storage not available');
+        console.error('Cloud storage not available. window.cloud:', window.cloud);
+        throw new Error('Cloud storage not available. Please ensure the cloud storage service is properly initialized.');
       }
 
     } catch (error) {

@@ -7,6 +7,7 @@ import {
 } from "./PayrollDocumentsContext";
 import TailoringQuestions from "./TailoringQuestions";
 import InternalControlViewerModal from "../libraries/InternalControlViewerModal";
+import { getAllAssociatedControls, loadPayrollMetadata } from "../../utils/payroll-metadata";
 
 type PlaceholderProps = {
   title: string;
@@ -86,46 +87,123 @@ export function ControlsPanel() {
   React.useEffect(() => {
     const loadLinkedControls = async () => {
       try {
-        // Load ROMM-control linkages from localStorage
-        const savedLinkages = localStorage.getItem('rommControlLinkages');
-        if (savedLinkages) {
-          const linkages = JSON.parse(savedLinkages);
-          
-          // Flatten all linked controls from all ROMMs
-          const allLinkedControls: any[] = [];
-          Object.entries(linkages).forEach(([rommId, controls]: [string, any]) => {
-            if (Array.isArray(controls)) {
-              controls.forEach(control => {
-                // Add ROMM info to control for display
-                allLinkedControls.push({
-                  ...control,
-                  linkedRomm: rommId
+        setLoading(true);
+        
+        // Load payroll metadata to get control associations
+        const metadata = loadPayrollMetadata();
+        const allControlIds = new Set<string>();
+        
+        // Collect all unique control IDs from associations
+        Object.values(metadata.rommControlAssociations).forEach(controlIds => {
+          controlIds.forEach(controlId => allControlIds.add(controlId));
+        });
+        
+        if (allControlIds.size === 0) {
+          setLinkedControls([]);
+          setLoading(false);
+          return;
+        }
+        
+        // Load control data from cloud storage
+        const linkedControls: any[] = [];
+        
+        if (window.cloud?.listFiles) {
+          try {
+            const cloudFiles = await window.cloud.listFiles('juggernaut');
+            const controlFiles = cloudFiles.filter((file: any) => 
+              file.name.startsWith('Libraries_InternalControlResponses_') && file.name.endsWith('.json')
+            );
+            
+            for (const file of controlFiles) {
+              const controlId = file.name.replace('Libraries_InternalControlResponses_', '').replace('.json', '');
+              
+              // Only process controls that are associated with RoMMs
+              if (allControlIds.has(controlId)) {
+                try {
+                  const downloadResult = await window.cloud.downloadFile('juggernaut', file.name);
+                  if (downloadResult.success && downloadResult.filePath) {
+                    const fileContent = await window.cloud.readTempFile(downloadResult.filePath);
+                    if (fileContent.success) {
+                      const controlData = JSON.parse(fileContent.content);
+                      
+                      // Extract control metadata
+                      const controlName = controlData.InternalControls?.Control?.ControlSummary?.ControlDetails?.ControlName || 
+                                        'Unknown Control';
+                      const typeOfControl = controlData.InternalControls?.Control?.ControlSummary?.ControlAttributes?.TypeOfControl || 
+                                            'Unknown';
+                      const subtype = controlData.InternalControls?.Control?.ControlSummary?.ControlAttributes?.Nature || 
+                                      'Unknown';
+                      const controlDescription = controlData.InternalControls?.Control?.ControlSummary?.ControlDetails?.ControlDescription || 
+                                                `${controlName} - ${typeOfControl} control`;
+                      
+                      // Get associated RoMMs for this control
+                      const associatedRomms = metadata.controlRommAssociations[controlId] || [];
+                      
+                      linkedControls.push({
+                        control_id: controlId,
+                        control_name: controlName,
+                        control_type: subtype === 'Manual' ? 'Manual' : 'Automated',
+                        control_attribute: typeOfControl,
+                        control_description: controlDescription,
+                        linkedRomms: associatedRomms
+                      });
+                    }
+                    
+                    // Clean up the temporary file
+                    await window.cloud.deleteTempFile(downloadResult.filePath);
+                  }
+                } catch (fileError) {
+                  console.error(`Error processing control file ${file.name}:`, fileError);
+                }
+              }
+            }
+          } catch (cloudError) {
+            console.error('Error loading controls from cloud storage:', cloudError);
+          }
+        }
+        
+        // Fallback to localStorage if cloud storage fails
+        if (linkedControls.length === 0) {
+          const savedLinkages = localStorage.getItem('rommControlLinkages');
+          if (savedLinkages) {
+            const linkages = JSON.parse(savedLinkages);
+            
+            // Flatten all linked controls from all ROMMs
+            const allLinkedControls: any[] = [];
+            Object.entries(linkages).forEach(([rommId, controls]: [string, any]) => {
+              if (Array.isArray(controls)) {
+                controls.forEach(control => {
+                  allLinkedControls.push({
+                    ...control,
+                    linkedRomm: rommId
+                  });
                 });
-              });
-            }
-          });
-          
-          // Remove duplicates (same control linked to multiple ROMMs)
-          const uniqueControls = allLinkedControls.reduce((acc, current) => {
-            const existing = acc.find(item => item.control_id === current.control_id);
-            if (existing) {
-              // Add to linked ROMMs array
-              if (!existing.linkedRomms) {
-                existing.linkedRomms = [existing.linkedRomm];
               }
-              if (!existing.linkedRomms.includes(current.linkedRomm)) {
-                existing.linkedRomms.push(current.linkedRomm);
+            });
+            
+            // Remove duplicates
+            const uniqueControls = allLinkedControls.reduce((acc, current) => {
+              const existing = acc.find(item => item.control_id === current.control_id);
+              if (existing) {
+                if (!existing.linkedRomms) {
+                  existing.linkedRomms = [existing.linkedRomm];
+                }
+                if (!existing.linkedRomms.includes(current.linkedRomm)) {
+                  existing.linkedRomms.push(current.linkedRomm);
+                }
+              } else {
+                acc.push({
+                  ...current,
+                  linkedRomms: [current.linkedRomm]
+                });
               }
-            } else {
-              acc.push({
-                ...current,
-                linkedRomms: [current.linkedRomm]
-              });
-            }
-            return acc;
-          }, []);
-          
-          setLinkedControls(uniqueControls);
+              return acc;
+            }, []);
+            
+            setLinkedControls(uniqueControls);
+          }
+        } else {
+          setLinkedControls(linkedControls);
         }
       } catch (error) {
         console.error('Error loading linked controls:', error);
