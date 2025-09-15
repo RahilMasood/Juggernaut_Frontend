@@ -16,6 +16,7 @@ import {
   CheckCircle,
   AlertCircle
 } from "lucide-react";
+import { CONTROL_TEMPLATES } from "../../constants/ControlTemplates";
 
 interface ControlMetadata {
   typeOfControl: "Direct" | "Indirect" | "GITC";
@@ -564,9 +565,6 @@ export default function InternalControlForm({
     setSaveStatus({ type: null, message: '' });
 
     try {
-      // Simulate save delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
       // Update metadata from template fields if they were changed
       const updatedMetadata = { ...metadata };
       if (formData.control_summary) {
@@ -589,30 +587,74 @@ export default function InternalControlForm({
         }
       }
 
+      // Create the control data structure according to the specified format
       const controlData = {
-        ...formData,
-        controlMetadata: updatedMetadata,
-        createdAt: new Date().toISOString(),
-        template: metadata.subtype.toLowerCase()
+        controlMetadata: {
+          typeOfControl: updatedMetadata.typeOfControl,
+          subtype: updatedMetadata.subtype,
+          controlId: updatedMetadata.controlId,
+          controlName: updatedMetadata.controlName,
+          workspace: updatedMetadata.workspace
+        },
+        templates: {
+          [metadata.subtype.toLowerCase()]: {
+            sections: formData
+          }
+        }
       };
 
-      onSave(controlData);
-      
-      setSaveStatus({ 
-        type: 'success', 
-        message: 'Internal control saved successfully!' 
-      });
-
-      // Close after successful save
-      setTimeout(() => {
-        onClose();
-      }, 1500);
+      // Save to cloud storage
+      if (window.cloud) {
+        const fileName = `${updatedMetadata.controlId}.json`;
+        const fileContent = JSON.stringify(controlData, null, 2);
+        
+        // Create a temporary file to upload
+        const tempFile = new File([fileContent], fileName, { type: 'application/json' });
+        const tempPath = `temp_${fileName}`;
+        
+        // Write to temporary location
+        const fs = window.require('fs');
+        const path = window.require('path');
+        const os = window.require('os');
+        
+        const tempFilePath = path.join(os.tmpdir(), tempPath);
+        fs.writeFileSync(tempFilePath, fileContent);
+        
+        // Upload to cloud storage
+        const uploadResult = await window.cloud.upload({
+          container: 'juggernaut',
+          filePath: tempFilePath,
+          reference: `Internal Control: ${updatedMetadata.controlName}`
+        });
+        
+        if (uploadResult.success) {
+          // Clean up temporary file
+          fs.unlinkSync(tempFilePath);
+          
+          setSaveStatus({ 
+            type: 'success', 
+            message: 'Internal control saved to cloud successfully!' 
+          });
+          
+          // Call the onSave callback with the control data
+          onSave(controlData);
+          
+          // Close after successful save
+          setTimeout(() => {
+            onClose();
+          }, 1500);
+        } else {
+          throw new Error(uploadResult.error || 'Failed to upload to cloud storage');
+        }
+      } else {
+        throw new Error('Cloud storage not available');
+      }
 
     } catch (error) {
       console.error('Save error:', error);
       setSaveStatus({ 
         type: 'error', 
-        message: 'Failed to save control. Please try again.' 
+        message: `Failed to save control: ${error instanceof Error ? error.message : 'Unknown error'}` 
       });
     } finally {
       setSaving(false);

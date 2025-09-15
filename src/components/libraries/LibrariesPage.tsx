@@ -20,6 +20,8 @@ import DocumentsPage from "../documents/DocumentsPage";
 import { logger } from "../../utils/logger";
 import { fileManager, FileMetadata } from "../../utils/file-manager";
 import InternalControlViewerModal from "./InternalControlViewerModal";
+import InternalControlForm from "./InternalControlForm";
+import { CONTROL_TEMPLATES } from "../../constants/ControlTemplates";
 
 interface LibraryItem {
   id: string;
@@ -28,6 +30,14 @@ interface LibraryItem {
   icon: React.ComponentType<{ className?: string }>;
   accent: string;
   component?: React.ComponentType<any>;
+}
+
+interface ControlMetadata {
+  typeOfControl: "Direct" | "Indirect" | "GITC";
+  subtype: "Manual" | "Automated";
+  controlId: string;
+  controlName: string;
+  workspace: string;
 }
 
 const libraryItems: LibraryItem[] = [
@@ -127,6 +137,12 @@ export default function LibrariesPage({ onBack, activeSection }: LibrariesPagePr
   const [selectedControl, setSelectedControl] = useState<any>(null);
   const [controlTemplate, setControlTemplate] = useState<any>(null);
   const [isControlViewerOpen, setIsControlViewerOpen] = useState(false);
+  
+  // Control form state
+  const [selectedControlForm, setSelectedControlForm] = useState<{
+    metadata: ControlMetadata;
+    template: any;
+  } | null>(null);
 
   // Load ROMM data from Structure.json
   useEffect(() => {
@@ -260,31 +276,88 @@ export default function LibrariesPage({ onBack, activeSection }: LibrariesPagePr
 
   const loadInternalControls = async () => {
     try {
-      // In a real implementation, this would load from a backend or local storage
-      // For now, we'll use localStorage to simulate persistence
-      const savedControls = localStorage.getItem('internalControls');
-      if (savedControls) {
-        setInternalControls(JSON.parse(savedControls));
-      } else {
-        // Load from the existing payroll internal control library as examples
-        const response = await fetch('/payroll/InternalControlLibrary.json');
-        if (response.ok) {
-          const existingControls = await response.json();
-          const formattedControls = existingControls.map((control: any, index: number) => ({
-            id: `ic-${index}`,
-            controlMetadata: {
-              typeOfControl: 'Direct',
-              subtype: control.control_type === 'Detective' ? 'Manual' : 'Manual',
-              controlId: control.control_id,
-              controlName: control.control_name,
-              workspace: 'Payroll'
-            },
-            createdAt: new Date().toISOString(),
-            template: 'manual'
-          }));
-          setInternalControls(formattedControls);
+      const controls: any[] = [];
+      
+      // Load from cloud storage
+      if (window.cloud) {
+        try {
+          const result = await window.cloud.list({ container: 'juggernaut' });
+          if (result.success && result.files) {
+            // Filter for internal control files (JSON files)
+            const controlFiles = result.files.filter((file: any) => 
+              file.name.endsWith('.json') && 
+              file.reference && 
+              file.reference.includes('Internal Control:')
+            );
+            
+            // Load each control file
+            for (const file of controlFiles) {
+              try {
+                const downloadResult = await window.cloud.download({
+                  container: 'juggernaut',
+                  filename: file.name,
+                  downloadPath: `temp_${file.name}`
+                });
+                
+                if (downloadResult.success) {
+                  const fs = window.require('fs');
+                  const path = window.require('path');
+                  const os = window.require('os');
+                  
+                  const tempFilePath = path.join(os.tmpdir(), `temp_${file.name}`);
+                  const fileContent = fs.readFileSync(tempFilePath, 'utf8');
+                  const controlData = JSON.parse(fileContent);
+                  
+                  // Clean up temp file
+                  fs.unlinkSync(tempFilePath);
+                  
+                  // Add to controls list
+                  controls.push({
+                    id: controlData.controlMetadata.controlId,
+                    ...controlData,
+                    createdAt: file.name.replace('.json', ''), // Use controlId as timestamp for now
+                    template: controlData.controlMetadata.subtype.toLowerCase()
+                  });
+                }
+              } catch (fileError) {
+                console.error(`Error loading control file ${file.name}:`, fileError);
+              }
+            }
+          }
+        } catch (cloudError) {
+          console.error('Error loading from cloud storage:', cloudError);
         }
       }
+      
+      // Fallback to localStorage if cloud storage fails or no controls found
+      if (controls.length === 0) {
+        const savedControls = localStorage.getItem('internalControls');
+        if (savedControls) {
+          const parsedControls = JSON.parse(savedControls);
+          controls.push(...parsedControls);
+        } else {
+          // Load from the existing payroll internal control library as examples
+          const response = await fetch('/payroll/InternalControlLibrary.json');
+          if (response.ok) {
+            const existingControls = await response.json();
+            const formattedControls = existingControls.map((control: any, index: number) => ({
+              id: `ic-${index}`,
+              controlMetadata: {
+                typeOfControl: 'Direct',
+                subtype: control.control_type === 'Detective' ? 'Manual' : 'Manual',
+                controlId: control.control_id,
+                controlName: control.control_name,
+                workspace: 'Payroll'
+              },
+              createdAt: new Date().toISOString(),
+              template: 'manual'
+            }));
+            controls.push(...formattedControls);
+          }
+        }
+      }
+      
+      setInternalControls(controls);
     } catch (error) {
       console.error('Error loading internal controls:', error);
       setInternalControls([]);
@@ -367,6 +440,39 @@ export default function LibrariesPage({ onBack, activeSection }: LibrariesPagePr
     }
   };
 
+  const handleCreateControl = (type: "manual" | "automated") => {
+    const metadata: ControlMetadata = {
+      typeOfControl: "Direct",
+      subtype: type === "manual" ? "Manual" : "Automated",
+      controlId: `IC${Date.now()}`,
+      controlName: `New ${type} Control`,
+      workspace: "General"
+    };
+
+    // Get the appropriate template
+    const template = type === "manual" 
+      ? CONTROL_TEMPLATES.manual
+      : CONTROL_TEMPLATES.automated;
+
+    setSelectedControlForm({ metadata, template });
+  };
+
+  const handleSaveControl = (controlData: any) => {
+    const newControl = {
+      id: controlData.controlMetadata.controlId,
+      ...controlData
+    };
+    
+    setInternalControls(prev => {
+      const updated = [...prev, newControl];
+      // Also save to localStorage as backup
+      localStorage.setItem('internalControls', JSON.stringify(updated));
+      return updated;
+    });
+    
+    setSelectedControlForm(null);
+  };
+
   const handleControlSave = (updatedControl: any) => {
     // Update the control in localStorage
     try {
@@ -419,9 +525,27 @@ export default function LibrariesPage({ onBack, activeSection }: LibrariesPagePr
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-medium text-white">Controls</h3>
-                <Badge variant="outline" className="text-xs">
-                  {internalControls.length} control(s)
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-xs">
+                    {internalControls.length} control(s)
+                  </Badge>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => handleCreateControl("manual")}
+                      className="bg-[#4da3ff] text-white hover:bg-[#4da3ff]/80"
+                    >
+                      + Manual Control
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => handleCreateControl("automated")}
+                      className="bg-[#4da3ff] text-white hover:bg-[#4da3ff]/80"
+                    >
+                      + Automated Control
+                    </Button>
+                  </div>
+                </div>
               </div>
 
               {filesLoading ? (
@@ -683,6 +807,17 @@ export default function LibrariesPage({ onBack, activeSection }: LibrariesPagePr
         template={controlTemplate}
         mode="view"
       />
+      
+      {/* Control Form Modal */}
+      {selectedControlForm && (
+        <InternalControlForm
+          isOpen={!!selectedControlForm}
+          onClose={() => setSelectedControlForm(null)}
+          onSave={handleSaveControl}
+          metadata={selectedControlForm.metadata}
+          template={selectedControlForm.template}
+        />
+      )}
     </div>
   );
 }

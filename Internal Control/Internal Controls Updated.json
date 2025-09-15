@@ -12,31 +12,22 @@
         {
           "id": "control_summary",
           "label": "Control Summary",
-          "description": "This section has three panes: Control Summary, Related Accounts, and Detailed Description",
-          "panes": [
-            {
-              "id": "control_summary_pane",
-              "label": "Control Summary",
           "fields": [
             { "id": "control_id", "type": "text", "label": "Control ID" },
             { "id": "control_name", "type": "text", "label": "Control Name" },
-                { 
-                  "id": "workspace", 
-                  "type": "dropdown", 
-                  "label": "Workspace Linked (this has to be all the areas it is linked to)",
-                  "options": ["Equity & Reserves","Borrowings","Lease Liability","Other Liabilities","Trade Payable","Provisions and Contingent Liabilities","Income Tax","Statutory Remittances","Property, Plant & Equipment","Intangible Assets","IAUD","Impairment","Investments","Other Assets","Trade Receivables","Inventory","Cash & Cash Equivalents","Revenue from Operations","Other Income","Cost of materials consumed","Employee Benefits Expense","Depreciation & Amortisation Expense","Finance Costs","Other Expenses","Service Auditor's Report","Use of Auditor Specialist","Management use of Expert","Related Party Transaction","Going Concern","Opening Balance Testing","Litigations & Claims","NOCLAR","Using work of other auditor","Review of estimates for management bias"]
-                },
+            { "id": "workspace", "type": "dropdown", "label": "Workspace Linked (this has to be all the areas it is linked to)",
+              "options": ["Equity & Reserves","Borrowings","Lease Liability","Other Liabilities","Trade Payable","Provisions and Contingent Liabilities","Income Tax","Statutory Remittances","Property, Plant & Equipment","Intangible Assets","IAUD","Impairment","Investments","Other Assets","Trade Receivables","Inventory","Cash & Cash Equivalents","Revenue from Operations","Other Income","Cost of materials consumed","Employee Benefits Expense","Depreciation & Amortisation Expense","Finance Costs","Other Expenses","Service Auditor's Report","Use of Auditor Specialist","Management use of Expert","Related Party Transaction","Going Concern","Opening Balance Testing","Litigations & Claims","NOCLAR","Using work of other auditor","Review of estimates for management bias"]},
             { "id": "control_description", "type": "richText", "label": "Control Description" },
             {
               "id": "control_attributes",
               "label": "Control Attributes",
               "fields": [
-                    { "id": "type_of_control", "type": "dropdown", "options": ["Direct", "Indirect", "GITC"], "label": "Type of Control", "readOnly": true },
-                    { "id": "nature", "type": "dropdown", "options": ["Manual", "Automated", "Service Organization Control"], "label": "Nature", "readOnly": true },
+                { "id": "type_of_control", "type": "dropdown", "options": ["Direct", "Indirect", "GITC"], "label": "Type of Control" },
+                { "id": "nature", "type": "dropdown", "options": ["Manual", "Automated", "Service Organization Control"], "label": "Nature" },
                 { "id": "approach", "type": "dropdown", "options": ["Preventive", "Detective"], "label": "Approach" },
                 {
                   "id": "type",
-                      "type": "dropdown",
+                  "type": "multiSelectDropdown",
                   "options": [
                     "Verification",
                     "Authorizations & Approvals",
@@ -52,101 +43,67 @@
             },
             {
               "id": "tailoring_questions",
-                  "label": "Tailoring Questions",
               "fields": [
                 { "id": "test_operating_effectiveness", "type": "toggle", "label": "The engagement team is planning to test the operating effectiveness of the control." },
                 { "id": "significant_risk", "type": "toggle", "label": "The control addresses a significant risk." },
                 { "id": "review_element_estimate", "type": "toggle", "label": "The control includes a review element and addresses a significant accounting estimate." }
-                  ]
+              ]
+            },
+            {
+              "id": "related_accounts",
+              "label": "Related Accounts and Areas",
+              "fields": [
+                {
+                  "id": "romm_linkage",
+                  "type": "table",
+                  "columns": ["Note Line ID", "Linked RoMMs"],
+                  "label": "Associated RoMMs"
                 }
               ]
             },
             {
-              "id": "related_accounts_pane",
-              "label": "Related Accounts",
+              "id": "detailed_description",
+              "label": "Detailed Description",
               "fields": [
-            {
-              "id": "related_accounts",
-              "label": "Related Accounts and Areas",
-              "description": "Every control has to be associated to atleast one RoMM because the point of a control is to mitigate RoMM. So the RoMMs will be displayed here that the control is linked to. The respective RoMMs will have Note Line IDs linked to them, so those note line IDs will also be displayed.",
-              "fields": [
+                { "id": "toggle_detailed", "type": "toggle", "label": "Provide detailed description of how control is performed?" },
                 {
-                  "id": "romm_linkage",
-                  "type": "associatedRommsDisplay",
-                  "label": "Associated RoMMs",
-                  "description": "Format: Note Line ID linked → RoMM 1 linked, RoMM 2 linked"
+                  "id": "steps",
+                  "type": "repeatableGroup",
+                  "label": "Steps (if toggled on)",
+                  "fields": [
+                    { "id": "step_description", "type": "richText", "label": "Step Description", "conditon": "toggle on"},
+                    { "id": "iuc", "type": "association", "label": "Information used in control (IUC)" },
+                    { "id": "output", "type": "richText", "label": "Output of Control", "note": "Understand the output of the control, which includes understanding the specific evidence that supports that the control activity that occurred." }
+                  ],
+                  "visibilityRules": { "when": "toggle_detailed", "is": true }
                 }
               ]
             }
           ]
         },
         {
-              "id": "detailed_description_pane",
-              "label": "Detailed Description",
-              "fields": [
-                { 
-                  "id": "toggle_detailed", 
-                  "type": "toggle", 
-                  "label": "Provide detailed description of how control is performed?",
-                  "description": "Toggle option for the user to turn on or off"
-                },
-                {
-                  "id": "steps",
-                  "type": "repeatableGroup",
-                  "label": "Control Steps",
-                  "description": "User can add steps and for each step added there should be a large textbox with step numbering (Step 1, Step 2, etc.)",
-                  "fields": [
-                    { 
-                      "id": "step_description", 
-                      "type": "largeTextbox", 
-                      "label": "Step Description",
-                      "description": "Large textbox for step description. Each step will be automatically numbered (Step 1, Step 2, etc.)"
-                    }
-                  ],
-                  "visibilityRules": { "when": "toggle_detailed", "is": true }
-                },
-                {
-                  "id": "iuc", 
-                  "type": "association", 
-                  "label": "Information used in control (IUC)",
-                  "visibilityRules": { "when": "toggle_detailed", "is": true }
-                },
-                { 
-                  "id": "output", 
-                  "type": "largeTextbox", 
-                  "label": "Output of Control", 
-                  "note": "Understand the output of the control, which includes understanding the specific evidence that supports that the control activity that occurred.",
-                  "visibilityRules": { "when": "toggle_detailed", "is": true }
-                    }
-                  ]
-                }
-              ]
-            },
-        {
           "id": "evaluate_design_and_implementation",
           "label": "Evaluate Design and Determine Implementation",
-          "description": "This section has four panes: Design & Implementation, Design Factors, Dependent Controls, and Effectiveness of Design & Implementation",
-          "panes": [
-            {
-              "id": "design_implementation_pane",
-              "label": "Design & Implementation",
-              "fields": [
+          "fields": [
             {
               "id": "design_implementation",
               "label": "Design & Implementation",
-              "description": "First the control description entered by the user in control summary to be displayed here. Then if the user has toggled on Detailed Description, the below should be shown for each step added by the user.",
               "fields": [
-                { 
-                  "id": "display_control_description_design", 
-                  "type": "display", 
-                  "label": "Control Description from Summary" 
-                },
                 {
-                      "id": "procedures_for_control_steps",
-                      "type": "dynamicProceduresDisplay",
-                  "label": "Procedures for Control Steps",
-                      "description": "Procedures will be automatically generated for each step added in Detailed Description",
-                      "dynamicBasedOn": "detailed_description.steps"
+                  "id": "procedure_steps",
+                  "type": "repeatableGroup",
+                  "label": "Procedures for each step",
+                  "fields": [
+                    { "id": "procedures_performed", "type": "richText", "label": "Procedures Performed" },
+                    {
+                      "id": "nature_of_testing",
+                      "type": "dropdown",
+                      "options": ["Inquiry + Observation", "Inquiry + Inspection", "Observation", "Inspection"],
+                      "label": "Nature of Testing Procedure"
+                    },
+                    { "id": "procedure_description", "type": "richText", "label": "Procedure Description" },
+                    { "id": "test_of_design", "type": "richText", "label": "Test of Design & Implementation" }
+                  ]
                 }
               ]
             },
@@ -155,127 +112,49 @@
               "label": "Evidence of Design & Implementation",
               "fields": [
                 { "id": "evidence_document", "type": "document", "label": "Upload Evidence of Design & Implementation" }
-                  ]
-                }
               ]
             },
-            {
-              "id": "design_factors_pane",
-              "label": "Design Factors",
-              "fields": [
             {
               "id": "design_factors",
               "label": "Design Factors",
               "fields": [
-                { 
-                  "id": "factor1", 
-                  "type": "richText", 
-                  "label": "Design Factor 1: Appropriateness of the purpose of control and its correlation to the risk/assertion identified and/or RAIT",
-                  "description": "Show all risks which are associated with the control along with a summary of it and then give a rich text editor for it"
-                },
+                { "id": "factor1", "type": "richText", "label": "Appropriateness of control purpose vs risk" },
                 {
-                  "id": "factor2_toggle",
-                  "type": "toggle",
-                  "label": "Design Factor 2: Competence and authority of the person(s) performing the control",
-                  "description": "Option to toggle it on or off"
-                },
-                {
-                  "id": "factor2_control_owners",
-                  "type": "associationLibrary",
-                  "label": "Control Owners",
-                  "libraryType": "controlOwner",
-                  "description": "Associate control owners from Control Owner Library. Display format: Control Owner, Job Title, Background Information (Name, Designation, Background)",
-                  "visibilityRules": { "when": "factor2_toggle", "is": true }
-                },
-                {
-                  "id": "factor3_toggle",
-                  "type": "toggle",
-                  "label": "Design Factor 3: Frequency and consistency with which the control is performed",
-                  "description": "Option to toggle it on or off"
+                  "id": "factor2_owner",
+                  "type": "toggleWithAssociation",
+                  "label": "Competence and authority of control owner",
+                  "association": "controlOwnerLibrary"
                 },
                 {
                   "id": "factor3_frequency",
                   "type": "dropdown",
                   "options": ["Annually", "Quarterly", "Monthly", "Weekly", "Daily", "As needed", "Many times per day"],
-                  "label": "Frequency",
-                  "visibilityRules": { "when": "factor3_toggle", "is": true }
+                  "label": "Frequency"
                 },
-                { 
-                  "id": "factor3_consistency", 
-                  "type": "richText", 
-                  "label": "Consistency",
-                  "visibilityRules": { "when": "factor3_toggle", "is": true }
-                },
-                {
-                  "id": "factor4_toggle",
-                  "type": "toggle",
-                  "label": "Design Factor 4: Level of aggregation and predictability",
-                  "description": "Option to toggle it on or off"
-                },
-                { 
-                  "id": "factor4", 
-                  "type": "richText", 
-                  "label": "Level of aggregation and predictability",
-                  "visibilityRules": { "when": "factor4_toggle", "is": true }
-                },
-                {
-                  "id": "factor5_toggle",
-                  "type": "toggle",
-                  "label": "Design Factor 5: Criteria for investigation (threshold) and process for follow-up",
-                  "description": "Option to toggle it on or off"
-                },
-                { 
-                  "id": "factor5", 
-                  "type": "richText", 
-                  "label": "Criteria for investigation and follow-up",
-                  "visibilityRules": { "when": "factor5_toggle", "is": true }
-                    }
-                  ]
-                }
+                { "id": "factor3_consistency", "type": "richText", "label": "Consistency" },
+                { "id": "factor4", "type": "richText", "label": "Level of aggregation and predictability" },
+                { "id": "factor5", "type": "richText", "label": "Criteria for investigation and follow-up" }
               ]
             },
-            {
-              "id": "dependent_controls_pane",
-              "label": "Dependent Controls",
-              "fields": [
             {
               "id": "dependent_controls",
               "label": "Dependent Controls",
               "fields": [
-                { 
-                  "id": "is_dependent", 
-                  "type": "dropdown", 
-                  "options": ["Yes", "No"], 
-                  "label": "Is the control dependent on other controls?" 
-                },
+                { "id": "is_dependent", "type": "dropdown", "options": ["Yes", "No"], "label": "Is the control dependent on other controls?" },
                 {
                   "id": "associated_controls",
-                  "type": "associationLibrary",
+                  "type": "association",
                   "label": "Associated Controls",
-                  "libraryType": "internalControl",
-                  "description": "Display format: Control ID, Control Name, Control Description, Design & Implementation Conclusion, Operating Effectiveness Conclusion",
-                  "displayFormat": {
-                    "fields": ["control_id", "control_name", "control_description", "design_conclusion", "operating_effectiveness_conclusion"],
-                    "layout": "table"
-                  },
                   "visibilityRules": { "when": "is_dependent", "is": "Yes" }
-                    }
-                  ]
                 }
               ]
             },
-            {
-              "id": "effectiveness_design_pane",
-              "label": "Effectiveness of Design & Implementation",
-              "fields": [
             {
               "id": "effectiveness_design",
               "label": "Effectiveness of Design & Implementation",
               "fields": [
                 { "id": "design_effective", "type": "dropdown", "options": ["Yes", "No", "Not Yet Concluded"], "label": "Is the design effective?" },
                 { "id": "implemented", "type": "dropdown", "options": ["Yes", "No", "Not Yet Concluded"], "label": "Is the control properly implemented?" }
-                  ]
-                }
               ]
             }
           ]
@@ -283,344 +162,105 @@
         {
           "id": "prior_year_audit_evidence",
           "label": "Prior Year Audit Evidence",
-          "description": "Does not come if tailoring question 1 in control summary is toggled off",
-          "visibilityRules": { "when": "control_summary.tailoring_questions.test_operating_effectiveness", "is": true },
           "fields": [
-            { 
-              "id": "using_prior_year", 
-              "type": "dropdown", 
-              "options": ["Yes", "No"], 
-              "label": "Are we planning on using prior year audit evidence to test the operating effectiveness of the control?",
-              "description": "If Yes, then Risk Associated with Control and Operating Effectiveness should not come"
-            },
-            { 
-              "id": "changes_description", 
-              "type": "richText", 
-              "label": "Considering the current-year design and implementation testing, have there been any changes in the process and/or control that occurred subsequent to previous testing?",
-              "visibilityRules": { "when": "using_prior_year", "is": "Yes" }
-            },
-            { 
-              "id": "changes_significant", 
-              "type": "dropdown", 
-              "options": ["Yes", "No"], 
-              "label": "Are the above changes considered significant?",
-              "visibilityRules": { "when": "using_prior_year", "is": "Yes" }
-            },
-            { 
-              "id": "tested_current_year", 
-              "type": "dropdown", 
-              "options": ["Yes", "No"], 
-              "label": "Have you tested the operating effectiveness of atleast one control for the current year?",
-              "visibilityRules": { "when": "using_prior_year", "is": "Yes" }
+            { "id": "use_prior_year", "type": "dropdown", "options": ["Yes", "No"], "label": "Use prior year audit evidence?" },
+            {
+              "id": "changes_since_prior",
+              "type": "richText",
+              "label": "Describe changes since prior testing",
+              "visibilityRules": { "when": "use_prior_year", "is": "Yes" }
             },
             {
-              "id": "associated_tested_controls",
-              "type": "associationLibrary",
-              "label": "Associated Controls Tested",
-              "libraryType": "internalControl",
-              "description": "Option to associate control just like dependency on control section",
-              "visibilityRules": { "when": "tested_current_year", "is": "Yes" }
+              "id": "significant_changes",
+              "type": "dropdown",
+              "options": ["Yes", "No"],
+              "label": "Are changes significant?",
+              "visibilityRules": { "when": "use_prior_year", "is": "Yes" }
             },
             {
-              "id": "prior_year_validation_note",
-              "type": "display",
-              "label": "Validation Note",
-              "content": "The answers to the questions suggest that prior year audit evidence cannot be used to test the operating effectiveness of controls. Please revisit OE strategy.",
-              "visibilityRules": { 
-                "when": "changes_significant", 
-                "is": "Yes",
-                "and": {
-                  "when": "tested_current_year",
-                  "is": "No"
-                }
-              }
+              "id": "tested_current_year",
+              "type": "dropdown",
+              "options": ["Yes", "No"],
+              "label": "Tested at least one control in current year?",
+              "visibilityRules": { "when": "use_prior_year", "is": "Yes" }
             },
-            {
-              "id": "prior_year_testing_description",
-              "type": "document",
-              "label": "For each control for which we are using prior year audit evidence, include a sufficient description of the testing performed",
-              "description": "May include copies of previous year working papers to enable an experienced auditor, having no previous connection with the engagement, to understand the nature, timing, extent and results of the procedures performed, evidence obtained and conclusions reached",
-              "visibilityRules": { "when": "using_prior_year", "is": "Yes" }
-            }
+            { "id": "supporting_docs", "type": "document", "label": "Upload prior year audit evidence" }
           ]
         },
         {
           "id": "risk_associated_with_control",
-          "label": "Risk Associated with Control",
-          "description": "Does not come if tailoring question 1 in control summary is toggled off",
-          "visibilityRules": { "when": "control_summary.tailoring_questions.test_operating_effectiveness", "is": true },
+          "label": "Risk Associated With Control",
           "fields": [
-            {
-              "id": "risk_factors_description",
-              "type": "display",
-              "label": "Factors that affect the risk associated with a control include:",
-              "content": "* The nature and materiality of misstatements that the control is intended to prevent or detect,\\n* Whether there have been changes in the volume or nature of transactions that might adversely affect control design or operating effectiveness,\\n* Whether the account balance, class of transaction or disclosure has a history of errors,\\n* The effectiveness of entity-level controls, especially controls that monitor other controls,\\n* The nature of the control and the frequency with which it operates,\\n* The degree to which the control relies on the effectiveness of other controls\\n* The competence of the personnel who perform the control or monitor its performance and whether there have been any changes in authority and responsibility,\\n* Whether the control relies on performance by an individual or is automated (an automated control would generally have lower risk if relevant ITGC controls are effective)\\n* The complexity of the control and the significance of the judgements that must be made in connection with its operation."
-            },
-            { 
-              "id": "risk_level", 
-              "type": "dropdown", 
-              "options": ["Higher", "Not Higher"], 
-              "label": "What is the risk associated with the control?" 
-            },
-            { 
-              "id": "risk_basis", 
-              "type": "richText", 
-              "label": "Document the basis for the conclusion on the Risk associated with the control" 
-            }
+            { "id": "risk_level", "type": "dropdown", "options": ["Higher", "Not Higher"], "label": "Risk Assessment" },
+            { "id": "risk_basis", "type": "richText", "label": "Basis for Risk Conclusion" }
           ]
         },
         {
           "id": "operating_effectiveness",
           "label": "Operating Effectiveness",
-          "description": "Does not come if tailoring question 1 in control summary is toggled off",
-          "visibilityRules": { "when": "control_summary.tailoring_questions.test_operating_effectiveness", "is": true },
           "fields": [
+            { "id": "timing_procedure", "type": "dropdown", "options": ["Apportion", "Conclude at Interim"], "label": "Timing of Procedure" },
+            { "id": "extent_frequency", "type": "number", "label": "Frequency (number of times performed)" },
             {
-              "id": "timing_extent_procedures",
-              "label": "Timing & Extent of procedures",
-              "fields": [
-                { 
-                  "id": "timing_procedure", 
-                  "type": "dropdown", 
-                  "options": ["Apportion", "Conclude at Interim"], 
-                  "label": "What is the timing of procedure?",
-                  "description": "Apportion (Apportion the control test over the year, i.e., spread the total number of selections throughout the year) / Conclude at Interim (Perform a complete test of the control at an interim date. This approach requires us to perform sufficient testing to enable us to reach a preliminary conclusion regarding the operating effectiveness of controls tested at interim date)"
-                },
-                {
-                  "id": "timing_document",
-                  "type": "text",
-                  "label": "Document timing details",
-                  "description": "Document - only text box"
-                },
-                { 
-                  "id": "extent_frequency", 
-                  "type": "number", 
-                  "label": "Document the frequency of performance of control",
-                  "description": "User has to enter the number of times control is performed in the current year"
-                },
-                {
-                  "id": "assessment_table",
-                  "type": "table",
-                  "label": "Assessment Table",
-                  "columns": ["Particulars", "Assessment"],
-                  "rows": [
-                    {"particulars": "Frequency", "assessment": "As entered above"},
-                    {"particulars": "Risk of Material Misstatement", "assessment": "The highest of all risks associated with this control"},
-                    {"particulars": "Risk Associated with Control", "assessment": "Assessment done in RAWC area"},
-                    {"particulars": "Suggested Minimum Sample Size", "assessment": "Based on sampling guide matrix"}
-                  ]
-                },
-                {
-                  "id": "planning_deviations",
-                  "type": "dropdown",
-                  "options": ["Yes", "No"],
-                  "label": "Are we planning for deviations in our tests of operating effectiveness?"
-                },
-                {
-                  "id": "deviation_definition",
-                  "type": "richText",
-                  "label": "Document what constitutes a deviation in the control",
-                  "visibilityRules": { "when": "planning_deviations", "is": "Yes" }
-                },
-                {
-                  "id": "deviation_rationale",
-                  "type": "richText",
-                  "label": "Document rationale behind planning for deviation in test of operating effectiveness",
-                  "visibilityRules": { "when": "planning_deviations", "is": "Yes" }
-                },
-                {
-                  "id": "use_suggested_sample_size",
-                  "type": "dropdown",
-                  "options": ["Yes", "No"],
-                  "label": "Use suggested minimum sample size for testing?"
-                },
-                {
-                  "id": "actual_sample_size",
-                  "type": "number",
-                  "label": "Enter actual number of samples",
-                  "visibilityRules": { "when": "use_suggested_sample_size", "is": "No" }
-                },
-                {
-                  "id": "sample_size_rationale",
-                  "type": "richText",
-                  "label": "Document rationale for a different sample size",
-                  "visibilityRules": { "when": "use_suggested_sample_size", "is": "No" }
-                }
-              ]
+              "id": "deviations",
+              "type": "dropdown",
+              "options": ["Yes", "No"],
+              "label": "Planning for deviations?"
             },
             {
+              "id": "deviation_details",
+              "type": "richText",
+              "label": "Deviation details",
+              "visibilityRules": { "when": "deviations", "is": "Yes" }
+            },
+            { "id": "sample_size", "type": "number", "label": "Sample Size" },
+            { "id": "sample_rationale", "type": "richText", "label": "Rationale for sample size" },
+            {
               "id": "nature_procedures",
+              "type": "repeatableGroup",
               "label": "Nature of Procedures",
               "fields": [
                 {
-                  "id": "display_detailed_steps",
-                  "type": "display",
-                  "label": "The steps in detailed description have to come here"
+                  "id": "nature",
+                  "type": "dropdown",
+                  "options": ["Inquiry + Observation", "Inquiry + Inspection", "Observation", "Inspection"],
+                  "label": "Nature of Testing"
                 },
-                {
-                  "id": "copy_from_design_implementation",
-                  "type": "toggle",
-                  "label": "Copy procedures from Design and Implementation under Evaluate Design & Implementation"
-                },
-                {
-                  "id": "operating_effectiveness_procedures",
-                  "type": "repeatableGroup",
-                  "label": "Procedures performed to evaluate the operating effectiveness of control",
-                  "fields": [
-                    {
-                      "id": "nature_testing_procedure",
-                      "type": "dropdown",
-                      "options": ["Inquiry + Observation", "Inquiry + Inspection", "Observation", "Inspection"],
-                      "label": "Nature of testing procedure"
-                    },
-                    { 
-                      "id": "procedure_description", 
-                      "type": "richText", 
-                      "label": "Procedure Description" 
-                    }
-                  ]
-                },
-                {
-                  "id": "perform_tests_document",
-                  "type": "document",
-                  "label": "Perform tests of operating effectiveness",
-                  "description": "For each activity, we document the procedures performed to test the operating effectiveness. [Document – no text box]"
-                }
+                { "id": "procedure_description", "type": "richText", "label": "Procedure Description" }
               ]
             },
-            {
-              "id": "operating_effectiveness_conclusion",
-              "label": "Operating Effectiveness Testing Conclusion",
-              "fields": [
-                { 
-                  "id": "operating_conclusion", 
-                  "type": "dropdown", 
-                  "options": ["Yes", "No", "Not Yet Concluded"], 
-                  "label": "Is the control operating effectively?" 
-                }
-              ]
-            }
+            { "id": "operating_tests_docs", "type": "document", "label": "Perform tests of operating effectiveness" },
+            { "id": "operating_conclusion", "type": "dropdown", "options": ["Yes", "No", "Not Yet Concluded"], "label": "Is the control operating effectively?" }
           ]
         },
         {
           "id": "rollforward",
           "label": "Rollforward",
-          "description": "This section will only come if the answer to the first question in operating effectiveness is Conclude at Interim",
-          "visibilityRules": { "when": "operating_effectiveness.timing_extent_procedures.timing_procedure", "is": "Conclude at Interim" },
           "fields": [
+            { "id": "rollforward_period", "type": "dateRange", "label": "Rollforward Period" },
+            { "id": "inquiry_name", "type": "text", "label": "Name of Person Inquired" },
+            { "id": "inquiry_date", "type": "date", "label": "Date of Inquiry" },
             {
-              "id": "display_control_description_rollforward",
-              "type": "display",
-              "label": "Control Description",
-              "description": "First the control description is to be displayed"
-            },
-            { 
-              "id": "rollforward_period_from", 
-              "type": "date", 
-              "label": "From Date" 
-            },
-            { 
-              "id": "rollforward_period_to", 
-              "type": "date", 
-              "label": "To Date" 
+              "id": "changes_icfr",
+              "type": "dropdown",
+              "options": ["Yes", "No"],
+              "label": "Changes in ICFR?"
             },
             {
-              "id": "rollforward_inquiry",
-              "label": "Rollforward Inquiry",
-              "fields": [
-                { 
-                  "id": "inquiry_name", 
-                  "type": "text", 
-                  "label": "Who did we inquire with to identify if significant changes to the control or process have occurred since interim testing?",
-                  "description": "Name of respective SPOC"
-                },
-                { 
-                  "id": "inquiry_date", 
-                  "type": "date", 
-                  "label": "Date of Inquiry",
-                  "description": "Calendar dropdown"
-                },
-                {
-                  "id": "changes_icfr",
-                  "type": "dropdown",
-                  "options": ["Yes", "No"],
-                  "label": "Have there been any changes in the ICFR (internal control over financial reporting) that would impact the design and operating effectiveness of control?"
-                },
-                {
-                  "id": "changes_description",
-                  "type": "richText",
-                  "label": "What were the changes?",
-                  "visibilityRules": { "when": "changes_icfr", "is": "Yes" }
-                },
-                {
-                  "id": "additional_procedures",
-                  "type": "richText",
-                  "label": "Additional procedures performed",
-                  "visibilityRules": { "when": "changes_icfr", "is": "Yes" }
-                },
-                { 
-                  "id": "gitc_operating", 
-                  "type": "dropdown", 
-                  "options": ["Yes", "No"], 
-                  "label": "Are the relevant general IT control(s) that the automated control is dependent upon operating effectively?" 
-                },
-                { 
-                  "id": "gitc_textbox", 
-                  "type": "text", 
-                  "label": "GITC Details" 
-                },
-                {
-                  "id": "inquiry_sufficient",
-                  "type": "dropdown",
-                  "options": ["Yes", "No"],
-                  "label": "Is inquiry & testing performed sufficient for rollforward?"
-                },
-                {
-                  "id": "copy_interim_procedures",
-                  "type": "toggle",
-                  "label": "Copy Interim Procedures from the operating effectiveness area",
-                  "visibilityRules": { "when": "inquiry_sufficient", "is": "No" }
-                },
-                {
-                  "id": "additional_rollforward_procedures",
-                  "type": "repeatableGroup",
-                  "label": "Additional Procedures",
-                  "visibilityRules": { "when": "inquiry_sufficient", "is": "No" },
-                  "fields": [
-                    {
-                      "id": "nature_testing_procedure",
-                      "type": "dropdown",
-                      "options": ["Inquiry + Observation", "Inquiry + Inspection", "Observation", "Inspection"],
-                      "label": "Nature of testing procedure"
-                    },
-                    { 
-                      "id": "procedure_description", 
-                      "type": "richText", 
-                      "label": "Procedure Description" 
-                    }
-                  ]
-                },
-                {
-                  "id": "perform_tests_rollforward_document",
-                  "type": "document",
-                  "label": "Perform tests of operating effectiveness",
-                  "description": "For each activity, we document the procedures performed to test the operating effectiveness. [Document – no text box]",
-                  "visibilityRules": { "when": "inquiry_sufficient", "is": "No" }
-                }
-              ]
+              "id": "changes_details",
+              "type": "richText",
+              "label": "Details of Changes",
+              "visibilityRules": { "when": "changes_icfr", "is": "Yes" }
             },
             {
-              "id": "rollforward_conclusion",
-              "label": "Operating Effectiveness Testing Conclusion",
-              "fields": [
-                { 
-                  "id": "rollforward_operating_conclusion", 
-                  "type": "dropdown", 
-                  "options": ["Yes", "No", "Not Yet Concluded"], 
-                  "label": "Is the control operating effectively?" 
-                }
-              ]
-            }
+              "id": "additional_procedures",
+              "type": "richText",
+              "label": "Additional Procedures",
+              "visibilityRules": { "when": "changes_icfr", "is": "Yes" }
+            },
+            { "id": "gitc_dependency", "type": "dropdown", "options": ["Yes", "No"], "label": "Relevant GITC operating effectively?" },
+            { "id": "rollforward_tests_docs", "type": "document", "label": "Perform tests of operating effectiveness" },
+            { "id": "rollforward_conclusion", "type": "dropdown", "options": ["Yes", "No", "Not Yet Concluded"], "label": "Is rollforward sufficient?" }
           ]
         }
       ]
@@ -630,147 +270,36 @@
         {
           "id": "control_summary",
           "label": "Control Summary",
-          "description": "This section has three panes: Control Summary, Related Accounts, and Detailed Description",
-          "panes": [
-            {
-              "id": "control_summary_pane",
-              "label": "Control Summary",
-              "fields": [
-                { 
-                  "id": "control_id", 
-                  "type": "text", 
-                  "label": "Control ID",
-                  "description": "To be entered by user at the time of control creation"
-                },
-                { 
-                  "id": "control_name", 
-                  "type": "text", 
-                  "label": "Control Name",
-                  "description": "To be entered by user at the time of control creation"
-                },
-                { 
-                  "id": "workspace", 
-                  "type": "dropdown", 
-                  "label": "Workspace Linked",
-                  "description": "This has to be all the areas it is linked to",
-                  "options": ["Equity & Reserves","Borrowings","Lease Liability","Other Liabilities","Trade Payable","Provisions and Contingent Liabilities","Income Tax","Statutory Remittances","Property, Plant & Equipment","Intangible Assets","IAUD","Impairment","Investments","Other Assets","Trade Receivables","Inventory","Cash & Cash Equivalents","Revenue from Operations","Other Income","Cost of materials consumed","Employee Benefits Expense","Depreciation & Amortisation Expense","Finance Costs","Other Expenses","Service Auditor's Report","Use of Auditor Specialist","Management use of Expert","Related Party Transaction","Going Concern","Opening Balance Testing","Litigations & Claims","NOCLAR","Using work of other auditor","Review of estimates for management bias"]
-                },
-                { 
-                  "id": "control_description", 
-                  "type": "richText", 
-                  "label": "Control Description" 
-            },
+          "fields": [
+            { "id": "control_id", "type": "text", "label": "Control ID" },
+            { "id": "control_name", "type": "text", "label": "Control Name" },
+            { "id": "workspace", "type": "text", "label": "Workspace Linked (this has to be all the areas it is linked to)" },
+            { "id": "control_description", "type": "richText", "label": "Control Description" },
             {
               "id": "control_attributes",
               "label": "Control Attributes",
               "fields": [
-                { 
-                  "id": "type_of_control", 
-                  "type": "dropdown", 
-                  "options": ["Direct", "Indirect", "GITC"], 
-                      "label": "Type of Control",
-                      "readOnly": true
-                },
-                { 
-                  "id": "nature", 
-                  "type": "dropdown", 
-                  "options": ["Manual", "Automated", "Service Organization Control"], 
-                      "label": "Nature",
-                      "readOnly": true
-                },
-                { 
-                  "id": "approach", 
-                  "type": "dropdown", 
-                  "options": ["Preventive", "Detective"], 
-                  "label": "Approach",
-                  "description": "User to choose between preventive and detective"
-                },
+                { "id": "type_of_control", "type": "dropdown", "options": ["Direct", "Indirect", "GITC"], "label": "Type of Control" },
+                { "id": "nature", "type": "dropdown", "options": ["Manual", "Automated", "Service Organization Control"], "label": "Nature" },
+                { "id": "approach", "type": "dropdown", "options": ["Preventive", "Detective"], "label": "Approach" },
                 {
                   "id": "type",
-                      "type": "dropdown",
+                  "type": "multiSelectDropdown",
                   "options": [
                     "Automated Input Control",
-                        "Automated Processing Control",
-                        "Automated Output Control",
-                        "Automated Calculation Control",
-                        "Automated Application Access Control"
+                    "Automated Processing Control",
+                    "Automated Output Control",
+                    "Automated Calculation Control",
+                    "Automated Application Access Control"
                   ],
-                  "label": "Type",
-                      "description": "Dropdown for the below options"
+                  "label": "Type"
                 }
               ]
             },
             {
               "id": "tailoring_questions",
-              "label": "Tailoring Questions",
               "fields": [
-                { 
-                  "id": "test_operating_effectiveness", 
-                  "type": "toggle", 
-                  "label": "The engagement team is planning to test the operating effectiveness of the control.",
-                  "description": "Toggle on or off"
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "id": "related_accounts_pane",
-              "label": "Related Accounts",
-              "fields": [
-            {
-              "id": "related_accounts",
-              "label": "Related Accounts and Areas",
-              "description": "Every control has to be associated to atleast one RoMM because the point of a control is to mitigate RoMM. So the RoMMs will be displayed here that the control is linked to. The respective RoMMs will have Note Line IDs linked to them, so those note line IDs will also be displayed.",
-              "fields": [
-                {
-                  "id": "romm_linkage",
-                  "type": "associatedRommsDisplay",
-                  "label": "Associated RoMMs",
-                  "description": "Format: Note Line ID linked → RoMM 1 linked, RoMM 2 linked"
-                }
-              ]
-            }
-          ]
-        },
-        {
-              "id": "detailed_description_pane",
-              "label": "Detailed Description",
-          "fields": [
-            { 
-                  "id": "toggle_detailed", 
-                  "type": "toggle", 
-                  "label": "Provide detailed description of how control is performed?",
-                  "description": "Toggle option for the user to turn on or off"
-                },
-                {
-                  "id": "steps",
-                  "type": "repeatableGroup",
-                  "label": "Control Steps",
-                  "description": "User can add steps and for each step added there should be a large textbox with step numbering (Step 1, Step 2, etc.)",
-                  "fields": [
-                    { 
-                      "id": "step_description", 
-                      "type": "largeTextbox", 
-                      "label": "Step Description",
-                      "description": "Large textbox for step description. Each step will be automatically numbered (Step 1, Step 2, etc.)"
-                    }
-                  ],
-                  "visibilityRules": { "when": "toggle_detailed", "is": true }
-                },
-                { 
-                  "id": "iuc", 
-                  "type": "association", 
-                  "label": "Information used in control (IUC)",
-                  "visibilityRules": { "when": "toggle_detailed", "is": true }
-                },
-                { 
-                  "id": "output", 
-                  "type": "largeTextbox", 
-                  "label": "Output of Control", 
-                  "note": "Understand the output of the control, which includes understanding the specific evidence that supports that the control activity that occurred.",
-                  "visibilityRules": { "when": "toggle_detailed", "is": true }
-                }
+                { "id": "test_operating_effectiveness", "type": "toggle", "label": "The engagement team is planning to test operating effectiveness of control." }
               ]
             }
           ]
@@ -778,658 +307,131 @@
         {
           "id": "evaluate_design_and_implementation",
           "label": "Evaluate Design and Determine Implementation",
-          "description": "This section has four panes: Design & Implementation, Design Factors, Dependent Controls, and Effectiveness of Design & Implementation",
-          "panes": [
+          "fields": [
+            { "id": "display_control_description", "type": "display", "label": "Control Description" },
+            { "id": "associated_gitc", "type": "association", "label": "Associated GITC Controls" },
+            { "id": "config_reliance", "type": "dropdown", "options": ["Yes", "No"], "label": "Does control rely on system configuration?" },
             {
-              "id": "design_implementation_pane",
-              "label": "Design & Implementation",
-              "fields": [
-            {
-              "id": "associated_it_element",
-              "type": "associationLibrary",
-              "label": "Associated IT Element",
-              "libraryType": "itElement",
-              "description": "User can associate IT elements here (to be explained in detail in future)"
+              "id": "config_settings",
+              "type": "table",
+              "columns": ["Configuration Name", "Configuration Description"],
+              "visibilityRules": { "when": "config_reliance", "is": "Yes" }
             },
-            {
-              "id": "design_implementation",
-              "label": "Design & Implementation",
-              "fields": [
-                {
-                  "id": "identify_gitc_access_changes",
-                  "type": "associationLibrary",
-                  "label": "Identify GITC(s) over access and changes to the automated control programmed functionality",
-                  "libraryType": "gitcControl",
-                  "description": "User to have option to associate GITC controls created in table format: Control ID, Description",
-                  "displayFormat": {
-                    "fields": ["control_id", "description"],
-                    "layout": "table"
-                  }
-                },
-                {
-                  "id": "system_configuration_reliance",
-                  "type": "dropdown",
-                  "options": ["Yes", "No"],
-                  "label": "Does the automated control rely on a system configuration that is tailored through user defined settings?"
-                },
-                {
-                  "id": "configuration_settings",
-                  "type": "repeatableGroup",
-                  "label": "Configuration Settings",
-                  "visibilityRules": { "when": "system_configuration_reliance", "is": "Yes" },
-                  "fields": [
-                    {
-                      "id": "config_name",
-                      "type": "text",
-                      "label": "Configuration Name",
-                      "description": "To be entered by user"
-                    },
-                    {
-                      "id": "config_description",
-                      "type": "text",
-                      "label": "Configuration Description",
-                      "description": "To be entered by user"
-                    }
-                  ]
-                },
-                {
-                  "id": "config_intended_design",
-                  "type": "richText",
-                  "label": "What is the management's intended design of the configured values/settings?",
-                  "visibilityRules": { "when": "system_configuration_reliance", "is": "Yes" }
-                },
-                {
-                  "id": "config_access_control",
-                  "type": "richText",
-                  "label": "How is access to modify the configuration controlled?",
-                  "visibilityRules": { "when": "system_configuration_reliance", "is": "Yes" }
-                },
-                {
-                  "id": "config_change_frequency",
-                  "type": "richText",
-                  "label": "Does the configuration change frequently?",
-                  "visibilityRules": { "when": "system_configuration_reliance", "is": "Yes" }
-                },
-                {
-                  "id": "procedures_understand_design",
-                  "type": "richText",
-                  "label": "Procedures to understand design of automated functionality and system configuration",
-                  "description": "Whether Yes or No to system configuration reliance"
-                },
-                {
-                  "id": "identify_gitc_system_config",
-                  "type": "associationLibrary",
-                  "label": "Identify GITC(s) over access and changes to system configuration",
-                  "libraryType": "gitcControl",
-                  "description": "User to have option to associate GITC controls created in table format: Control ID, Description",
-                  "displayFormat": {
-                    "fields": ["control_id", "description"],
-                    "layout": "table"
-                  }
-                },
-                {
-                  "id": "control_variations",
-                  "type": "dropdown",
-                  "options": ["Yes", "No"],
-                  "label": "Are there any variations in how the automated control is applied?"
-                },
-                {
-                  "id": "procedures_understand_variants",
-                  "type": "richText",
-                  "label": "Procedures to understand and identify potential variants"
-                },
-                {
-                  "id": "additional_procedures_design",
-                  "type": "richText",
-                  "label": "Additional procedures to understand design and determine implementation of the control"
-                },
-                {
-                  "id": "variant_details",
-                  "type": "repeatableGroup",
-                  "label": "Variant Details",
-                  "visibilityRules": { "when": "control_variations", "is": "Yes" },
-                  "fields": [
-                    {
-                      "id": "variant_name",
-                      "type": "text",
-                      "label": "Variant Name",
-                      "description": "To be entered by user"
-                    },
-                    {
-                      "id": "variant_description",
-                      "type": "text",
-                      "label": "Variant Description",
-                      "description": "To be entered by user"
-                    }
-                  ]
-                }
-              ]
-            },
+            { "id": "config_design", "type": "richText", "label": "Management’s intended design of configuration" },
+            { "id": "config_access", "type": "richText", "label": "Access to modify configuration" },
+            { "id": "config_change_frequency", "type": "richText", "label": "Does configuration change frequently?" },
+            { "id": "procedures_design", "type": "richText", "label": "Procedures to understand design" },
+            { "id": "variants", "type": "table", "columns": ["Variant Name", "Variant Description"], "label": "Variants" },
             {
               "id": "source_data",
+              "type": "repeatableGroup",
               "label": "Source Data",
-              "description": "Understand the source data from which internal information is created and maintained in IT system. Such data may or may not be subject to general IT controls. Evaluate the sufficiency and appropriateness of internal information that is used as audit evidence.",
               "fields": [
-                {
-                  "id": "source_data_items",
-                  "type": "repeatableGroup",
-                  "label": "Source Data Items",
-                  "description": "User to have option to add multiple source data. Each source data will contain the following:",
-                  "fields": [
-                    {
-                      "id": "source_data_name",
-                      "type": "text",
-                      "label": "Source Data Name"
-                    },
-                    {
-                      "id": "source_data_description",
-                      "type": "richText",
-                      "label": "Describe the information (or source data) used in the automated control"
-                    },
-                    {
-                      "id": "gitc_over_source_data",
-                      "type": "dropdown",
-                      "options": ["Yes", "No"],
-                      "label": "Are there any GITCs over the system(s) that contains relevant source data relevant to the audit?"
-                    },
-                    {
-                      "id": "gitc_source_data_description",
-                      "type": "richText",
-                      "label": "GITC Source Data Details"
-                    },
-                    {
-                      "id": "associated_gitc_source_data",
-                      "type": "associationLibrary",
-                      "label": "Associated GITC Controls for Source Data",
-                      "libraryType": "gitcControl",
-                      "visibilityRules": { "when": "gitc_over_source_data", "is": "Yes" },
-                      "displayFormat": {
-                        "fields": ["control_id", "description"],
-                        "layout": "table"
-                      }
-                    },
-                    {
-                      "id": "business_controls_source_data",
-                      "type": "dropdown",
-                      "options": ["Yes", "No"],
-                      "label": "Are there any business controls over the source data?"
-                    },
-                    {
-                      "id": "business_controls_description",
-                      "type": "richText",
-                      "label": "Business Controls Description"
-                    },
-                    {
-                      "id": "associated_direct_controls",
-                      "type": "associationLibrary",
-                      "label": "Associated Direct Controls",
-                      "libraryType": "directControl",
-                      "visibilityRules": { "when": "business_controls_source_data", "is": "Yes" },
-                      "displayFormat": {
-                        "fields": ["control_id", "description"],
-                        "layout": "table"
-                      }
-                        }
-                      ]
-                    }
-                  ]
-                }
+                { "id": "source_name", "type": "text", "label": "Source Data Name" },
+                { "id": "source_description", "type": "richText", "label": "Source Data Description" },
+                { "id": "gitc_applicable", "type": "dropdown", "options": ["Yes", "No"], "label": "Relevant GITC over source data?" },
+                { "id": "business_control", "type": "dropdown", "options": ["Yes", "No"], "label": "Any business control over source data?" }
               ]
             },
             {
-              "id": "design_factors_pane",
-              "label": "Design Factors",
-              "fields": [
-            {
               "id": "design_factors",
-              "label": "Design Factors",
               "fields": [
-                { 
-                  "id": "factor1", 
-                  "type": "richText", 
-                  "label": "Design Factor 1: Appropriateness of the purpose of control and its correlation to the risk/assertion identified and/or RAIT",
-                  "description": "Show all risks which are associated with the control along with a summary of it and then give a rich text editor for it"
-                },
+                { "id": "factor1", "type": "richText", "label": "Appropriateness of control purpose vs risk" },
                 {
-                  "id": "factor2_toggle",
-                  "type": "toggle",
-                  "label": "Design Factor 2: Competence and authority of the person(s) performing the control",
-                  "description": "Option to toggle it on or off"
-                },
-                {
-                  "id": "factor2_control_owners",
-                  "type": "associationLibrary",
-                  "label": "Control Owners",
-                  "libraryType": "controlOwner",
-                  "description": "Associate control owners from Control Owner Library. Display format: Control Owner, Job Title, Background Information (Name, Designation, Background)",
-                  "visibilityRules": { "when": "factor2_toggle", "is": true }
-                },
-                {
-                  "id": "factor3_toggle",
-                  "type": "toggle",
-                  "label": "Design Factor 3: Frequency and consistency with which the control is performed",
-                  "description": "Option to toggle it on or off"
+                  "id": "factor2_owner",
+                  "type": "toggleWithAssociation",
+                  "label": "Competence and authority of control owner",
+                  "association": "controlOwnerLibrary"
                 },
                 {
                   "id": "factor3_frequency",
                   "type": "dropdown",
                   "options": ["Annually", "Quarterly", "Monthly", "Weekly", "Daily", "As needed", "Many times per day"],
-                  "label": "Frequency",
-                  "visibilityRules": { "when": "factor3_toggle", "is": true }
+                  "label": "Frequency"
                 },
-                { 
-                  "id": "factor3_consistency", 
-                  "type": "richText", 
-                  "label": "Consistency",
-                  "visibilityRules": { "when": "factor3_toggle", "is": true }
-                },
-                {
-                  "id": "factor4_toggle",
-                  "type": "toggle",
-                  "label": "Design Factor 4: Level of aggregation and predictability",
-                  "description": "Option to toggle it on or off"
-                },
-                { 
-                  "id": "factor4", 
-                  "type": "richText", 
-                  "label": "Level of aggregation and predictability",
-                  "visibilityRules": { "when": "factor4_toggle", "is": true }
-                },
-                {
-                  "id": "factor5_toggle",
-                  "type": "toggle",
-                  "label": "Design Factor 5: Criteria for investigation (threshold) and process for follow-up",
-                  "description": "Option to toggle it on or off"
-                },
-                { 
-                  "id": "factor5", 
-                  "type": "richText", 
-                  "label": "Criteria for investigation and follow-up",
-                  "visibilityRules": { "when": "factor5_toggle", "is": true }
-                    }
-                  ]
-                }
+                { "id": "factor3_consistency", "type": "richText", "label": "Consistency" },
+                { "id": "factor4", "type": "richText", "label": "Level of aggregation and predictability" },
+                { "id": "factor5", "type": "richText", "label": "Criteria for investigation and follow-up" }
               ]
             },
             {
-              "id": "dependent_controls_pane",
-              "label": "Dependent Controls",
+              "id": "effectiveness_design",
               "fields": [
-                {
-                  "id": "dependent_controls",
-                  "label": "Dependent Controls",
-                  "fields": [
-                    { 
-                      "id": "is_dependent", 
-                      "type": "dropdown", 
-                      "options": ["Yes", "No"], 
-                      "label": "Is the control dependent on other controls?" 
-                    },
-                    {
-                      "id": "associated_controls",
-                      "type": "associationLibrary",
-                      "label": "Associated Controls",
-                      "libraryType": "internalControl",
-                      "description": "Display format: Control ID, Control Name, Control Description, Design & Implementation Conclusion, Operating Effectiveness Conclusion",
-                      "displayFormat": {
-                        "fields": ["control_id", "control_name", "control_description", "design_conclusion", "operating_effectiveness_conclusion"],
-                        "layout": "table"
-                      },
-                      "visibilityRules": { "when": "is_dependent", "is": "Yes" }
-                    }
-                  ]
-                }
+                { "id": "design_effective", "type": "dropdown", "options": ["Yes", "No", "Not Yet Concluded"], "label": "Is the design effective?" },
+                { "id": "implemented", "type": "dropdown", "options": ["Yes", "No", "Not Yet Concluded"], "label": "Is the control properly implemented?" }
               ]
-            },
-            {
-              "id": "effectiveness_design_pane",
-              "label": "Effectiveness of Design & Implementation",
-              "fields": [
-            {
-              "id": "effectiveness_design_implementation",
-              "label": "Effectiveness of Design & Implementation",
-              "fields": [
-                { 
-                  "id": "design_effective", 
-                  "type": "dropdown", 
-                  "options": ["Yes", "No", "Not Yet Concluded"], 
-                  "label": "Is the design of this control effective?" 
-                },
-                { 
-                  "id": "implemented", 
-                  "type": "dropdown", 
-                  "options": ["Yes", "No", "Not Yet Concluded"], 
-                  "label": "Is this control properly implemented?" 
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "id": "prior_year_audit_evidence",
-          "label": "Prior Year Audit Evidence",
-          "description": "Does not come if tailoring question 1 in control summary is toggled off",
-          "visibilityRules": { "when": "control_summary.tailoring_questions.test_operating_effectiveness", "is": true },
-          "fields": [
-            { 
-              "id": "using_prior_year", 
-              "type": "dropdown", 
-              "options": ["Yes", "No"], 
-              "label": "Are we planning on using prior year audit evidence to test the operating effectiveness of the control?",
-              "description": "If Yes, then Risk Associated with Control and Operating Effectiveness should not come"
-            },
-            { 
-              "id": "changes_description", 
-              "type": "richText", 
-              "label": "Considering the current-year design and implementation testing, have there been any changes in the process and/or control that occurred subsequent to previous testing?",
-              "visibilityRules": { "when": "using_prior_year", "is": "Yes" }
-            },
-            { 
-              "id": "changes_significant", 
-              "type": "dropdown", 
-              "options": ["Yes", "No"], 
-              "label": "Are the above changes considered significant?",
-              "visibilityRules": { "when": "using_prior_year", "is": "Yes" }
-            },
-            { 
-              "id": "tested_current_year", 
-              "type": "dropdown", 
-              "options": ["Yes", "No"], 
-              "label": "Have you tested the operating effectiveness of atleast one control for the current year?",
-              "visibilityRules": { "when": "using_prior_year", "is": "Yes" }
-            },
-            {
-              "id": "associated_tested_controls",
-              "type": "associationLibrary",
-              "label": "Associated Controls Tested",
-              "libraryType": "internalControl",
-              "description": "Option to associate control just like dependency on control section",
-              "visibilityRules": { "when": "tested_current_year", "is": "Yes" }
-            },
-            {
-              "id": "prior_year_validation_note",
-              "type": "display",
-              "label": "Validation Note",
-              "content": "The answers to the questions suggest that prior year audit evidence cannot be used to test the operating effectiveness of controls. Please revisit OE strategy.",
-              "visibilityRules": { 
-                "when": "changes_significant", 
-                "is": "Yes",
-                "and": {
-                  "when": "tested_current_year",
-                  "is": "No"
-                }
-              }
-            },
-            {
-              "id": "prior_year_testing_description",
-              "type": "document",
-              "label": "For each control for which we are using prior year audit evidence, include a sufficient description of the testing performed",
-              "description": "May include copies of previous year working papers to enable an experienced auditor, having no previous connection with the engagement, to understand the nature, timing, extent and results of the procedures performed, evidence obtained and conclusions reached",
-              "visibilityRules": { "when": "using_prior_year", "is": "Yes" }
             }
           ]
         },
         {
           "id": "risk_associated_with_control",
-          "label": "Risk Associated with Control",
-          "description": "Does not come if tailoring question 1 in control summary is toggled off",
-          "visibilityRules": { "when": "control_summary.tailoring_questions.test_operating_effectiveness", "is": true },
+          "label": "Risk Associated With Control",
           "fields": [
-            {
-              "id": "risk_factors_description",
-              "type": "display",
-              "label": "Factors that affect the risk associated with a control include:",
-              "content": "* The nature and materiality of misstatements that the control is intended to prevent or detect,\\n* Whether there have been changes in the volume or nature of transactions that might adversely affect control design or operating effectiveness,\\n* Whether the account balance, class of transaction or disclosure has a history of errors,\\n* The effectiveness of entity-level controls, especially controls that monitor other controls,\\n* The nature of the control and the frequency with which it operates,\\n* The degree to which the control relies on the effectiveness of other controls\\n* The competence of the personnel who perform the control or monitor its performance and whether there have been any changes in authority and responsibility,\\n* Whether the control relies on performance by an individual or is automated (an automated control would generally have lower risk if relevant ITGC controls are effective)\\n* The complexity of the control and the significance of the judgements that must be made in connection with its operation."
-            },
-            { 
-              "id": "risk_level", 
-              "type": "dropdown", 
-              "options": ["Higher", "Not Higher"], 
-              "label": "What is the risk associated with the control?" 
-            },
-            { 
-              "id": "risk_basis", 
-              "type": "richText", 
-              "label": "Document the basis for the conclusion on the Risk associated with the control" 
-            }
+            { "id": "risk_level", "type": "dropdown", "options": ["Higher", "Not Higher"], "label": "Risk Assessment" },
+            { "id": "risk_basis", "type": "richText", "label": "Basis for Risk Conclusion" }
           ]
         },
         {
           "id": "operating_effectiveness",
           "label": "Operating Effectiveness",
-          "description": "Does not come if tailoring question 1 in control summary is toggled off",
-          "visibilityRules": { "when": "control_summary.tailoring_questions.test_operating_effectiveness", "is": true },
           "fields": [
+            { "id": "timing_procedure", "type": "display", "label": "Timing of Procedure: Conclude at Interim" },
+            { "id": "sample_size", "type": "number", "label": "Sample Size" },
+            { "id": "sample_rationale", "type": "richText", "label": "Rationale for Sample Size" },
+            { "id": "using_work_of_others", "type": "dropdown", "options": ["Yes", "No"], "label": "Using work of others?" },
             {
-              "id": "timing_extent_procedures",
-              "label": "Timing & Extent of procedures",
-              "fields": [
-                {
-                  "id": "timing_procedure_display",
-                  "type": "display",
-                  "label": "What is the timing of procedure?",
-                  "content": "Conclude at Interim (Perform a complete test of the control at an interim date. This approach requires us to perform sufficient testing to enable us to reach a preliminary conclusion regarding the operating effectiveness of controls tested at interim date)",
-                  "description": "Here it should always shows as above"
-                },
-                {
-                  "id": "extent_procedures_table",
-                  "type": "table",
-                  "label": "Extent of Procedures",
-                  "columns": ["Particulars", "Assessment"],
-                  "rows": [
-                    {"particulars": "Risk of Material Misstatement", "assessment": "The highest of all risks associated with this control"},
-                    {"particulars": "Risk Associated with Control", "assessment": "Assessment done in RAWC area"}
-                  ]
-                },
-                {
-                  "id": "sample_size",
-                  "type": "number",
-                  "label": "Sample size"
-                },
-                {
-                  "id": "sample_rationale",
-                  "type": "text",
-                  "label": "Document rationale for sample size"
-                },
-                {
-                  "id": "using_work_of_others",
-                  "type": "dropdown",
-                  "options": ["Yes", "No"],
-                  "label": "Using the work of others?"
-                },
-                {
-                  "id": "work_of_others_approach",
-                  "type": "dropdown",
-                  "options": ["Selected For Reperformance", "Not Selected For Reperformance"],
-                  "label": "Approach to testing the work performed by others is",
-                  "visibilityRules": { "when": "using_work_of_others", "is": "Yes" }
-                },
-                {
-                  "id": "information_used_testing",
-                  "type": "dropdown",
-                  "options": ["Yes", "No"],
-                  "label": "Is information used in testing operating effectiveness?"
-                },
-                {
-                  "id": "associated_information",
-                  "type": "associationLibrary",
-                  "label": "Associated Information",
-                  "libraryType": "information",
-                  "description": "Option to associate information, more details later",
-                  "visibilityRules": { "when": "information_used_testing", "is": "Yes" }
-                }
-              ]
+              "id": "work_of_others_approach",
+              "type": "dropdown",
+              "options": ["Selected For Reperformance", "Not Selected For Reperformance"],
+              "visibilityRules": { "when": "using_work_of_others", "is": "Yes" }
             },
             {
               "id": "nature_procedures",
+              "type": "repeatableGroup",
               "label": "Nature of Procedures",
               "fields": [
                 {
-                  "id": "operating_effectiveness_procedures",
-                  "type": "repeatableGroup",
-                  "label": "Procedures performed to evaluate the operating effectiveness of control",
-                  "description": "User should have option to add procedures as below",
-                  "fields": [
-                    {
-                      "id": "nature_testing_procedure",
-                      "type": "dropdown",
-                      "options": ["Inquiry + Observation", "Inquiry + Inspection", "Observation", "Inspection"],
-                      "label": "Nature of testing procedure"
-                    },
-                    {
-                      "id": "procedure_description",
-                      "type": "richText",
-                      "label": "Procedure Description"
-                    },
-                    {
-                      "id": "test_of_operating_effectiveness",
-                      "type": "richText",
-                      "label": "Test of operating effectiveness"
-                    }
-                  ]
+                  "id": "nature",
+                  "type": "dropdown",
+                  "options": ["Inquiry + Observation", "Inquiry + Inspection", "Observation", "Inspection"],
+                  "label": "Nature of Testing"
                 },
-                {
-                  "id": "perform_tests_document",
-                  "type": "document",
-                  "label": "Perform tests of operating effectiveness",
-                  "description": "For each activity, we document the procedures performed to test the operating effectiveness. [Document – no text box]"
-                }
+                { "id": "procedure_description", "type": "richText", "label": "Procedure Description" },
+                { "id": "test_of_effectiveness", "type": "richText", "label": "Test of Operating Effectiveness" }
               ]
             },
-            {
-              "id": "operating_effectiveness_conclusion",
-              "label": "Operating Effectiveness Testing Conclusion",
-              "fields": [
-                {
-                  "id": "operating_conclusion",
-                  "type": "dropdown",
-                  "options": ["Yes", "No", "Not Yet Concluded"],
-                  "label": "Is the control operating effectively?"
-                }
-              ]
-            }
+            { "id": "operating_tests_docs", "type": "document", "label": "Perform tests of operating effectiveness" },
+            { "id": "operating_conclusion", "type": "dropdown", "options": ["Yes", "No", "Not Yet Concluded"], "label": "Is the control operating effectively?" }
           ]
         },
         {
           "id": "rollforward",
           "label": "Rollforward",
-          "description": "First the control description is to be displayed",
           "fields": [
+            { "id": "rollforward_period", "type": "dateRange", "label": "Rollforward Period" },
+            { "id": "inquiry_name", "type": "text", "label": "Name of Person Inquired" },
+            { "id": "inquiry_date", "type": "date", "label": "Date of Inquiry" },
             {
-              "id": "display_control_description_rollforward",
-              "type": "display",
-              "label": "Control Description",
-              "description": "First the control description is to be displayed"
-            },
-            { 
-              "id": "rollforward_period_from", 
-              "type": "date", 
-              "label": "From Date" 
-            },
-            { 
-              "id": "rollforward_period_to", 
-              "type": "date", 
-              "label": "To Date" 
+              "id": "changes_icfr",
+              "type": "dropdown",
+              "options": ["Yes", "No"],
+              "label": "Changes in ICFR?"
             },
             {
-              "id": "rollforward_inquiry",
-              "label": "Rollforward Inquiry",
-              "fields": [
-                { 
-                  "id": "inquiry_name", 
-                  "type": "text", 
-                  "label": "Who did we inquire with to identify if significant changes to the control or process have occurred since interim testing?",
-                  "description": "Name of respective SPOC"
-                },
-                { 
-                  "id": "inquiry_date", 
-                  "type": "date", 
-                  "label": "Date of Inquiry",
-                  "description": "Calendar dropdown"
-                },
-                {
-                  "id": "changes_icfr",
-                  "type": "dropdown",
-                  "options": ["Yes", "No"],
-                  "label": "Have there been any changes in the ICFR (internal control over financial reporting) that would impact the design and operating effectiveness of control?"
-                },
-                {
-                  "id": "changes_description",
-                  "type": "richText",
-                  "label": "What were the changes?",
-                  "visibilityRules": { "when": "changes_icfr", "is": "Yes" }
-                },
-                {
-                  "id": "additional_procedures",
-                  "type": "richText",
-                  "label": "Additional procedures performed",
-                  "visibilityRules": { "when": "changes_icfr", "is": "Yes" }
-                },
-                { 
-                  "id": "gitc_operating", 
-                  "type": "dropdown", 
-                  "options": ["Yes", "No"], 
-                  "label": "Are the relevant general IT control(s) that the automated control is dependent upon operating effectively?" 
-                },
-                { 
-                  "id": "gitc_textbox", 
-                  "type": "text", 
-                  "label": "GITC Details" 
-                },
-                {
-                  "id": "inquiry_sufficient",
-                  "type": "dropdown",
-                  "options": ["Yes", "No"],
-                  "label": "Is inquiry & testing performed sufficient for rollforward?"
-                },
-                {
-                  "id": "copy_interim_procedures",
-                  "type": "toggle",
-                  "label": "Copy Interim Procedures from the operating effectiveness area",
-                  "visibilityRules": { "when": "inquiry_sufficient", "is": "No" }
-                },
-                {
-                  "id": "additional_rollforward_procedures",
-                  "type": "repeatableGroup",
-                  "label": "Additional Procedures",
-                  "visibilityRules": { "when": "inquiry_sufficient", "is": "No" },
-                  "fields": [
-                    {
-                      "id": "nature_testing_procedure",
-                      "type": "dropdown",
-                      "options": ["Inquiry + Observation", "Inquiry + Inspection", "Observation", "Inspection"],
-                      "label": "Nature of testing procedure"
-                    },
-                    { 
-                      "id": "procedure_description", 
-                      "type": "richText", 
-                      "label": "Procedure Description" 
-                    }
-                  ]
-                },
-                {
-                  "id": "perform_tests_rollforward_document",
-                  "type": "document",
-                  "label": "Perform tests of operating effectiveness",
-                  "description": "For each activity, we document the procedures performed to test the operating effectiveness. [Document – no text box]",
-                  "visibilityRules": { "when": "inquiry_sufficient", "is": "No" }
-                }
-              ]
+              "id": "changes_details",
+              "type": "richText",
+              "label": "Details of Changes",
+              "visibilityRules": { "when": "changes_icfr", "is": "Yes" }
             },
             {
-              "id": "rollforward_conclusion",
-              "label": "Operating Effectiveness Testing Conclusion",
-              "fields": [
-                { 
-                  "id": "rollforward_operating_conclusion", 
-                  "type": "dropdown", 
-                  "options": ["Yes", "No", "Not Yet Concluded"], 
-                  "label": "Is the control operating effectively?" 
-                }
-              ]
-            }
+              "id": "additional_procedures",
+              "type": "richText",
+              "label": "Additional Procedures",
+              "visibilityRules": { "when": "changes_icfr", "is": "Yes" }
+            },
+            { "id": "gitc_dependency", "type": "dropdown", "options": ["Yes", "No"], "label": "Relevant GITC operating effectively?" },
+            { "id": "rollforward_tests_docs", "type": "document", "label": "Perform tests of operating effectiveness" },
+            { "id": "rollforward_conclusion", "type": "dropdown", "options": ["Yes", "No", "Not Yet Concluded"], "label": "Is rollforward sufficient?" }
           ]
         }
       ]

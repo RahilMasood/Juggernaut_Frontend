@@ -12,7 +12,7 @@ import path from 'path';
 // === CONFIG ===
 const CONNECTION_STRING = "DefaultEndpointsProtocol=https;AccountName=auditfirmone;AccountKey=noJNGotPPflseazBYfQ5zGTL3ulm7Eq1kxhwPNGXzl04celHpi9xjQsrXIYNTWhFzDsCnYuedKLs+AStDYspZg==;EndpointSuffix=core.windows.net";
 const MAPPING_FILE = "cloud_tree.json";
-const CONTAINERS = ["juggernaut", "client", "tools"];
+const CONTAINERS = ["juggernaut", "client", "tools", "recycle_bin"];
 
 // === INTERFACES ===
 export interface CloudFileEntry {
@@ -25,6 +25,7 @@ export interface CloudMapping {
   Juggernaut: CloudFileEntry[];
   Client: CloudFileEntry[];
   Tools: CloudFileEntry[];
+  Recycle_bin: CloudFileEntry[];
 }
 
 export interface UploadResult {

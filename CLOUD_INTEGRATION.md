@@ -4,7 +4,7 @@ This document describes the Azure Blob Storage integration implemented in the Ju
 
 ## Overview
 
-The application now supports cloud storage operations through Azure Blob Storage, allowing users to upload, download, list, and delete files from three containers: `juggernaut`, `client`, and `tools`.
+The application now supports cloud storage operations through Azure Blob Storage, allowing users to upload, download, list, and delete files from four containers: `juggernaut`, `client`, `tools`, and `recycle_bin`.
 
 ## Architecture
 
@@ -44,6 +44,7 @@ The application now supports cloud storage operations through Azure Blob Storage
 - `juggernaut`: For application-specific files
 - `client`: For client-related documents
 - `tools`: For utility and tool files
+- `recycle_bin`: For deleted files that can be restored
 
 ## Usage
 

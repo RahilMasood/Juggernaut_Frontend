@@ -13,7 +13,7 @@ interface CloudStorageManagerProps {
   className?: string;
 }
 
-const CONTAINERS = ['juggernaut', 'client', 'tools'];
+const CONTAINERS = ['juggernaut', 'client', 'tools', 'recycle_bin'];
 
 export function CloudStorageManager({ className }: CloudStorageManagerProps) {
   const [selectedContainer, setSelectedContainer] = useState<string>('client');
