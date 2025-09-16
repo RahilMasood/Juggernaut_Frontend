@@ -16,9 +16,12 @@ import {
   Workflow, 
   XCircle,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Link
 } from "lucide-react";
 import { logger } from "../../utils/logger";
+import { CloudFilePicker } from "../ui/cloud-file-picker";
+import { CloudFileEntry } from "../../helpers/ipc/cloud/cloud-context";
 import InternalControlMetadataModal from "./InternalControlMetadataModal";
 import InternalControlForm from "./InternalControlForm";
 
@@ -93,6 +96,7 @@ export default function FileUploadModal({
 }: FileUploadModalProps) {
   const [selectedLibrary, setSelectedLibrary] = useState<string | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
+  const [selectedCloudFile, setSelectedCloudFile] = useState<CloudFileEntry | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<{
     type: 'success' | 'error' | null;
@@ -121,12 +125,28 @@ export default function FileUploadModal({
     const files = event.target.files;
     if (files && files.length > 0) {
       setSelectedFiles(files);
+      setSelectedCloudFile(null); // Clear cloud file selection
       setUploadStatus({ type: null, message: '' });
     }
   };
 
+  const handleCloudFileSelect = (file: CloudFileEntry) => {
+    setSelectedCloudFile(file);
+    setSelectedFiles(null); // Clear local file selection
+    setUploadStatus({ type: null, message: '' });
+  };
+
+  const handleLocalFilesFromPicker = (files: File[]) => {
+    // Convert File[] to FileList-like object
+    const dt = new DataTransfer();
+    files.forEach(file => dt.items.add(file));
+    setSelectedFiles(dt.files);
+    setSelectedCloudFile(null); // Clear cloud file selection
+    setUploadStatus({ type: null, message: '' });
+  };
+
   const handleUpload = async () => {
-    if (!selectedLibrary || !selectedFiles) {
+    if (!selectedLibrary || (!selectedFiles && !selectedCloudFile)) {
       setUploadStatus({ 
         type: 'error', 
         message: 'Please select a library and files to upload' 
@@ -138,33 +158,48 @@ export default function FileUploadModal({
     setUploadStatus({ type: null, message: '' });
 
     try {
-      // Create FormData for file upload
-      const formData = new FormData();
-      
-      // Add library information
-      formData.append('library', selectedLibrary);
-      
-      // Add all selected files
-      for (let i = 0; i < selectedFiles.length; i++) {
-        formData.append('files', selectedFiles[i]);
-      }
+      if (selectedCloudFile) {
+        // Handle cloud file linking
+        logger.dataAccess("Cloud File Link", `Linked cloud file ${selectedCloudFile.name} to ${selectedLibrary} library`);
 
-      // Simulate file upload to Cloud/Client folder
-      // In a real implementation, this would be an API call
-      await simulateFileUpload(formData);
+        setUploadStatus({ 
+          type: 'success', 
+          message: `Successfully linked cloud file "${selectedCloudFile.name}" to ${libraryOptions.find(l => l.id === selectedLibrary)?.title}` 
+        });
 
-      // Log the upload
-      logger.dataAccess("File Upload", `Uploaded ${selectedFiles.length} file(s) to ${selectedLibrary} library`);
-
-      setUploadStatus({ 
-        type: 'success', 
-        message: `Successfully uploaded ${selectedFiles.length} file(s) to ${libraryOptions.find(l => l.id === selectedLibrary)?.title}` 
-      });
-
-      // Notify parent component
-      if (onFileUploaded) {
+        // Notify parent component
+        if (onFileUploaded) {
+          onFileUploaded(selectedLibrary, selectedCloudFile.name);
+        }
+      } else if (selectedFiles) {
+        // Handle local file upload
+        const formData = new FormData();
+        
+        // Add library information
+        formData.append('library', selectedLibrary);
+        
+        // Add all selected files
         for (let i = 0; i < selectedFiles.length; i++) {
-          onFileUploaded(selectedLibrary, selectedFiles[i].name);
+          formData.append('files', selectedFiles[i]);
+        }
+
+        // Simulate file upload to Cloud/Client folder
+        // In a real implementation, this would be an API call
+        await simulateFileUpload(formData);
+
+        // Log the upload
+        logger.dataAccess("File Upload", `Uploaded ${selectedFiles.length} file(s) to ${selectedLibrary} library`);
+
+        setUploadStatus({ 
+          type: 'success', 
+          message: `Successfully uploaded ${selectedFiles.length} file(s) to ${libraryOptions.find(l => l.id === selectedLibrary)?.title}` 
+        });
+
+        // Notify parent component
+        if (onFileUploaded) {
+          for (let i = 0; i < selectedFiles.length; i++) {
+            onFileUploaded(selectedLibrary, selectedFiles[i].name);
+          }
         }
       }
 
@@ -172,6 +207,7 @@ export default function FileUploadModal({
       setTimeout(() => {
         setSelectedLibrary(null);
         setSelectedFiles(null);
+        setSelectedCloudFile(null);
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
@@ -334,6 +370,7 @@ export default function FileUploadModal({
   const handleClose = () => {
     setSelectedLibrary(null);
     setSelectedFiles(null);
+    setSelectedCloudFile(null);
     setUploadStatus({ type: null, message: '' });
     setShowMetadataModal(false);
     setShowControlForm(false);
@@ -413,19 +450,32 @@ export default function FileUploadModal({
                 className="hidden"
                 accept="*/*"
               />
-              <Button
-                variant="outline"
-                onClick={() => fileInputRef.current?.click()}
-                className="w-full border-white/10 bg-white/5 text-white hover:bg-white/10"
-              >
-                <Upload className="mr-2 h-4 w-4" />
-                Choose Files
-              </Button>
               
+              {/* File Selection Options */}
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <Button
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  Choose Local Files
+                </Button>
+                
+                <CloudFilePicker
+                  onFileSelected={handleCloudFileSelect}
+                  onLocalFileSelected={handleLocalFilesFromPicker}
+                  multiple={true}
+                  triggerText="Link Cloud File"
+                  className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+                />
+              </div>
+              
+              {/* Selected Files Display */}
               {selectedFiles && (
                 <div className="space-y-2">
                   <p className="text-xs text-white/60">
-                    Selected {selectedFiles.length} file(s):
+                    Selected {selectedFiles.length} local file(s):
                   </p>
                   <div className="max-h-32 space-y-1 overflow-y-auto">
                     {Array.from(selectedFiles).map((file, index) => (
@@ -440,6 +490,25 @@ export default function FileUploadModal({
                         </Badge>
                       </div>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Selected Cloud File Display */}
+              {selectedCloudFile && (
+                <div className="space-y-2">
+                  <p className="text-xs text-white/60">
+                    Selected cloud file:
+                  </p>
+                  <div className="flex items-center gap-2 rounded bg-blue-500/10 p-2 text-xs border border-blue-500/20">
+                    <Link className="h-3 w-3 text-blue-400" />
+                    <span className="text-white/80">{selectedCloudFile.name}</span>
+                    <Badge variant="outline" className="text-xs bg-blue-500/20 text-blue-200">
+                      Cloud
+                    </Badge>
+                    {selectedCloudFile.reference && (
+                      <span className="text-white/60 text-xs">({selectedCloudFile.reference})</span>
+                    )}
                   </div>
                 </div>
               )}
@@ -477,13 +546,18 @@ export default function FileUploadModal({
             </Button>
             <Button
               onClick={handleUpload}
-              disabled={!selectedLibrary || !selectedFiles || uploading}
+              disabled={!selectedLibrary || (!selectedFiles && !selectedCloudFile) || uploading}
               className="bg-[#4da3ff] text-white hover:bg-[#4da3ff]/80"
             >
               {uploading ? (
                 <>
                   <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" />
-                  Uploading...
+                  Processing...
+                </>
+              ) : selectedCloudFile ? (
+                <>
+                  <Link className="mr-2 h-4 w-4" />
+                  Link Cloud File
                 </>
               ) : (
                 <>

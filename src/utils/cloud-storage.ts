@@ -375,11 +375,47 @@ function getMimeType(filename: string): string {
 }
 
 // === DIRECT UPLOAD FUNCTION ===
+export async function checkFileExists(
+  container: string,
+  filename: string
+): Promise<{ exists: boolean; error?: string }> {
+  try {
+    if (!CONTAINERS.includes(container.toLowerCase())) {
+      return {
+        exists: false,
+        error: `Invalid container. Must be one of: ${CONTAINERS.join(', ')}`
+      };
+    }
+
+    const mapping = await loadMapping();
+    const containerKey = container.toLowerCase() as keyof CloudMetadata;
+    const containerData = mapping[containerKey];
+
+    if (container.toLowerCase() === 'juggernaut' || container.toLowerCase() === 'recycle_bin') {
+      // For juggernaut and recycle_bin, check string array
+      return {
+        exists: (containerData as string[]).includes(filename)
+      };
+    } else {
+      // For client and tools, check CloudFileEntry array
+      return {
+        exists: (containerData as CloudFileEntry[]).some(file => file.name === filename)
+      };
+    }
+  } catch (error) {
+    return {
+      exists: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
+  }
+}
+
 export async function uploadContent(
   container: string,
   content: string,
   filename: string,
-  reference: string = ""
+  reference: string = "",
+  replaceExisting: boolean = false
 ): Promise<UploadResult> {
   try {
     // Validate inputs
@@ -412,6 +448,23 @@ export async function uploadContent(
       };
     }
 
+    // Check if file already exists
+    const fileCheck = await checkFileExists(container, filename);
+    if (fileCheck.error) {
+      return {
+        success: false,
+        error: fileCheck.error
+      };
+    }
+
+    if (fileCheck.exists && !replaceExisting) {
+      return {
+        success: false,
+        error: 'FILE_EXISTS',
+        code: filename
+      };
+    }
+
     const mapping = await loadMapping();
 
     // Upload content to Azure with blob name = filename
@@ -420,7 +473,20 @@ export async function uploadContent(
     const blobClient = containerClient.getBlobClient(filename);
     const blockBlobClient = blobClient.getBlockBlobClient();
     
-    const contentBuffer = Buffer.from(content, 'utf-8');
+    // Check if content is base64 encoded (for binary files)
+    let contentBuffer: Buffer;
+    try {
+      // Try to decode as base64 first
+      contentBuffer = Buffer.from(content, 'base64');
+      // Verify it's valid base64 by re-encoding and comparing
+      if (contentBuffer.toString('base64') !== content) {
+        // If not valid base64, treat as regular text
+        contentBuffer = Buffer.from(content, 'utf-8');
+      }
+    } catch {
+      // If base64 decoding fails, treat as regular text
+      contentBuffer = Buffer.from(content, 'utf-8');
+    }
     
     await blockBlobClient.upload(contentBuffer, contentBuffer.length, {
       blobHTTPHeaders: {
@@ -430,23 +496,33 @@ export async function uploadContent(
 
     // Update metadata based on container type
     if (container.toLowerCase() === 'juggernaut') {
-      // For juggernaut, just add filename to array
+      // For juggernaut, just add filename to array if not exists
       if (Array.isArray(mapping.juggernaut) && !mapping.juggernaut.includes(filename)) {
         mapping.juggernaut.push(filename);
       }
     } else if (container.toLowerCase() === 'client' || container.toLowerCase() === 'tools') {
-      // For client and tools, add object with name and reference
+      // For client and tools, add or update object with name and reference
       const entry: CloudFileEntry = {
         name: filename,
         reference: reference
       };
       
       const containerKey = container.toLowerCase() as keyof CloudMetadata;
-      if (Array.isArray(mapping[containerKey])) {
-        (mapping[containerKey] as CloudFileEntry[]).push(entry);
+      const containerArray = mapping[containerKey] as CloudFileEntry[];
+      
+      if (Array.isArray(containerArray)) {
+        // Check if file already exists and update or add
+        const existingIndex = containerArray.findIndex(file => file.name === filename);
+        if (existingIndex !== -1) {
+          // Update existing entry
+          containerArray[existingIndex] = entry;
+        } else {
+          // Add new entry
+          containerArray.push(entry);
+        }
       }
     } else if (container.toLowerCase() === 'recycle_bin') {
-      // For recycle_bin, just add filename to array
+      // For recycle_bin, just add filename to array if not exists
       if (Array.isArray(mapping.recycle_bin) && !mapping.recycle_bin.includes(filename)) {
         mapping.recycle_bin.push(filename);
       }

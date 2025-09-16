@@ -16,6 +16,7 @@ import {
   downloadFile,
   listFiles,
   deleteFile,
+  checkFileExists,
   CONTAINERS,
 } from "../../../utils/cloud-storage";
 import {
@@ -114,7 +115,8 @@ export function addCloudEventListeners(mainWindow: BrowserWindow) {
           request.container,
           request.content,
           request.filename,
-          request.reference || ""
+          request.reference || "",
+          request.replaceExisting || false
         );
 
         if (result.success) {
@@ -354,6 +356,21 @@ export function addCloudEventListeners(mainWindow: BrowserWindow) {
       } catch (error) {
         return {
           success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        };
+      }
+    }
+  );
+
+  // Check if file exists
+  ipcMain.handle(
+    "cloud:check-file-exists",
+    async (_event, request: { container: string; filename: string }) => {
+      try {
+        return await checkFileExists(request.container, request.filename);
+      } catch (error) {
+        return {
+          exists: false,
           error: error instanceof Error ? error.message : 'Unknown error'
         };
       }

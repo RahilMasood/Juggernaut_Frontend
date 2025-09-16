@@ -23,6 +23,7 @@ export interface CloudDirectUploadRequest {
   content: string;
   filename: string;
   reference?: string;
+  replaceExisting?: boolean;
 }
 
 export interface CloudDownloadRequest {
@@ -79,8 +80,11 @@ export function exposeCloudContext() {
     upload: (request: CloudUploadRequest): Promise<CloudUploadResult> =>
       ipcRenderer.invoke(CLOUD_UPLOAD_CHANNEL, request),
     
-    directUpload: (content: string, filename: string, container: string, reference: string): Promise<CloudUploadResult> =>
-      ipcRenderer.invoke(CLOUD_DIRECT_UPLOAD_CHANNEL, { container, content, filename, reference }),
+    directUpload: (content: string, filename: string, container: string, reference: string, replaceExisting?: boolean): Promise<CloudUploadResult> =>
+      ipcRenderer.invoke(CLOUD_DIRECT_UPLOAD_CHANNEL, { container, content, filename, reference, replaceExisting }),
+    
+    checkFileExists: (container: string, filename: string): Promise<{ exists: boolean; error?: string }> =>
+      ipcRenderer.invoke("cloud:check-file-exists", { container, filename }),
     
     download: (request: CloudDownloadRequest): Promise<CloudDownloadResult> =>
       ipcRenderer.invoke(CLOUD_DOWNLOAD_CHANNEL, request),

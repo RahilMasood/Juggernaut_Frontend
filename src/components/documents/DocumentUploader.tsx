@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { CloudUpload, File, Image, Loader2 } from "lucide-react";
+import { CloudUpload, File, Image, Loader2, Link } from "lucide-react";
+import { CloudFilePicker } from "../ui/cloud-file-picker";
+import { CloudFileEntry } from "../../helpers/ipc/cloud/cloud-context";
 
 type ProgressMap = Record<
   string,
@@ -22,6 +24,28 @@ export default function DocumentUploader({ sectionKey, context }: Props) {
   const [acceptedExts, setAcceptedExts] = useState<string[]>([]);
   const [progress, setProgress] = useState<ProgressMap>({});
   const [lastUploads, setLastUploads] = useState<string[]>([]);
+
+  const handleCloudFileSelect = useCallback(async (file: CloudFileEntry) => {
+    // For cloud files, we just log the selection and add to lastUploads
+    console.log(`Cloud file linked: ${file.name} for section ${sectionKey}`);
+    setLastUploads(prev => [...prev, `cloud-${file.name}`]);
+  }, [sectionKey]);
+
+  const handleLocalFilesFromPicker = useCallback(async (files: File[]) => {
+    // Convert File[] to paths and handle like regular upload
+    const paths: string[] = [];
+    for (const file of files) {
+      // @ts-expect-error electron adds .path
+      if (file.path) paths.push(file.path);
+    }
+    if (paths.length > 0) {
+      const res = await window.documents.upload(paths, sectionKey, context);
+      const okIds = res
+        .filter((r) => r.ok && r.document)
+        .map((r) => r.document!.id);
+      setLastUploads(okIds);
+    }
+  }, [sectionKey, context]);
 
   useEffect(() => {
     window.documents.acceptedTypes().then(setAcceptedExts);
@@ -90,16 +114,28 @@ export default function DocumentUploader({ sectionKey, context }: Props) {
         <CloudUpload className="mb-3 h-10 w-10 text-white/60" />
         <p className="text-sm text-white/80">Drag & drop files here</p>
         <p className="mb-3 text-xs text-white/50">or</p>
-        <label className="cursor-pointer rounded bg-white/10 px-3 py-2 text-xs hover:bg-white/20">
-          Choose files
-          <input
-            type="file"
-            multiple
-            accept={acceptAttr}
-            className="hidden"
-            onChange={onInputChange}
+        
+        <div className="flex gap-2">
+          <label className="cursor-pointer rounded bg-white/10 px-3 py-2 text-xs hover:bg-white/20">
+            Choose files
+            <input
+              type="file"
+              multiple
+              accept={acceptAttr}
+              className="hidden"
+              onChange={onInputChange}
+            />
+          </label>
+          
+          <CloudFilePicker
+            onFileSelected={handleCloudFileSelect}
+            onLocalFileSelected={handleLocalFilesFromPicker}
+            multiple={true}
+            triggerText="Link Cloud File"
+            className="rounded bg-blue-500/20 px-3 py-2 text-xs hover:bg-blue-500/30 border-none text-white"
           />
-        </label>
+        </div>
+        
         <div className="mt-3 text-xs text-white/50">
           Accepted: {acceptedExts.join(", ")}
         </div>

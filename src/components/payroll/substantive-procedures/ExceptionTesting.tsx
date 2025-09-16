@@ -384,36 +384,36 @@ export default function ExceptionTesting({ onBack }: ExceptionTestingProps) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {exceptions.map((exception) => (
-              <div
-                key={exception.id}
-                className="flex items-center justify-between rounded border border-white/10 bg-white/5 p-4"
-              >
-                <div className="flex items-center gap-3">
-                  <Checkbox
-                    id={`exception-${exception.id}`}
-                    checked={exception.selected}
-                    onCheckedChange={() => handleExceptionToggle(exception.id)}
-                  />
-                  <div>
-                    <Label htmlFor={`exception-${exception.id}`} className="text-white">
-                      {exception.id}. {exception.description}
-                    </Label>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  {exception.result && (
-                    <span className={`text-sm font-medium ${getResultColor(exception.result)}`}>
-                      {exception.result}
-                    </span>
-                  )}
-                  {processingStatus === "running" && exception.selected && (
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
-                  )}
-                </div>
-              </div>
-            ))}
+          <div className="rounded border border-white/10 bg-white/5">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-20 text-white">Sl. No.</TableHead>
+                  <TableHead className="text-white">Exception</TableHead>
+                  <TableHead className="w-40 text-white">Selection</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {exceptions.map((exception) => (
+                  <TableRow key={exception.id}>
+                    <TableCell className="text-white">{exception.id}</TableCell>
+                    <TableCell className="text-white">{exception.description}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id={`exception-${exception.id}`}
+                          checked={exception.selected}
+                          onCheckedChange={() => handleExceptionToggle(exception.id)}
+                        />
+                        <Label htmlFor={`exception-${exception.id}`} className="text-white">
+                          {exception.selected ? "Selected" : "Select"}
+                        </Label>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         </CardContent>
       </Card>

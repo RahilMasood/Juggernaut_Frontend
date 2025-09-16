@@ -47,6 +47,18 @@ export function exposePayrollContext() {
       message?: string;
       error?: string;
     }> => ipcRenderer.invoke(PAYROLL_UPLOAD_FILE_CHANNEL),
+    listSheets: (filePath: string): Promise<{ ok: boolean; sheets?: string[]; error?: string }> =>
+      ipcRenderer.invoke("payroll:list-sheets", { filePath }),
+    listColumns: (filePath: string, sheet: string): Promise<{ ok: boolean; columns?: string[]; error?: string }> =>
+      ipcRenderer.invoke("payroll:list-columns", { filePath, sheet }),
+    writeExecutionColumnMap: (mapping: Record<string, string>): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke("payroll:write-exec-column-map", { mapping }),
+    writeIpeSelection: (payload: { filePath: string; sheet: string }): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke("payroll:write-ipe-selection", payload),
+    readIpeSelection: (): Promise<{ ok: boolean; filePath?: string; sheet?: string; error?: string }> =>
+      ipcRenderer.invoke("payroll:read-ipe-selection"),
+    downloadClientFile: (filename: string): Promise<{ ok: boolean; filePath?: string; error?: string }> =>
+      ipcRenderer.invoke("payroll:download-client-file", { filename }),
     onProgress: (
       handler: (payload: {
         runId: string;

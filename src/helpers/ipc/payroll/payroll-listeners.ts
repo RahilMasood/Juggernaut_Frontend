@@ -213,6 +213,61 @@ export function addPayrollEventListeners(mainWindow: BrowserWindow) {
     }
   });
 
+  // List sheet names from an Excel file using Python (pandas)
+  ipcMain.handle("payroll:list-sheets", async (_evt, { filePath }: { filePath: string }) => {
+    try {
+      const pythonCmd = await findPythonExecutable();
+      const script = `import sys, json\nimport pandas as pd\npath=sys.argv[1]\ntry:\n    xl=pd.ExcelFile(path)\n    print(json.dumps({"ok": True, "sheets": xl.sheet_names}))\nexcept Exception as e:\n    print(json.dumps({"ok": False, "error": str(e)}))`;
+      const { stdout } = await new Promise<{ stdout: string }>((resolve, reject) => {
+        const child = spawn(pythonCmd, ['-c', script, filePath]);
+        let out = '';
+        let err = '';
+        child.stdout.on('data', d => out += String(d));
+        child.stderr.on('data', d => err += String(d));
+        child.on('close', code => code === 0 ? resolve({ stdout: out.trim() }) : reject(new Error(err || `exit ${code}`)));
+        child.on('error', reject);
+      });
+      const parsed = JSON.parse(stdout || '{}');
+      return parsed.ok ? { ok: true, sheets: parsed.sheets } : { ok: false, error: parsed.error || 'Unknown error' };
+    } catch (error) {
+      return { ok: false, error: (error as Error).message };
+    }
+  });
+
+  // List column names for a given file and sheet using Python (pandas)
+  ipcMain.handle("payroll:list-columns", async (_evt, { filePath, sheet }: { filePath: string; sheet: string }) => {
+    try {
+      const pythonCmd = await findPythonExecutable();
+      const script = `import sys, json\nimport pandas as pd\npath=sys.argv[1]; sheet=sys.argv[2]\ntry:\n    df=pd.read_excel(path, sheet_name=sheet, nrows=0)\n    print(json.dumps({"ok": True, "columns": list(df.columns)}))\nexcept Exception as e:\n    print(json.dumps({"ok": False, "error": str(e)}))`;
+      const { stdout } = await new Promise<{ stdout: string }>((resolve, reject) => {
+        const child = spawn(pythonCmd, ['-c', script, filePath, sheet]);
+        let out = '';
+        let err = '';
+        child.stdout.on('data', d => out += String(d));
+        child.stderr.on('data', d => err += String(d));
+        child.on('close', code => code === 0 ? resolve({ stdout: out.trim() }) : reject(new Error(err || `exit ${code}`)));
+        child.on('error', reject);
+      });
+      const parsed = JSON.parse(stdout || '{}');
+      return parsed.ok ? { ok: true, columns: parsed.columns } : { ok: false, error: parsed.error || 'Unknown error' };
+    } catch (error) {
+      return { ok: false, error: (error as Error).message };
+    }
+  });
+
+  // Write Execution_Payroll_ColumnMap.json with user's selection
+  ipcMain.handle("payroll:write-exec-column-map", async (_evt, { mapping }: { mapping: Record<string, string> }) => {
+    try {
+      const outDir = PAYROLL_OUTPUTS_DIR;
+      if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
+      const dest = path.join(outDir, 'Execution_Payroll_ColumnMap.json');
+      await fsp.writeFile(dest, JSON.stringify(mapping, null, 2), 'utf-8');
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: (error as Error).message };
+    }
+  });
+
   ipcMain.handle(PAYROLL_OPEN_DIALOG_CHANNEL, async () => {
     const { canceled, filePaths } = await dialog.showOpenDialog({
       properties: ["openFile", "multiSelections"],
@@ -425,6 +480,44 @@ export function addPayrollEventListeners(mainWindow: BrowserWindow) {
     return { ok: true, filePath: result.filePath };
   });
 
+  // Helper: download a file from cloud client container to temp path and return local path
+  ipcMain.handle("payroll:download-client-file", async (_evt, { filename }: { filename: string }) => {
+    try {
+      const os = await import('os');
+      const temp = os.tmpdir();
+      const dest = path.join(temp, filename);
+      const { downloadFile } = await import('../../../utils/cloud-storage');
+      const res = await downloadFile('client', filename, dest);
+      if (res.success && res.filePath) return { ok: true, filePath: res.filePath };
+      return { ok: false, error: res.error || 'Download failed' };
+    } catch (error) {
+      return { ok: false, error: (error as Error).message };
+    }
+  });
+
+  // Persist IPE selection (file path + sheet) for Exception Testing to use
+  ipcMain.handle("payroll:write-ipe-selection", async (_evt, payload: { filePath: string; sheet: string }) => {
+    try {
+      const dir = getRunsDir();
+      const dest = path.join(dir, 'ipe_selection.json');
+      await fsp.writeFile(dest, JSON.stringify(payload, null, 2), 'utf-8');
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle("payroll:read-ipe-selection", async () => {
+    try {
+      const dest = path.join(getRunsDir(), 'ipe_selection.json');
+      const raw = await fsp.readFile(dest, 'utf-8');
+      const parsed = JSON.parse(raw);
+      return { ok: true, ...parsed };
+    } catch (error) {
+      return { ok: false, error: (error as Error).message };
+    }
+  });
+
   // Handle file upload to Cloud/Client folder
   ipcMain.handle(PAYROLL_UPLOAD_FILE_CHANNEL, async () => {
     try {
@@ -444,41 +537,59 @@ export function addPayrollEventListeners(mainWindow: BrowserWindow) {
         return { ok: false, error: 'No files selected' };
       }
 
-      // Create Cloud/Client directory if it doesn't exist
-      const cloudClientPath = path.join(process.cwd(), 'Cloud', 'Client');
-      if (!fs.existsSync(cloudClientPath)) {
-        fs.mkdirSync(cloudClientPath, { recursive: true });
-      }
+      // Import cloud storage functions
+      const { uploadFile } = require('../../../utils/cloud-storage');
 
-      const uploadedFiles: Array<{ originalPath: string; savedPath: string; fileName: string }> = [];
+      const uploadedFiles: Array<{ originalPath: string; savedPath: string; fileName: string; cloudCode?: string }> = [];
 
-      // Copy each selected file to Cloud/Client folder
+      // Upload each selected file to cloud "client" container
       for (const selectedFile of filePaths) {
         try {
           const fileName = path.basename(selectedFile);
-          const timestamp = Date.now();
-          const uniqueFileName = `${timestamp}_${fileName}`;
-          const destPath = path.join(cloudClientPath, uniqueFileName);
+          
+          // Upload to cloud storage
+          const cloudResult = await uploadFile('client', selectedFile, `Employee Benefits - ${fileName}`);
+          
+          if (cloudResult.success) {
+            uploadedFiles.push({
+              originalPath: selectedFile,
+              savedPath: selectedFile, // Keep original path for reference
+              fileName: fileName,
+              cloudCode: cloudResult.code
+            });
 
-          // Copy the file
-          await fsp.copyFile(selectedFile, destPath);
-
-          uploadedFiles.push({
-            originalPath: selectedFile,
-            savedPath: destPath,
-            fileName: uniqueFileName
-          });
-
-          console.log(`✅ File copied to: ${destPath}`);
+            console.log(`✅ File uploaded to cloud: ${fileName} (Code: ${cloudResult.code})`);
+          } else {
+            console.error(`❌ Error uploading file ${fileName} to cloud:`, cloudResult.error);
+            
+            // Fallback: copy to local Cloud/Client folder as before
+            const cloudClientPath = path.join(process.cwd(), 'Cloud', 'Client');
+            if (!fs.existsSync(cloudClientPath)) {
+              fs.mkdirSync(cloudClientPath, { recursive: true });
+            }
+            
+            const timestamp = Date.now();
+            const uniqueFileName = `${timestamp}_${fileName}`;
+            const destPath = path.join(cloudClientPath, uniqueFileName);
+            await fsp.copyFile(selectedFile, destPath);
+            
+            uploadedFiles.push({
+              originalPath: selectedFile,
+              savedPath: destPath,
+              fileName: uniqueFileName
+            });
+            
+            console.log(`✅ File copied to local folder as fallback: ${destPath}`);
+          }
         } catch (error) {
-          console.error(`❌ Error copying file ${selectedFile}:`, error);
+          console.error(`❌ Error processing file ${selectedFile}:`, error);
         }
       }
 
       return { 
         ok: true, 
         files: uploadedFiles,
-        message: `Successfully uploaded ${uploadedFiles.length} file(s) to Cloud/Client folder`
+        message: `Successfully processed ${uploadedFiles.length} file(s). Files uploaded to cloud "Client" container.`
       };
     } catch (error) {
       console.error('❌ Error in file upload handler:', error);

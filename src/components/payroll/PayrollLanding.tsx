@@ -2,13 +2,15 @@ import React from "react";
 import { Card, CardContent } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
-import { ShieldCheck, Layers, Lock, FileCheck2 } from "lucide-react";
+import { ShieldCheck, Layers, Lock, FileCheck2, Link } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
   usePayrollDocuments,
   isPreviewableImage,
   toFileUrl,
 } from "./PayrollDocumentsContext";
+import { CloudFilePicker } from "../ui/cloud-file-picker";
+import { CloudFileEntry } from "../../helpers/ipc/cloud/cloud-context";
 
 type PayrollLandingProps = {
   onSelect: (section: string) => void;
@@ -81,19 +83,38 @@ export default function PayrollLanding({ onSelect }: PayrollLandingProps) {
 
   const pickFiles = async () => {
     try {
-      // Use the existing openDialog function from payroll context
-      const filePaths = await (window as any).payroll.openDialog();
-      
-      if (filePaths && filePaths.length > 0) {
-        // For now, just add the file paths directly
-        // In a real implementation, we would copy these files to Cloud/Client
-        addDocumentsByPaths(filePaths);
-        console.log(`✅ Selected ${filePaths.length} file(s)`);
+      // Trigger upload flow that also opens the dialog and uploads to cloud 'client'
+      const res = await (window as any).payroll.uploadFile();
+      if (res?.ok && Array.isArray(res.files) && res.files.length > 0) {
+        const paths = res.files.map((f: any) => f.originalPath || f.savedPath).filter(Boolean);
+        if (paths.length > 0) addDocumentsByPaths(paths);
+        console.log(`✅ Uploaded ${res.files.length} file(s) to cloud 'client'`);
+      } else if (res?.error) {
+        console.error('❌ Upload failed:', res.error);
       } else {
         console.log('No files selected');
       }
     } catch (error) {
-      console.error('❌ Error opening file dialog:', error);
+      console.error('❌ Error uploading files:', error);
+    }
+  };
+
+  const handleCloudFileSelect = (file: CloudFileEntry) => {
+    // Add cloud file to documents
+    addDocumentsByPaths([`cloud://${file.name}`]);
+    console.log(`✅ Linked cloud file: ${file.name}`);
+  };
+
+  const handleLocalFilesFromPicker = (files: File[]) => {
+    // Convert File[] to paths and add to documents
+    const paths: string[] = [];
+    for (const file of files) {
+      // @ts-expect-error electron adds .path
+      if (file.path) paths.push(file.path);
+    }
+    if (paths.length > 0) {
+      addDocumentsByPaths(paths);
+      console.log(`✅ Selected ${paths.length} file(s) from picker`);
     }
   };
 
@@ -160,9 +181,13 @@ export default function PayrollLanding({ onSelect }: PayrollLandingProps) {
               id="payroll-docs-input"
             />
 
-            <Button size="sm" onClick={pickFiles}>
-              Pick via Dialog
-            </Button>
+            <CloudFilePicker
+              onFileSelected={handleCloudFileSelect}
+              onLocalFileSelected={handleLocalFilesFromPicker}
+              multiple={true}
+              triggerText="Link Cloud File"
+              className="h-8 px-3 text-xs border-white/10 bg-blue-500/20 text-white hover:bg-blue-500/30"
+            />
           </div>
         </div>
         {documents.length === 0 ? (

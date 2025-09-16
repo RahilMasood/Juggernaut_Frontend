@@ -27,7 +27,11 @@ import {
   Calendar,
   Users,
   DollarSign,
+  Link,
+  RefreshCw,
 } from "lucide-react";
+import { FileDropdown } from "../../ui/file-dropdown";
+import { CloudFileEntry } from "../../../helpers/ipc/cloud/cloud-context";
 // Removed usePayrollDocuments import as it's not needed for the new design
 
 interface IPETestingProps {
@@ -40,6 +44,7 @@ interface UploadedFile {
   file: File;
   status: "uploading" | "completed" | "error";
   progress: number;
+  cloudFile?: CloudFileEntry;
 }
 
 interface ConsolidatedFile {
@@ -121,42 +126,74 @@ export default function IPETesting({ onBack }: IPETestingProps) {
   const [selectedColumns, setSelectedColumns] = useState<Record<string, string>>({});
   const [processingStatus, setProcessingStatus] = useState<Record<string, string>>({});
   const [showTallyIntegration, setShowTallyIntegration] = useState(false);
+  const [localPaths, setLocalPaths] = useState<Record<string, string>>({});
+  const [sheetOptions, setSheetOptions] = useState<Record<string, string[]>>({});
+  const [selectedSheets, setSelectedSheets] = useState<Record<string, string>>({});
 
-  const handleFileUpload = async (fileType: string, files: FileList | null) => {
-    if (!files || files.length === 0) return;
 
-    const fileArray = Array.from(files);
-    const newUploadedFiles: UploadedFile[] = fileArray.map((file, index) => ({
-      id: `${fileType}_${Date.now()}_${index}`,
+  const handleFileSelection = (fileType: string, file: CloudFileEntry) => {
+    console.log(`IPETesting: File selected for ${fileType}:`, file);
+    
+    // Replace any existing files for this file type (since we only want one file per type)
+    const selectedFile: UploadedFile = {
+      id: `${fileType}_selected_${Date.now()}`,
       type: fileType,
-      file,
-      status: "uploading",
-      progress: 0,
-    }));
+      file: new File([], file.name), // Dummy file object for cloud files
+      status: "completed",
+      progress: 100,
+      cloudFile: file,
+    };
 
-    setUploadedFiles(prev => ({
-      ...prev,
-      [fileType]: [...(prev[fileType] || []), ...newUploadedFiles],
-    }));
+    console.log(`IPETesting: Setting selected file for ${fileType}:`, selectedFile);
 
-    // Simulate file upload progress
-    for (const uploadedFile of newUploadedFiles) {
-      for (let progress = 0; progress <= 100; progress += 10) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-        setUploadedFiles(prev => ({
-          ...prev,
-          [fileType]: prev[fileType]?.map(f =>
-            f.id === uploadedFile.id ? { ...f, progress } : f
-          ) || [],
-        }));
-      }
-
-      setUploadedFiles(prev => ({
+    setUploadedFiles(prev => {
+      const updated = {
         ...prev,
-        [fileType]: prev[fileType]?.map(f =>
-          f.id === uploadedFile.id ? { ...f, status: "completed", progress: 100 } : f
-        ) || [],
-      }));
+        [fileType]: [selectedFile], // Replace with single selected file
+      };
+      console.log(`IPETesting: Updated uploadedFiles:`, updated);
+      return updated;
+    });
+
+    // Download the cloud file to a temporary local path, then list sheets
+    (async () => {
+      try {
+        const dl = await window.payroll.downloadClientFile(file.name);
+        if (dl.ok && dl.filePath) {
+          setLocalPaths(prev => ({ ...prev, [fileType]: dl.filePath! }));
+          const sheets = await window.payroll.listSheets(dl.filePath);
+          if (sheets.ok && sheets.sheets) {
+            setSheetOptions(prev => ({ ...prev, [fileType]: sheets.sheets! }));
+          }
+        }
+      } catch (e) {
+        console.error('Failed to prepare sheet options:', e);
+      }
+    })();
+
+    // Optionally start processing after selection
+    handleProcessFile(fileType, file);
+
+    console.log(`✅ Selected and processing file: ${file.name} for ${fileType}`);
+  };
+
+  const handleProcessFile = async (fileType: string, file: CloudFileEntry) => {
+    console.log(`Processing file ${file.name} for ${fileType}`);
+    
+    // Set processing status
+    setProcessingStatus(prev => ({ ...prev, [fileType]: "processing" }));
+    
+    // Simulate processing (replace with actual processing logic)
+    try {
+      // Here you would implement the actual file processing logic
+      // For now, we'll simulate it
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      setProcessingStatus(prev => ({ ...prev, [fileType]: "completed" }));
+      console.log(`✅ Processing completed for ${file.name}`);
+    } catch (error) {
+      console.error(`❌ Processing failed for ${file.name}:`, error);
+      setProcessingStatus(prev => ({ ...prev, [fileType]: "error" }));
     }
   };
 
@@ -292,55 +329,63 @@ export default function IPETesting({ onBack }: IPETestingProps) {
                 {fileType.help}
               </div>
 
-              {/* File Upload */}
+              {/* File Selection */}
               <div className="space-y-3">
-                <Label className="text-white">Upload Files</Label>
-                <div className="flex items-center gap-3">
-                  <Input
-                    type="file"
-                    multiple={fileType.multiple}
-                    accept={fileType.formats.join(",")}
-                    onChange={(e) => handleFileUpload(fileType.id, e.target.files)}
-                    className="border-white/10 bg-black/40 text-white"
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => document.getElementById(`file-${fileType.id}`)?.click()}
-                    className="border-white/10"
-                  >
-                    <Upload className="h-4 w-4" />
-                  </Button>
-                </div>
+                <Label className="text-white">Select File from Client Container</Label>
+                <FileDropdown
+                  fileType={fileType.id}
+                  onFileSelected={handleFileSelection}
+                />
               </div>
 
-              {/* Uploaded Files */}
+              {/* Selected Files */}
               {uploadedFiles[fileType.id] && uploadedFiles[fileType.id].length > 0 && (
                 <div className="space-y-2">
-                  <Label className="text-white">Uploaded Files</Label>
+                  <Label className="text-white">Selected File</Label>
                   {uploadedFiles[fileType.id].map((file) => (
                     <div
                       key={file.id}
                       className="flex items-center justify-between rounded border border-white/10 bg-white/5 p-3"
                     >
                       <div className="flex items-center gap-3">
-                        <File className="h-4 w-4 text-gray-400" />
+                        {file.cloudFile ? (
+                          <Link className="h-4 w-4 text-blue-400" />
+                        ) : (
+                          <File className="h-4 w-4 text-gray-400" />
+                        )}
                         <div>
                           <div className="text-sm font-medium text-white">
-                            {file.file.name}
+                            {file.cloudFile ? file.cloudFile.name : file.file.name}
                           </div>
                           <div className="text-xs text-gray-400">
-                            {(file.file.size / 1024 / 1024).toFixed(2)} MB
+                            {file.cloudFile ? (
+                              <span className="text-blue-400">Cloud File {file.cloudFile.reference && `- ${file.cloudFile.reference}`}</span>
+                            ) : (
+                              `${(file.file.size / 1024 / 1024).toFixed(2)} MB`
+                            )}
                           </div>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        {file.status === "uploading" && (
-                          <div className="w-16">
-                            <Progress value={file.progress} className="h-1" />
+                        {processingStatus[fileType.id] === "processing" && (
+                          <div className="flex items-center gap-2">
+                            <RefreshCw className="h-4 w-4 text-blue-400 animate-spin" />
+                            <span className="text-xs text-blue-400">Processing...</span>
                           </div>
                         )}
-                        {file.status === "completed" && (
+                        {processingStatus[fileType.id] === "completed" && (
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="h-4 w-4 text-green-500" />
+                            <span className="text-xs text-green-400">Processed</span>
+                          </div>
+                        )}
+                        {processingStatus[fileType.id] === "error" && (
+                          <div className="flex items-center gap-2">
+                            <AlertCircle className="h-4 w-4 text-red-500" />
+                            <span className="text-xs text-red-400">Error</span>
+                          </div>
+                        )}
+                        {!processingStatus[fileType.id] && file.status === "completed" && (
                           <CheckCircle className="h-4 w-4 text-green-500" />
                         )}
                         <Button
@@ -354,6 +399,39 @@ export default function IPETesting({ onBack }: IPETestingProps) {
                       </div>
                     </div>
                   ))}
+                  {/* Follow-up: Sheet selection for Excel files */}
+                  {localPaths[fileType.id] && (
+                    <div className="space-y-2">
+                      <Label className="text-white">Select Sheet</Label>
+                      <Select
+                        value={selectedSheets[fileType.id] || ""}
+                        onValueChange={async (sheet) => {
+                          setSelectedSheets(prev => ({ ...prev, [fileType.id]: sheet }));
+                          const local = localPaths[fileType.id];
+                          if (local) {
+                            try {
+                              await window.payroll.writeIpeSelection({ filePath: local, sheet });
+                            } catch {}
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="border-white/10 bg-black/40 text-white">
+                          <SelectValue placeholder={sheetOptions[fileType.id]?.length ? "Select sheet..." : "Loading sheets..."} />
+                        </SelectTrigger>
+                        <SelectContent className="border-white/10 bg-black/90 text-white">
+                          {sheetOptions[fileType.id]?.length ? (
+                            sheetOptions[fileType.id].map((s) => (
+                              <SelectItem key={s} value={s}>{s}</SelectItem>
+                            ))
+                          ) : (
+                            <SelectItem value="__loading__" disabled>
+                              Loading...
+                            </SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                 </div>
               )}
 
