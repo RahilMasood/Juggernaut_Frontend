@@ -250,8 +250,7 @@ export function CloudStorageManager({ className }: CloudStorageManagerProps) {
                       <div>
                         <p className="font-medium">{file.name}</p>
                         <p className="text-sm text-muted-foreground">
-                          Code: {file.code}
-                          {file.reference && ` • ${file.reference}`}
+                          {file.reference && file.reference}
                         </p>
                       </div>
                     </div>

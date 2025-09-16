@@ -1,0 +1,31 @@
+{
+  "juggernaut": [
+    "Libraries_InternalControlResponses_IC001.json",
+    "Libraries_InternalControlResponses_IC002.json",
+    "test_cloud_structure.json"
+  ],
+  "client": [
+    {
+      "name": "ed.xlsx",
+      "reference": "TB 2"
+    },
+    {
+      "name": "abc.xlsx",
+      "reference": ""
+    }
+  ],
+  "tools": [
+    {
+      "name": "xyz.json",
+      "reference": ""
+    },
+    {
+      "name": "def.xlsx",
+      "reference": ""
+    }
+  ],
+  "recycle_bin": [
+    "xyz.json",
+    "def.xlsx"
+  ]
+}

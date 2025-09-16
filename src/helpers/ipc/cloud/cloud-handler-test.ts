@@ -22,3 +22,4 @@ export function testCloudHandlers() {
   );
   console.log('Cloud-related handlers:', cloudHandlers);
 }
+

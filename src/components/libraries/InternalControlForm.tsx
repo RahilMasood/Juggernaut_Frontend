@@ -204,14 +204,31 @@ export default function InternalControlForm({
   };
 
   const renderField = (field: any, sectionId: string) => {
-    const value = formData[sectionId]?.[field.id];
-    
-    switch (field.type) {
+    try {
+      // Add defensive check for field structure
+      if (!field || !field.id) {
+        console.warn('Invalid field structure:', field);
+        return null;
+      }
+      
+      // Debug logging for automated controls
+      if (metadata.subtype === 'Automated') {
+        console.log('Rendering field for Automated control:', {
+          fieldId: field.id,
+          fieldLabel: field.label,
+          fieldType: field.type,
+          sectionId
+        });
+      }
+      
+      const value = formData[sectionId]?.[field.id];
+      
+      switch (field.type) {
       case 'text':
         return (
           <div key={field.id} className="space-y-2">
             <Label className="text-sm font-medium text-white">
-              {field.label}
+              {field.label || 'Untitled Field'}
             </Label>
             <Input
               value={value || ''}
@@ -225,7 +242,7 @@ export default function InternalControlForm({
         return (
           <div key={field.id} className="space-y-2">
             <Label className="text-sm font-medium text-white">
-              {field.label}
+              {field.label || 'Untitled Field'}
             </Label>
             <RichTextEditor
               content={value || ''}
@@ -239,7 +256,7 @@ export default function InternalControlForm({
         return (
           <div key={field.id} className="space-y-2">
             <Label className="text-sm font-medium text-white">
-              {field.label}
+              {field.label || 'Untitled Field'}
             </Label>
             <select
               value={value || ''}
@@ -265,7 +282,7 @@ export default function InternalControlForm({
               className="h-4 w-4 rounded border-white/10 bg-white/5"
             />
             <Label className="text-sm font-medium text-white">
-              {field.label}
+              {field.label || 'Untitled Field'}
             </Label>
           </div>
         );
@@ -274,7 +291,7 @@ export default function InternalControlForm({
         return (
           <div key={field.id} className="space-y-2">
             <Label className="text-sm font-medium text-white">
-              {field.label}
+              {field.label || 'Untitled Field'}
             </Label>
             <div className="rounded-md border border-white/10 bg-white/5 p-3 text-white/80">
               {metadata.controlName || 'No description available'}
@@ -287,7 +304,7 @@ export default function InternalControlForm({
         return (
           <div key={field.id} className="space-y-4">
             <Label className="text-sm font-medium text-white">
-              {field.label}
+              {field.label || 'Untitled Field'}
             </Label>
             <div className="text-sm text-white/60 mb-4">
               {field.description}
@@ -384,13 +401,13 @@ export default function InternalControlForm({
         return (
           <div key={field.id} className="space-y-2">
             <Label className="text-sm font-medium text-white">
-              {field.label}
+              {field.label || 'Untitled Field'}
             </Label>
             <Textarea
               value={value || ''}
               onChange={(e) => updateFormData(sectionId, field.id, e.target.value)}
               className="min-h-[120px] border-white/10 bg-white/5 text-white placeholder:text-white/40"
-              placeholder={`Enter ${field.label.toLowerCase()}`}
+              placeholder={`Enter ${field.label?.toLowerCase() || 'value'}`}
             />
           </div>
         );
@@ -400,7 +417,7 @@ export default function InternalControlForm({
           <div key={field.id} className="space-y-4">
             <div className="flex items-center justify-between">
               <Label className="text-sm font-medium text-white">
-                {field.label}
+                {field.label || 'Untitled Field'}
               </Label>
               <Button
                 type="button"
@@ -447,7 +464,7 @@ export default function InternalControlForm({
                           {subField.type === 'largeTextbox' ? (
                             <div className="space-y-2">
                               <Label className="text-sm font-medium text-white">
-                                {subField.label}
+                                {subField.label || 'Untitled Field'}
                               </Label>
                               <Textarea
                                 value={subFieldValue || ''}
@@ -461,7 +478,7 @@ export default function InternalControlForm({
                                   updateFormData(sectionId, field.id, updatedItems);
                                 }}
                                 className="min-h-[120px] border-white/10 bg-white/5 text-white placeholder:text-white/40"
-                                placeholder={`Enter ${subField.label.toLowerCase()}`}
+                                placeholder={`Enter ${subField.label?.toLowerCase() || 'value'}`}
                               />
                             </div>
                           ) : (
@@ -484,16 +501,29 @@ export default function InternalControlForm({
         return (
           <div key={field.id} className="space-y-2">
             <Label className="text-sm font-medium text-white">
-              {field.label} <Badge variant="outline" className="ml-2 text-xs">{field.type}</Badge>
+              {field.label || 'Untitled Field'} <Badge variant="outline" className="ml-2 text-xs">{field.type}</Badge>
             </Label>
             <Input
               value={value || ''}
               onChange={(e) => updateFormData(sectionId, field.id, e.target.value)}
               className="border-white/10 bg-white/5 text-white placeholder:text-white/40"
-              placeholder={`Enter ${field.label.toLowerCase()}`}
+              placeholder={`Enter ${field.label?.toLowerCase() || 'value'}`}
             />
           </div>
         );
+    }
+    } catch (error) {
+      console.error('Error rendering field:', error, field);
+      return (
+        <div key={field.id} className="space-y-2 p-4 border border-red-500/20 bg-red-500/5 rounded-lg">
+          <Label className="text-sm font-medium text-red-400">
+            Error rendering field: {field.id}
+          </Label>
+          <p className="text-xs text-red-300">
+            {error instanceof Error ? error.message : 'Unknown error'}
+          </p>
+        </div>
+      );
     }
   };
 
@@ -655,6 +685,8 @@ export default function InternalControlForm({
       console.log('window.cloud:', window.cloud);
       console.log('typeof window.cloud.upload:', typeof window.cloud?.upload);
       console.log('typeof window.cloud.directUpload:', typeof window.cloud?.directUpload);
+      console.log('Control metadata:', updatedMetadata);
+      console.log('Control data structure:', controlData);
       
       if (window.cloud && typeof window.cloud.directUpload === 'function') {
         console.log('Using direct upload method...');
@@ -691,6 +723,7 @@ export default function InternalControlForm({
             onClose();
           }, 1500);
         } else {
+          console.error('Upload failed:', uploadResult.error);
           throw new Error(uploadResult.error || 'Failed to upload to cloud storage');
         }
       } else if (window.cloud && typeof window.cloud.upload === 'function' && typeof window.cloud.writeTempFile === 'function') {

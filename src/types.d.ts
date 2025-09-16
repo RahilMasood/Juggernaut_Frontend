@@ -76,7 +76,6 @@ interface InternalControlsContext {
 
 interface CloudFileEntry {
   name: string;
-  code: string;
   reference: string;
 }
 

@@ -1,13 +1,18 @@
 import { BrowserWindow, ipcMain } from "electron";
 import {
   CLOUD_UPLOAD_CHANNEL,
+  CLOUD_DIRECT_UPLOAD_CHANNEL,
   CLOUD_DOWNLOAD_CHANNEL,
   CLOUD_LIST_CHANNEL,
   CLOUD_DELETE_CHANNEL,
   CLOUD_PROGRESS_CHANNEL,
+  CLOUD_WRITE_TEMP_FILE_CHANNEL,
+  CLOUD_READ_TEMP_FILE_CHANNEL,
+  CLOUD_DELETE_TEMP_FILE_CHANNEL,
 } from "./cloud-channels";
 import {
   uploadFile,
+  uploadContent,
   downloadFile,
   listFiles,
   deleteFile,
@@ -15,6 +20,7 @@ import {
 } from "../../../utils/cloud-storage";
 import {
   CloudUploadRequest,
+  CloudDirectUploadRequest,
   CloudDownloadRequest,
   CloudListRequest,
   CloudDeleteRequest,
@@ -78,6 +84,65 @@ export function addCloudEventListeners(mainWindow: BrowserWindow) {
           operation: "upload",
           container: request.container,
           filename: request.filePath.split(/[/\\]/).pop() || "unknown",
+          progress: 0,
+          status: "error",
+          error: errorMessage,
+        });
+
+        return {
+          success: false,
+          error: errorMessage,
+        };
+      }
+    }
+  );
+
+  // Direct upload content to cloud
+  ipcMain.handle(
+    CLOUD_DIRECT_UPLOAD_CHANNEL,
+    async (_event, request: CloudDirectUploadRequest): Promise<CloudUploadResult> => {
+      try {
+        emitProgress(mainWindow, {
+          operation: "upload",
+          container: request.container,
+          filename: request.filename,
+          progress: 0,
+          status: "started",
+        });
+
+        const result = await uploadContent(
+          request.container,
+          request.content,
+          request.filename,
+          request.reference || ""
+        );
+
+        if (result.success) {
+          emitProgress(mainWindow, {
+            operation: "upload",
+            container: request.container,
+            filename: request.filename,
+            progress: 100,
+            status: "success",
+          });
+        } else {
+          emitProgress(mainWindow, {
+            operation: "upload",
+            container: request.container,
+            filename: request.filename,
+            progress: 0,
+            status: "error",
+            error: result.error,
+          });
+        }
+
+        return result;
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+        emitProgress(mainWindow, {
+          operation: "upload",
+          container: request.container,
+          filename: request.filename,
           progress: 0,
           status: "error",
           error: errorMessage,
@@ -217,6 +282,79 @@ export function addCloudEventListeners(mainWindow: BrowserWindow) {
         return {
           success: false,
           error: errorMessage,
+        };
+      }
+    }
+  );
+
+  // Write temp file
+  ipcMain.handle(
+    CLOUD_WRITE_TEMP_FILE_CHANNEL,
+    async (_event, request: { content: string; filename: string }) => {
+      try {
+        const fs = require('fs');
+        const path = require('path');
+        const os = require('os');
+        
+        const tempDir = path.join(os.tmpdir(), 'juggernaut-cloud-temp');
+        if (!fs.existsSync(tempDir)) {
+          fs.mkdirSync(tempDir, { recursive: true });
+        }
+        
+        const tempFilePath = path.join(tempDir, request.filename);
+        fs.writeFileSync(tempFilePath, request.content, 'utf-8');
+        
+        return {
+          success: true,
+          filePath: tempFilePath
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        };
+      }
+    }
+  );
+
+  // Read temp file
+  ipcMain.handle(
+    CLOUD_READ_TEMP_FILE_CHANNEL,
+    async (_event, request: { filePath: string }) => {
+      try {
+        const fs = require('fs');
+        const content = fs.readFileSync(request.filePath, 'utf-8');
+        
+        return {
+          success: true,
+          content: content
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        };
+      }
+    }
+  );
+
+  // Delete temp file
+  ipcMain.handle(
+    CLOUD_DELETE_TEMP_FILE_CHANNEL,
+    async (_event, request: { filePath: string }) => {
+      try {
+        const fs = require('fs');
+        if (fs.existsSync(request.filePath)) {
+          fs.unlinkSync(request.filePath);
+        }
+        
+        return {
+          success: true
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
         };
       }
     }

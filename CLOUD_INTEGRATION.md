@@ -30,14 +30,14 @@ The application now supports cloud storage operations through Azure Blob Storage
 ## Key Features
 
 ### File Operations
-- **Upload**: Files are uploaded to Azure Blob Storage with UUID-based naming
-- **Download**: Files are retrieved using human-readable names via mapping
-- **List**: View all files in a specific container
-- **Delete**: Remove files from both cloud storage and mapping
+- **Upload**: Files are uploaded to Azure Blob Storage with original filenames
+- **Download**: Files are retrieved using their original filenames
+- **List**: View all files in a specific container from metadata
+- **Delete**: Remove files from both cloud storage and metadata
 
-### Mapping System
-- Files are stored in Azure with UUID codes as blob names
-- A local `cloud_tree.json` file maps human-readable names to UUID codes
+### Metadata System
+- Files are stored in Azure with their original filenames as blob names
+- A local `cloud_tree.json` file contains metadata for each container
 - Supports reference/description fields for additional metadata
 
 ### Containers
@@ -90,19 +90,32 @@ The Azure Blob Storage connection string is configured in `src/utils/cloud-stora
 const CONNECTION_STRING = "DefaultEndpointsProtocol=https;AccountName=auditfirmone;AccountKey=...";
 ```
 
-### Mapping File
-The mapping file (`cloud_tree.json`) is automatically created and managed. It has the following structure:
+### Metadata File
+The metadata file (`cloud_tree.json`) is automatically created and managed. It has the following structure:
 ```json
 {
-  "Juggernaut": [],
-  "Client": [
+  "juggernaut": ["Libraries_InternControlResponses_Table.json", "abc.json"],
+  "client": [
     {
-      "name": "document.pdf",
-      "code": "uuid-code-here",
-      "reference": "Client document"
+      "name": "ed.xlsx",
+      "reference": "TB 2"
+    },
+    {
+      "name": "abc.xlsx",
+      "reference": ""
     }
   ],
-  "Tools": []
+  "tools": [
+    {
+      "name": "xyz.json",
+      "reference": ""
+    },
+    {
+      "name": "def.xlsx",
+      "reference": ""
+    }
+  ],
+  "recycle_bin": ["xyz.json", "def.xlsx"]
 }
 ```
 

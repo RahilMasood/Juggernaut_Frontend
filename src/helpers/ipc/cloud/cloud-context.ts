@@ -4,17 +4,24 @@ import {
   CLOUD_LIST_CHANNEL,
   CLOUD_DELETE_CHANNEL,
   CLOUD_PROGRESS_CHANNEL,
+  CLOUD_DIRECT_UPLOAD_CHANNEL,
 } from "./cloud-channels";
 
 export interface CloudFileEntry {
   name: string;
-  code: string;
   reference: string;
 }
 
 export interface CloudUploadRequest {
   container: string;
   filePath: string;
+  reference?: string;
+}
+
+export interface CloudDirectUploadRequest {
+  container: string;
+  content: string;
+  filename: string;
   reference?: string;
 }
 
@@ -72,6 +79,9 @@ export function exposeCloudContext() {
     upload: (request: CloudUploadRequest): Promise<CloudUploadResult> =>
       ipcRenderer.invoke(CLOUD_UPLOAD_CHANNEL, request),
     
+    directUpload: (content: string, filename: string, container: string, reference: string): Promise<CloudUploadResult> =>
+      ipcRenderer.invoke(CLOUD_DIRECT_UPLOAD_CHANNEL, { container, content, filename, reference }),
+    
     download: (request: CloudDownloadRequest): Promise<CloudDownloadResult> =>
       ipcRenderer.invoke(CLOUD_DOWNLOAD_CHANNEL, request),
     
@@ -81,7 +91,6 @@ export function exposeCloudContext() {
     delete: (request: CloudDeleteRequest): Promise<CloudDeleteResult> =>
       ipcRenderer.invoke(CLOUD_DELETE_CHANNEL, request),
     
-    // File operations
     writeTempFile: (content: string, filename: string): Promise<{ success: boolean; filePath?: string; error?: string }> =>
       ipcRenderer.invoke("cloud:write-temp-file", { content, filename }),
     
@@ -90,10 +99,6 @@ export function exposeCloudContext() {
     
     deleteTempFile: (filePath: string): Promise<{ success: boolean; error?: string }> =>
       ipcRenderer.invoke("cloud:delete-temp-file", { filePath }),
-    
-    // Direct upload method
-    directUpload: (content: string, filename: string, container: string, reference: string): Promise<CloudUploadResult> =>
-      ipcRenderer.invoke("cloud:direct-upload", { content, filename, container, reference }),
     
     onProgress: (
       handler: (payload: CloudProgressPayload) => void,

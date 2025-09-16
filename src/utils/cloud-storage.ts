@@ -16,15 +16,14 @@ const CONTAINERS = ["juggernaut", "client", "tools", "recycle_bin"];
 // === INTERFACES ===
 export interface CloudFileEntry {
   name: string;
-  code: string;
   reference: string;
 }
 
-export interface CloudMapping {
-  Juggernaut: CloudFileEntry[];
-  Client: CloudFileEntry[];
-  Tools: CloudFileEntry[];
-  Recycle_bin: CloudFileEntry[];
+export interface CloudMetadata {
+  juggernaut: string[];
+  client: CloudFileEntry[];
+  tools: CloudFileEntry[];
+  recycle_bin: string[];
 }
 
 export interface UploadResult {
@@ -61,21 +60,55 @@ function getMappingFilePath(): string {
   return path.join(process.cwd(), MAPPING_FILE);
 }
 
-async function loadMapping(): Promise<CloudMapping> {
+async function loadMapping(): Promise<CloudMetadata> {
   const mappingPath = getMappingFilePath();
   try {
     if (!fs.existsSync(mappingPath)) {
-      return { Juggernaut: [], Client: [], Tools: [], Recycle_bin: [] };
+      return { juggernaut: [], client: [], tools: [], recycle_bin: [] };
     }
     const data = fs.readFileSync(mappingPath, 'utf-8');
-    return JSON.parse(data);
+    const parsed = JSON.parse(data);
+    
+    // Check if this is the old format and migrate it
+    if (parsed.Juggernaut || parsed.Client || parsed.Tools || parsed.Recycle_bin) {
+      console.log('Migrating from old cloud structure format...');
+      const migrated = {
+        juggernaut: Array.isArray(parsed.Juggernaut) ? parsed.Juggernaut.map((item: any) => 
+          typeof item === 'string' ? item : item.name || item.filename || ''
+        ).filter(Boolean) : [],
+        client: Array.isArray(parsed.Client) ? parsed.Client.map((item: any) => ({
+          name: item.name || item.filename || '',
+          reference: item.reference || ''
+        })).filter((item: any) => item.name) : [],
+        tools: Array.isArray(parsed.Tools) ? parsed.Tools.map((item: any) => ({
+          name: item.name || item.filename || '',
+          reference: item.reference || ''
+        })).filter((item: any) => item.name) : [],
+        recycle_bin: Array.isArray(parsed.Recycle_bin) ? parsed.Recycle_bin.map((item: any) => 
+          typeof item === 'string' ? item : item.name || item.filename || ''
+        ).filter(Boolean) : []
+      };
+      
+      // Save the migrated format
+      await saveMapping(migrated);
+      console.log('Migration completed successfully');
+      return migrated;
+    }
+    
+    // Ensure all required properties exist and are arrays
+    return {
+      juggernaut: Array.isArray(parsed.juggernaut) ? parsed.juggernaut : [],
+      client: Array.isArray(parsed.client) ? parsed.client : [],
+      tools: Array.isArray(parsed.tools) ? parsed.tools : [],
+      recycle_bin: Array.isArray(parsed.recycle_bin) ? parsed.recycle_bin : []
+    };
   } catch (error) {
     console.error('Error loading mapping file:', error);
-    return { Juggernaut: [], Client: [], Tools: [], Recycle_bin: [] };
+    return { juggernaut: [], client: [], tools: [], recycle_bin: [] };
   }
 }
 
-async function saveMapping(mapping: CloudMapping): Promise<void> {
+async function saveMapping(mapping: CloudMetadata): Promise<void> {
   const mappingPath = getMappingFilePath();
   try {
     fs.writeFileSync(mappingPath, JSON.stringify(mapping, null, 2), 'utf-8');
@@ -97,6 +130,21 @@ export async function uploadFile(
   customFilename?: string
 ): Promise<UploadResult> {
   try {
+    // Validate inputs
+    if (!container || typeof container !== 'string') {
+      return {
+        success: false,
+        error: 'Container parameter is required and must be a string'
+      };
+    }
+    
+    if (!filePath || typeof filePath !== 'string') {
+      return {
+        success: false,
+        error: 'File path parameter is required and must be a string'
+      };
+    }
+
     // Validate container
     if (!CONTAINERS.includes(container.toLowerCase())) {
       return {
@@ -115,14 +163,11 @@ export async function uploadFile(
 
     const mapping = await loadMapping();
     const filename = customFilename || path.basename(filePath);
-    
-    // For juggernaut container, use filename as code; for others, generate unique code
-    const code = container.toLowerCase() === 'juggernaut' ? filename : generateUniqueCode();
 
-    // Upload file to Azure with blob name = code
+    // Upload file to Azure with blob name = filename
     const client = await getBlobServiceClient();
     const containerClient = client.getContainerClient(container);
-    const blobClient = containerClient.getBlobClient(code);
+    const blobClient = containerClient.getBlobClient(filename);
     const blockBlobClient = blobClient.getBlockBlobClient();
     
     const fileData = fs.readFileSync(filePath);
@@ -133,23 +178,36 @@ export async function uploadFile(
       }
     });
 
-    // Update mapping only for non-juggernaut containers
-    if (container.toLowerCase() !== 'juggernaut') {
+    // Update metadata based on container type
+    if (container.toLowerCase() === 'juggernaut') {
+      // For juggernaut, just add filename to array
+      if (Array.isArray(mapping.juggernaut) && !mapping.juggernaut.includes(filename)) {
+        mapping.juggernaut.push(filename);
+      }
+    } else if (container.toLowerCase() === 'client' || container.toLowerCase() === 'tools') {
+      // For client and tools, add object with name and reference
       const entry: CloudFileEntry = {
         name: filename,
-        code: code,
         reference: reference
       };
-
-      const containerKey = container.charAt(0).toUpperCase() + container.slice(1) as keyof CloudMapping;
-      mapping[containerKey].push(entry);
-      await saveMapping(mapping);
+      
+      const containerKey = container.toLowerCase() as keyof CloudMetadata;
+      if (Array.isArray(mapping[containerKey])) {
+        (mapping[containerKey] as CloudFileEntry[]).push(entry);
+      }
+    } else if (container.toLowerCase() === 'recycle_bin') {
+      // For recycle_bin, just add filename to array
+      if (Array.isArray(mapping.recycle_bin) && !mapping.recycle_bin.includes(filename)) {
+        mapping.recycle_bin.push(filename);
+      }
     }
 
-    console.log(`Uploaded ${filename} as blob ${code} in container ${container}`);
+    await saveMapping(mapping);
+
+    console.log(`Uploaded ${filename} to container ${container}`);
     return {
       success: true,
-      code: code
+      code: filename
     };
 
   } catch (error) {
@@ -175,28 +233,10 @@ export async function downloadFile(
       };
     }
 
-    // For juggernaut container, use filename directly; for others, lookup code from mapping
-    let blobName = filename;
-    
-    if (container.toLowerCase() !== 'juggernaut') {
-      // For other containers, use mapping system
-      const mapping = await loadMapping();
-      const containerKey = container.charAt(0).toUpperCase() + container.slice(1) as keyof CloudMapping;
-      
-      // Find entry by filename
-      const entry = mapping[containerKey].find(item => item.name === filename);
-      if (!entry) {
-        return {
-          success: false,
-          error: `File ${filename} not found in mapping under ${container}`
-        };
-      }
-      blobName = entry.code;
-    }
-
+    // Use filename directly as blob name (no more UUID mapping)
     const client = await getBlobServiceClient();
     const containerClient = client.getContainerClient(container);
-    const blobClient = containerClient.getBlobClient(blobName);
+    const blobClient = containerClient.getBlobClient(filename);
     const downloadResponse = await blobClient.download();
     
     if (!downloadResponse.readableStreamBody) {
@@ -221,7 +261,7 @@ export async function downloadFile(
     const fileData = Buffer.concat(chunks);
     fs.writeFileSync(downloadPath, fileData);
 
-    console.log(`Downloaded ${filename} (blob ${blobName}) from ${container} → ${downloadPath}`);
+    console.log(`Downloaded ${filename} from ${container} → ${downloadPath}`);
     return {
       success: true,
       filePath: downloadPath
@@ -242,33 +282,22 @@ export async function listFiles(container: string): Promise<CloudFileEntry[]> {
       throw new Error(`Invalid container. Must be one of: ${CONTAINERS.join(', ')}`);
     }
 
-    // For juggernaut container, list files directly from Azure; for others, use mapping
-    if (container.toLowerCase() === 'juggernaut') {
-      // List files directly from Azure Blob Storage for juggernaut
-      const client = await getBlobServiceClient();
-      const containerClient = client.getContainerClient(container);
-      
-      const files: CloudFileEntry[] = [];
-      
-      // List all blobs in the container
-      for await (const blob of containerClient.listBlobsFlat()) {
-        files.push({
-          name: blob.name,
-          code: blob.name, // For juggernaut, code = name
-          reference: blob.name
-        });
-      }
-      
-      console.log(`Found ${files.length} files in container ${container}`);
-      return files;
+    const mapping = await loadMapping();
+    const containerKey = container.toLowerCase() as keyof CloudMetadata;
+    const containerData = mapping[containerKey];
+
+    if (container.toLowerCase() === 'juggernaut' || container.toLowerCase() === 'recycle_bin') {
+      // For juggernaut and recycle_bin, convert string array to CloudFileEntry array
+      return (containerData as string[]).map(filename => ({
+        name: filename,
+        reference: ''
+      }));
     } else {
-      // For other containers, use mapping system
-      const mapping = await loadMapping();
-      const containerKey = container.charAt(0).toUpperCase() + container.slice(1) as keyof CloudMapping;
-      return mapping[containerKey];
+      // For client and tools, return the CloudFileEntry array directly
+      return containerData as CloudFileEntry[];
     }
   } catch (error) {
-    console.error('Error listing files from Azure:', error);
+    console.error('Error listing files from metadata:', error);
     return [];
   }
 }
@@ -279,38 +308,39 @@ export async function deleteFile(container: string, filename: string): Promise<b
       throw new Error(`Invalid container. Must be one of: ${CONTAINERS.join(', ')}`);
     }
 
-    // For juggernaut container, use filename directly; for others, use mapping
-    let blobName = filename;
-    
-    if (container.toLowerCase() === 'juggernaut') {
-      // For juggernaut, use filename as blob name directly
-      blobName = filename;
-    } else {
-      // For other containers, use mapping system
-      const mapping = await loadMapping();
-      const containerKey = container.charAt(0).toUpperCase() + container.slice(1) as keyof CloudMapping;
-      
-      // Find entry by filename
-      const entryIndex = mapping[containerKey].findIndex(item => item.name === filename);
-      if (entryIndex === -1) {
-        return false;
+    const mapping = await loadMapping();
+    const containerKey = container.toLowerCase() as keyof CloudMetadata;
+
+    // Remove from metadata
+    if (container.toLowerCase() === 'juggernaut' || container.toLowerCase() === 'recycle_bin') {
+      // For juggernaut and recycle_bin, remove from string array
+      const stringArray = mapping[containerKey] as string[];
+      if (Array.isArray(stringArray)) {
+        const index = stringArray.indexOf(filename);
+        if (index > -1) {
+          stringArray.splice(index, 1);
+        }
       }
-
-      const entry = mapping[containerKey][entryIndex];
-      blobName = entry.code;
-
-      // Remove from mapping
-      mapping[containerKey].splice(entryIndex, 1);
-      await saveMapping(mapping);
+    } else {
+      // For client and tools, remove from CloudFileEntry array
+      const entryArray = mapping[containerKey] as CloudFileEntry[];
+      if (Array.isArray(entryArray)) {
+        const index = entryArray.findIndex(item => item.name === filename);
+        if (index > -1) {
+          entryArray.splice(index, 1);
+        }
+      }
     }
+
+    await saveMapping(mapping);
 
     // Delete from Azure
     const client = await getBlobServiceClient();
     const containerClient = client.getContainerClient(container);
-    const blobClient = containerClient.getBlobClient(blobName);
+    const blobClient = containerClient.getBlobClient(filename);
     await blobClient.delete();
 
-    console.log(`Deleted ${filename} (blob ${blobName}) from ${container}`);
+    console.log(`Deleted ${filename} from ${container}`);
     return true;
 
   } catch (error) {
@@ -342,6 +372,101 @@ function getMimeType(filename: string): string {
   };
   
   return mimeTypes[ext] || 'application/octet-stream';
+}
+
+// === DIRECT UPLOAD FUNCTION ===
+export async function uploadContent(
+  container: string,
+  content: string,
+  filename: string,
+  reference: string = ""
+): Promise<UploadResult> {
+  try {
+    // Validate inputs
+    if (!container || typeof container !== 'string') {
+      return {
+        success: false,
+        error: 'Container parameter is required and must be a string'
+      };
+    }
+    
+    if (!content || typeof content !== 'string') {
+      return {
+        success: false,
+        error: 'Content parameter is required and must be a string'
+      };
+    }
+    
+    if (!filename || typeof filename !== 'string') {
+      return {
+        success: false,
+        error: 'Filename parameter is required and must be a string'
+      };
+    }
+
+    // Validate container
+    if (!CONTAINERS.includes(container.toLowerCase())) {
+      return {
+        success: false,
+        error: `Invalid container. Must be one of: ${CONTAINERS.join(', ')}`
+      };
+    }
+
+    const mapping = await loadMapping();
+
+    // Upload content to Azure with blob name = filename
+    const client = await getBlobServiceClient();
+    const containerClient = client.getContainerClient(container);
+    const blobClient = containerClient.getBlobClient(filename);
+    const blockBlobClient = blobClient.getBlockBlobClient();
+    
+    const contentBuffer = Buffer.from(content, 'utf-8');
+    
+    await blockBlobClient.upload(contentBuffer, contentBuffer.length, {
+      blobHTTPHeaders: {
+        blobContentType: getMimeType(filename)
+      }
+    });
+
+    // Update metadata based on container type
+    if (container.toLowerCase() === 'juggernaut') {
+      // For juggernaut, just add filename to array
+      if (Array.isArray(mapping.juggernaut) && !mapping.juggernaut.includes(filename)) {
+        mapping.juggernaut.push(filename);
+      }
+    } else if (container.toLowerCase() === 'client' || container.toLowerCase() === 'tools') {
+      // For client and tools, add object with name and reference
+      const entry: CloudFileEntry = {
+        name: filename,
+        reference: reference
+      };
+      
+      const containerKey = container.toLowerCase() as keyof CloudMetadata;
+      if (Array.isArray(mapping[containerKey])) {
+        (mapping[containerKey] as CloudFileEntry[]).push(entry);
+      }
+    } else if (container.toLowerCase() === 'recycle_bin') {
+      // For recycle_bin, just add filename to array
+      if (Array.isArray(mapping.recycle_bin) && !mapping.recycle_bin.includes(filename)) {
+        mapping.recycle_bin.push(filename);
+      }
+    }
+
+    await saveMapping(mapping);
+
+    console.log(`Uploaded content as ${filename} to container ${container}`);
+    return {
+      success: true,
+      code: filename
+    };
+
+  } catch (error) {
+    console.error('Error uploading content:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
+  }
 }
 
 export { CONTAINERS };

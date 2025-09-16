@@ -24,6 +24,7 @@ import InternalControlForm from "./InternalControlForm";
 import { CONTROL_TEMPLATES } from "../../constants/ControlTemplates";
 import { CloudStorageTest } from "../cloud/CloudStorageTest";
 import { CloudStorageDebug } from "../cloud/CloudStorageDebug";
+import { CloudStructureTest } from "../cloud/CloudStructureTest";
 
 interface LibraryItem {
   id: string;
@@ -420,19 +421,19 @@ export default function LibrariesPage({ onBack, activeSection }: LibrariesPagePr
 
   const handleLibrarySelect = (libraryId: string) => {
     setSelectedLibrary(libraryId);
-    logger.dataAccess("Library", libraryId);
+    console.log("Library accessed:", libraryId);
   };
 
   const handleRommSelect = (rommId: string) => {
     // Navigate to the specific ROMM in execution
-    logger.dataAccess("ROMM", rommId);
+    console.log("ROMM accessed:", rommId);
     // Navigate to execution-payroll and then to the specific ROMM
-    if (window.setActiveSection) {
-      window.setActiveSection("execution-payroll");
+    if ((window as any).setActiveSection) {
+      (window as any).setActiveSection("execution-payroll");
       // After a short delay, navigate to the specific ROMM
       setTimeout(() => {
-        if (window.setActiveSection) {
-          window.setActiveSection("payroll-romms");
+        if ((window as any).setActiveSection) {
+          (window as any).setActiveSection("payroll-romms");
         }
       }, 100);
     }
@@ -499,13 +500,13 @@ export default function LibrariesPage({ onBack, activeSection }: LibrariesPagePr
         
         // Open the control in edit mode instead of view mode
         setSelectedControlForm({ 
-          metadata: control.controlMetadata, 
+          metadata: control.controlMetadata as ControlMetadata, 
           template: template, // Pass the actual template object, not just the type
           existingData: control // Pass the full control data for editing
         });
         
         console.log('Control form state set successfully');
-        logger.dataAccess("Internal Control", control.controlMetadata?.controlId || control.id);
+        console.log("Internal Control accessed:", control.controlMetadata?.controlId || control.id);
       } else {
         console.error('No template data loaded');
       }
@@ -602,12 +603,40 @@ export default function LibrariesPage({ onBack, activeSection }: LibrariesPagePr
               </div>
             </div>
 
-            <div className="space-y-4">
+              <div className="space-y-4">
               {/* Cloud Storage Test */}
               <CloudStorageTest />
               
               {/* Cloud Storage Debug */}
               <CloudStorageDebug />
+              
+              {/* Cloud Structure Test */}
+              <CloudStructureTest />
+              
+              {/* Cloud Metadata Display */}
+              <div className="p-4 border rounded-lg bg-white/5">
+                <h4 className="text-sm font-medium text-white mb-2">Cloud Metadata</h4>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={async () => {
+                    if (window.cloud) {
+                      try {
+                        const result = await window.cloud.list({ container: 'juggernaut' });
+                        if (result.success) {
+                          console.log('Juggernaut files:', result.files);
+                          alert(`Found ${result.files?.length || 0} files in juggernaut container`);
+                        }
+                      } catch (error) {
+                        console.error('Error loading cloud metadata:', error);
+                      }
+                    }
+                  }}
+                  className="text-white border-white/20 hover:bg-white/10"
+                >
+                  Show Cloud Metadata
+                </Button>
+              </div>
               
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-medium text-white">Controls</h3>
