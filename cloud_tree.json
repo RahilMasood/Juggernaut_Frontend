@@ -24,7 +24,8 @@
     "Libraries_InternalControlResponses_ex.json",
     "Libraries_InternalControlResponses_TEST_001.json",
     "Libraries_InternalControlResponses_Example.json",
-    "Libraries_InternalControlResponses_qwd.json"
+    "Libraries_InternalControlResponses_qwd.json",
+    "Libraries_InternalControlResponses_Example2.json"
   ],
   "client": [],
   "tools": [],

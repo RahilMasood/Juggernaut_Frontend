@@ -455,7 +455,11 @@ export const CONTROL_TEMPLATES = {
       {
         id: "control_summary",
         label: "Control Summary",
-        fields: [
+        panes: [
+          {
+            id: "control_details",
+            label: "Control Details",
+            fields: [
           {
             id: "control_id",
             label: "Control ID",
@@ -525,12 +529,18 @@ export const CONTROL_TEMPLATES = {
               }
             ]
           }
+            ]
+          }
         ]
       },
       {
         id: "evaluate_design_and_implementation",
         label: "Evaluate Design and Implementation",
-        fields: [
+        panes: [
+          {
+            id: "design_implementation",
+            label: "Design Implementation",
+            fields: [
           {
             id: "display_control_description",
             label: "Display Control Description",
@@ -691,6 +701,8 @@ export const CONTROL_TEMPLATES = {
                 type: "dropdown",
                 options: ["Yes", "No"]
               }
+            ]
+          }
             ]
           }
         ]
