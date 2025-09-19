@@ -9,7 +9,7 @@ import {
   isPreviewableImage,
   toFileUrl,
 } from "./PayrollDocumentsContext";
-import { CloudFilePicker } from "../ui/cloud-file-picker";
+import { AzureFileUpload } from "../ui/azure-file-upload";
 import { CloudFileEntry } from "../../helpers/ipc/cloud/cloud-context";
 
 type PayrollLandingProps = {
@@ -64,7 +64,16 @@ export default function PayrollLanding({ onSelect }: PayrollLandingProps) {
 
   useEffect(() => {
     // Reuse documents.acceptedTypes for broad list
-    window.documents.acceptedTypes().then(setAccepted);
+    try {
+      const api = (window as any).documents;
+      if (api && typeof api.acceptedTypes === 'function') {
+        api.acceptedTypes().then(setAccepted).catch(() => setAccepted([]));
+      } else {
+        setAccepted([]);
+      }
+    } catch {
+      setAccepted([]);
+    }
   }, []);
 
   const acceptAttr = useMemo(() => accepted.join(","), [accepted]);
@@ -99,10 +108,11 @@ export default function PayrollLanding({ onSelect }: PayrollLandingProps) {
     }
   };
 
-  const handleCloudFileSelect = (file: CloudFileEntry) => {
-    // Add cloud file to documents
-    addDocumentsByPaths([`cloud://${file.name}`]);
-    console.log(`✅ Linked cloud file: ${file.name}`);
+  const handleAzureFileUpload = (files: Array<{ name: string; path: string; cloudUrl?: string }>) => {
+    console.log(`✅ Uploaded ${files.length} file(s) to Azure:`, files);
+    // Add the uploaded files to the documents context
+    const filePaths = files.map(f => f.path);
+    addDocumentsByPaths(filePaths);
   };
 
   const handleLocalFilesFromPicker = (files: File[]) => {
@@ -181,12 +191,14 @@ export default function PayrollLanding({ onSelect }: PayrollLandingProps) {
               id="payroll-docs-input"
             />
 
-            <CloudFilePicker
-              onFileSelected={handleCloudFileSelect}
-              onLocalFileSelected={handleLocalFilesFromPicker}
+            <AzureFileUpload
+              onFilesUploaded={handleAzureFileUpload}
               multiple={true}
-              triggerText="Link Cloud File"
+              triggerText="Upload to Cloud"
               className="h-8 px-3 text-xs border-white/10 bg-blue-500/20 text-white hover:bg-blue-500/30"
+              showReferenceInput={true}
+              referencePlaceholder="Enter reference name for files"
+              containerName="client"
             />
           </div>
         </div>

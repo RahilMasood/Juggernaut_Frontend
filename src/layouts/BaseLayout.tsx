@@ -7,7 +7,7 @@ export default function BaseLayout({
 }) {
   return (
     <>
-      <main className="h-screen p-2">{children}</main>
+      <main className="h-screen p-2 bg-background text-foreground">{children}</main>
     </>
   );
 }

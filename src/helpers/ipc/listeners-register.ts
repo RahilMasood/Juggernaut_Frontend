@@ -6,7 +6,7 @@ import { addDocumentEventListeners } from "./documents/document-listeners";
 import { addPayrollEventListeners } from "./payroll/payroll-listeners";
 import { addInternalControlsEventListeners } from "./internal-controls/internal-controls-listeners";
 import { addCloudEventListeners } from "./cloud/cloud-listeners";
-import { addCloudFileOperationListeners } from "./cloud/cloud-file-operations";
+import { addAzureUploadListener } from "./cloud/azure-upload";
 import { testCloudHandlers } from "./cloud/cloud-handler-test";
 
 export default function registerListeners(mainWindow: BrowserWindow) {
@@ -19,11 +19,13 @@ export default function registerListeners(mainWindow: BrowserWindow) {
   addInternalControlsEventListeners(mainWindow);
   addCloudEventListeners(mainWindow);
   console.log('About to register cloud file operation listeners...');
-  addCloudFileOperationListeners(mainWindow);
+  addAzureUploadListener(mainWindow);
   console.log('All IPC listeners registered successfully');
   
-  // Test cloud handlers registration
-  setTimeout(() => {
+  // Optional: verify handlers
+  try {
     testCloudHandlers();
-  }, 1000);
+  } catch (err) {
+    console.warn('Cloud handlers test failed:', err);
+  }
 }

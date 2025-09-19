@@ -46,13 +46,20 @@ export async function toggleTheme() {
 }
 
 export async function syncThemeWithLocal() {
-  const { local } = await getCurrentTheme();
-  if (!local) {
-    setTheme("system");
-    return;
-  }
+  try {
+    const { local } = await getCurrentTheme();
+    if (!local) {
+      // Default to dark if no preference stored
+      await setTheme("dark");
+      return;
+    }
 
-  await setTheme(local);
+    await setTheme(local);
+  } catch (error) {
+    console.warn('Theme sync failed, defaulting to dark theme:', error);
+    // Fallback to dark theme if theme context is not available
+    updateDocumentTheme(true);
+  }
 }
 
 function updateDocumentTheme(isDarkMode: boolean) {

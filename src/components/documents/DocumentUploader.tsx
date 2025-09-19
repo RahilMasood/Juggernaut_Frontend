@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { CloudUpload, File, Image, Loader2, Link } from "lucide-react";
-import { CloudFilePicker } from "../ui/cloud-file-picker";
+import { AzureFileUpload } from "../ui/azure-file-upload";
 import { CloudFileEntry } from "../../helpers/ipc/cloud/cloud-context";
 
 type ProgressMap = Record<
@@ -25,10 +25,11 @@ export default function DocumentUploader({ sectionKey, context }: Props) {
   const [progress, setProgress] = useState<ProgressMap>({});
   const [lastUploads, setLastUploads] = useState<string[]>([]);
 
-  const handleCloudFileSelect = useCallback(async (file: CloudFileEntry) => {
-    // For cloud files, we just log the selection and add to lastUploads
-    console.log(`Cloud file linked: ${file.name} for section ${sectionKey}`);
-    setLastUploads(prev => [...prev, `cloud-${file.name}`]);
+  const handleAzureFileUpload = useCallback(async (files: Array<{ name: string; path: string; cloudUrl?: string }>) => {
+    // For Azure uploaded files, we just log the upload and add to lastUploads
+    console.log(`Azure files uploaded: ${files.length} files for section ${sectionKey}`, files);
+    const fileIds = files.map(f => `azure-${f.name}`);
+    setLastUploads(prev => [...prev, ...fileIds]);
   }, [sectionKey]);
 
   const handleLocalFilesFromPicker = useCallback(async (files: File[]) => {
@@ -127,11 +128,10 @@ export default function DocumentUploader({ sectionKey, context }: Props) {
             />
           </label>
           
-          <CloudFilePicker
-            onFileSelected={handleCloudFileSelect}
-            onLocalFileSelected={handleLocalFilesFromPicker}
+          <AzureFileUpload
+            onFilesUploaded={handleAzureFileUpload}
             multiple={true}
-            triggerText="Link Cloud File"
+            triggerText="Upload to Cloud"
             className="rounded bg-blue-500/20 px-3 py-2 text-xs hover:bg-blue-500/30 border-none text-white"
           />
         </div>

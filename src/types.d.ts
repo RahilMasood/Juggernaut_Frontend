@@ -144,6 +144,24 @@ interface CloudContext {
   onProgress: (handler: (payload: CloudProgressPayload) => void) => () => void;
 }
 
+interface AzureUploadRequest {
+  containerName: string;
+  fileName: string;
+  fileContent: string;
+  contentType: string;
+}
+
+interface AzureUploadResult {
+  success: boolean;
+  cloudUrl?: string;
+  fileName?: string;
+  error?: string;
+}
+
+interface ElectronAPI {
+  uploadFileToAzure: (request: AzureUploadRequest) => Promise<AzureUploadResult>;
+}
+
 declare interface Window {
   themeMode: ThemeModeContext;
   electronWindow: ElectronWindow;
@@ -151,6 +169,7 @@ declare interface Window {
   documents: DocumentsContext;
   internalControls: InternalControlsContext;
   cloud: CloudContext;
+  electronAPI: ElectronAPI;
   payroll: {
     acceptedInputs: () => Promise<string[]>;
     run: (

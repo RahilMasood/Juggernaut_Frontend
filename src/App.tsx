@@ -11,6 +11,10 @@ export default function App() {
   const { i18n } = useTranslation();
 
   useEffect(() => {
+    // Force dark theme initially to prevent white background flash
+    document.documentElement.classList.add("dark");
+    
+    // Then sync with saved theme preferences
     syncThemeWithLocal();
     updateAppLanguage(i18n);
   }, [i18n]);

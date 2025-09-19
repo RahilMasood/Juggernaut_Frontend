@@ -1,12 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Button } from "../../ui/button";
-import { Input } from "../../ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../../ui/card";
 import { Label } from "../../ui/label";
 import { Progress } from "../../ui/progress";
-import { Checkbox } from "../../ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -14,25 +12,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../ui/select";
-import {
-  Upload,
-  FileText,
-  CheckCircle,
-  AlertCircle,
-  X,
-  Download,
-  Play,
-  File,
-  FolderOpen,
-  Calendar,
-  Users,
-  DollarSign,
-  Link,
-  RefreshCw,
-} from "lucide-react";
+import { Input } from "../../ui/input";
+import { CheckCircle, AlertCircle, X, Download, Play, File, Link, Upload } from "lucide-react";
 import { FileDropdown } from "../../ui/file-dropdown";
 import { CloudFileEntry } from "../../../helpers/ipc/cloud/cloud-context";
-// Removed usePayrollDocuments import as it's not needed for the new design
 
 interface IPETestingProps {
   onBack?: () => void;
@@ -41,248 +24,303 @@ interface IPETestingProps {
 interface UploadedFile {
   id: string;
   type: string;
-  file: File;
+  fileName: string;
+  filePath?: string;
   status: "uploading" | "completed" | "error";
   progress: number;
   cloudFile?: CloudFileEntry;
 }
 
-interface ConsolidatedFile {
-  id: string;
-  name: string;
-  type: "single" | "multiple";
-  files: UploadedFile[];
-  status: "pending" | "processing" | "completed" | "error";
-  consolidatedPath?: string;
-}
+// IPE Testing field names (from ipe_testing.py)
+const IPE_FIELD_NAMES: string[] = [
+  "employee_code",
+  "employee_name", 
+  "designation",
+  "pay_month",
+  "date_of_joining",
+  "date_of_leaving",
+  "pan",
+  "gross_pay",
+  "net_pay",
+  "total_deductions",
+  "pf",
+  "esi",
+];
 
-const FILE_TYPES = [
-  {
-    id: "payroll_register",
-    name: "Payroll Register",
-    description: "Consolidated or individual monthly payroll files",
-    icon: <FileText className="h-4 w-4" />,
-    required: true,
-    multiple: true,
-    formats: [".xlsx", ".xls"],
-    help: "Upload either a single consolidated file or multiple monthly files (e.g., April-2024.xlsx, May-2024.xlsx)",
-  },
-  {
-    id: "ctc_master",
-    name: "CTC Master (Payroll Master)",
-    description: "Employee master data as at period end",
-    icon: <Users className="h-4 w-4" />,
-    required: true,
-    multiple: false,
-    formats: [".xlsx", ".xls"],
-    help: "Current year CTC master. For initial audit, both current and previous year files are required.",
-  },
-  {
-    id: "ctc_master_py",
-    name: "CTC Master (Previous Year)",
-    description: "Previous year employee master data",
-    icon: <Calendar className="h-4 w-4" />,
-    required: false,
-    multiple: false,
-    formats: [".xlsx", ".xls"],
-    help: "Required only for initial audit engagements. Subsequent engagements will use stored previous year data.",
-  },
-  {
-    id: "additions_list",
-    name: "Additions Listing",
-    description: "List of employees hired during the year",
-    icon: <Users className="h-4 w-4" />,
-    required: false,
-    multiple: false,
-    formats: [".xlsx", ".xls"],
-    help: "Excel file containing all new hires with date of joining information.",
-  },
-  {
-    id: "deletions_list",
-    name: "Deletions Listing",
-    description: "List of employees who left during the year",
-    icon: <Users className="h-4 w-4" />,
-    required: false,
-    multiple: false,
-    formats: [".xlsx", ".xls"],
-    help: "Excel file containing all employees who resigned with date of leaving information.",
-  },
-  {
-    id: "employee_cost_dump",
-    name: "Employee Cost Dump",
-    description: "Total employee cost data from accounting system",
-    icon: <DollarSign className="h-4 w-4" />,
-    required: false,
-    multiple: false,
-    formats: [".xlsx", ".xls", ".csv"],
-    help: "Employee cost data from your accounting system. Tally integration available.",
-  },
+// Example custom keys (from ipe_testing.py)
+const EXAMPLE_CUSTOM_KEYS: string[] = [
+  'Pernr', 'Employee Name', 'Design Code', 'MonthYear', 'DOJ', 'DOL',
+  'PAN Number', 'Gross', 'Net Pay', 'Ded Tot', 'PROV. FUND', 'E.S.I'
 ];
 
 export default function IPETesting({ onBack }: IPETestingProps) {
-  // Removed usePayrollDocuments usage as it's not needed for the new design
-  const [uploadedFiles, setUploadedFiles] = useState<Record<string, UploadedFile[]>>({});
-  const [consolidatedFiles, setConsolidatedFiles] = useState<Record<string, ConsolidatedFile>>({});
-  const [selectedColumns, setSelectedColumns] = useState<Record<string, string>>({});
+  // File management
+  const [payrollFile, setPayrollFile] = useState<UploadedFile | null>(null);
+  const [ctcFile, setCtcFile] = useState<UploadedFile | null>(null);
+  
+  // Sheet management
+  const [payrollSheets, setPayrollSheets] = useState<string[]>([]);
+  const [ctcSheets, setCtcSheets] = useState<string[]>([]);
+  const [selectedPayrollSheet, setSelectedPayrollSheet] = useState<string>("");
+  const [selectedCtcSheet, setSelectedCtcSheet] = useState<string>("");
+  
+  // Column management
+  const [payrollColumns, setPayrollColumns] = useState<string[]>([]);
+  const [customKeys, setCustomKeys] = useState<string[]>([]);
+  
+  // Processing status
   const [processingStatus, setProcessingStatus] = useState<Record<string, string>>({});
-  const [showTallyIntegration, setShowTallyIntegration] = useState(false);
-  const [localPaths, setLocalPaths] = useState<Record<string, string>>({});
-  const [sheetOptions, setSheetOptions] = useState<Record<string, string[]>>({});
-  const [selectedSheets, setSelectedSheets] = useState<Record<string, string>>({});
+  const [errorMessage, setErrorMessage] = useState<string>("");
+  
+  // Manual input fallbacks
+  const [manualPayrollSheet, setManualPayrollSheet] = useState<string>("");
+  const [manualCtcSheet, setManualCtcSheet] = useState<string>("");
+  const [manualCustomKeys, setManualCustomKeys] = useState<string[]>([]);
 
-
-  const handleFileSelection = (fileType: string, file: CloudFileEntry) => {
-    console.log(`IPETesting: File selected for ${fileType}:`, file);
-    
-    // Replace any existing files for this file type (since we only want one file per type)
+  // Handle file selection from cloud
+  const handleCloudFileSelection = async (fileType: "payroll" | "ctc", file: CloudFileEntry) => {
     const selectedFile: UploadedFile = {
       id: `${fileType}_selected_${Date.now()}`,
       type: fileType,
-      file: new File([], file.name), // Dummy file object for cloud files
+      fileName: file.name,
       status: "completed",
       progress: 100,
       cloudFile: file,
     };
 
-    console.log(`IPETesting: Setting selected file for ${fileType}:`, selectedFile);
+    if (fileType === "payroll") {
+      setPayrollFile(selectedFile);
+    } else {
+      setCtcFile(selectedFile);
+    }
 
-    setUploadedFiles(prev => {
-      const updated = {
-        ...prev,
-        [fileType]: [selectedFile], // Replace with single selected file
-      };
-      console.log(`IPETesting: Updated uploadedFiles:`, updated);
-      return updated;
-    });
-
-    // Download the cloud file to a temporary local path, then list sheets
-    (async () => {
-      try {
-        const dl = await window.payroll.downloadClientFile(file.name);
-        if (dl.ok && dl.filePath) {
-          setLocalPaths(prev => ({ ...prev, [fileType]: dl.filePath! }));
-          const sheets = await window.payroll.listSheets(dl.filePath);
-          if (sheets.ok && sheets.sheets) {
-            setSheetOptions(prev => ({ ...prev, [fileType]: sheets.sheets! }));
-          }
-        }
-      } catch (e) {
-        console.error('Failed to prepare sheet options:', e);
-      }
-    })();
-
-    // Optionally start processing after selection
-    handleProcessFile(fileType, file);
-
-    console.log(`✅ Selected and processing file: ${file.name} for ${fileType}`);
-  };
-
-  const handleProcessFile = async (fileType: string, file: CloudFileEntry) => {
-    console.log(`Processing file ${file.name} for ${fileType}`);
-    
-    // Set processing status
-    setProcessingStatus(prev => ({ ...prev, [fileType]: "processing" }));
-    
-    // Simulate processing (replace with actual processing logic)
     try {
-      // Here you would implement the actual file processing logic
-      // For now, we'll simulate it
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      console.log("Downloading file from cloud:", file.name);
+      console.log("File object:", file);
+      console.log("File name type:", typeof file.name);
+      console.log("File name value:", file.name);
       
-      setProcessingStatus(prev => ({ ...prev, [fileType]: "completed" }));
-      console.log(`✅ Processing completed for ${file.name}`);
-    } catch (error) {
-      console.error(`❌ Processing failed for ${file.name}:`, error);
-      setProcessingStatus(prev => ({ ...prev, [fileType]: "error" }));
+      // Check if the payroll IPC is available
+      if (!(window as any).payroll) {
+        throw new Error("Payroll IPC not available");
+      }
+      
+      if (!(window as any).payroll.downloadClientFile) {
+        throw new Error("downloadClientFile function not available");
+      }
+      
+      // Test the IPC connection
+      console.log("Testing payroll IPC...");
+      const testResult = await (window as any).payroll.testPython();
+      console.log("Python test result:", testResult);
+      
+      // Validate filename before calling download
+      if (!file.name || typeof file.name !== 'string') {
+        throw new Error(`Invalid filename: ${file.name}`);
+      }
+      
+      const dl = await (window as any).payroll.downloadClientFile(file.name);
+      console.log("Download response:", dl);
+      
+      if (dl && dl.ok && dl.filePath) {
+        selectedFile.filePath = dl.filePath;
+        console.log("File downloaded to:", dl.filePath);
+        
+        // Load sheets using Python
+        await loadSheetsFromFile(fileType, dl.filePath);
+      } else {
+        console.error("Download failed:", dl);
+        setErrorMessage(`Failed to download file from cloud: ${dl?.error || 'Unknown error'}. Please try uploading the file locally or check if the file exists in the cloud.`);
+        
+        // Set the file anyway so user can proceed with manual input
+        if (fileType === "payroll") {
+          setPayrollFile(selectedFile);
+        } else {
+          setCtcFile(selectedFile);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to download file:", e);
+      setErrorMessage(`Failed to download file from cloud: ${e instanceof Error ? e.message : 'Unknown error'}`);
     }
   };
 
-  const handleFileRemove = (fileType: string, fileId: string) => {
-    setUploadedFiles(prev => ({
-      ...prev,
-      [fileType]: prev[fileType]?.filter(f => f.id !== fileId) || [],
-    }));
-  };
-
-  const handleConsolidatePayrollRegister = async () => {
-    const payrollFiles = uploadedFiles.payroll_register || [];
-    if (payrollFiles.length === 0) return;
-
-    setProcessingStatus(prev => ({ ...prev, payroll_register: "processing" }));
+  // Handle local file upload
+  const handleLocalFileUpload = async (fileType: "payroll" | "ctc", file: File) => {
+    const selectedFile: UploadedFile = {
+      id: `${fileType}_local_${Date.now()}`,
+      type: fileType,
+      fileName: file.name,
+      status: "completed",
+      progress: 100,
+    };
 
     try {
-      // Simulate consolidation process
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Create a temporary file path for local files
+      const tempPath = URL.createObjectURL(file);
+      selectedFile.filePath = tempPath;
+      
+      if (fileType === "payroll") {
+        setPayrollFile(selectedFile);
+      } else {
+        setCtcFile(selectedFile);
+      }
 
-      const consolidatedFile: ConsolidatedFile = {
-        id: `consolidated_${Date.now()}`,
-        name: "Consolidated Payroll Register",
-        type: payrollFiles.length === 1 ? "single" : "multiple",
-        files: payrollFiles,
-        status: "completed",
-        consolidatedPath: "Outputs/consolidated_payroll_register.xlsx",
-      };
-
-      setConsolidatedFiles(prev => ({
-        ...prev,
-        payroll_register: consolidatedFile,
-      }));
-
-      setProcessingStatus(prev => ({ ...prev, payroll_register: "completed" }));
+      // For local files, we can't use Python to load sheets directly
+      // User will need to type sheet names manually
+      setErrorMessage("Local file selected. You'll need to type sheet names manually since Python can't access local files directly.");
+      
     } catch (error) {
-      setProcessingStatus(prev => ({ ...prev, payroll_register: "error" }));
+      console.error("Failed to handle local file:", error);
+      setErrorMessage("Failed to process local file");
     }
   };
 
-  const handleColumnMapping = (fileType: string, column: string) => {
-    setSelectedColumns(prev => ({
-      ...prev,
-      [fileType]: column,
-    }));
+  // Load sheets from Excel file using Python
+  const loadSheetsFromFile = async (fileType: "payroll" | "ctc", filePath: string) => {
+    try {
+      const sheets = await (window as any).payroll.listSheets({ filePath });
+      console.log("Sheets response for", fileType, ":", sheets);
+      
+      if (sheets.ok && sheets.sheets) {
+        if (fileType === "payroll") {
+          setPayrollSheets(sheets.sheets);
+        } else {
+          setCtcSheets(sheets.sheets);
+        }
+        setErrorMessage("");
+      } else {
+        setErrorMessage("Python failed to load sheets. You can type sheet names manually.");
+      }
+    } catch (error) {
+      console.warn("Python error loading sheets:", error);
+      setErrorMessage("Python failed to load sheets. You can type sheet names manually.");
+    }
   };
 
-  const canRunIPETesting = () => {
-    const hasRequiredFiles = FILE_TYPES.filter(ft => ft.required).every(ft => 
-      uploadedFiles[ft.id] && uploadedFiles[ft.id].length > 0
-    );
-    
-    const hasConsolidatedPayroll = consolidatedFiles.payroll_register?.status === "completed";
-    
-    return hasRequiredFiles && hasConsolidatedPayroll;
+  // Load columns from Excel file using Python
+  const loadColumnsFromFile = async (filePath: string, sheetName: string) => {
+    try {
+      const cols = await (window as any).payroll.listColumns({ filePath, sheet: sheetName });
+      console.log("Columns response:", cols);
+      
+      if (cols.ok && cols.columns) {
+        setPayrollColumns(cols.columns);
+        setErrorMessage("");
+      } else {
+        setErrorMessage("Python failed to load columns. You can type column names manually.");
+      }
+    } catch (error) {
+      console.warn("Python error loading columns:", error);
+      setErrorMessage("Python failed to load columns. You can type column names manually.");
+    }
   };
 
+  // Handle custom key input changes
+  const handleCustomKeyChange = (index: number, value: string) => {
+    const newKeys = [...customKeys];
+    newKeys[index] = value;
+    setCustomKeys(newKeys);
+  };
+
+  // Handle manual custom key input
+  const handleManualCustomKeyChange = (index: number, value: string) => {
+    const newKeys = [...manualCustomKeys];
+    newKeys[index] = value;
+    setManualCustomKeys(newKeys);
+  };
+
+  // Validation functions
+  const canLoadColumns = useMemo(() => {
+    return !!(payrollFile && selectedPayrollSheet);
+  }, [payrollFile, selectedPayrollSheet]);
+
+  const canCreateColumnMap = useMemo(() => {
+    const hasValidCustomKeys = customKeys.length === IPE_FIELD_NAMES.length && 
+      customKeys.every(key => key.trim() !== "");
+    return !!(payrollFile && selectedPayrollSheet && hasValidCustomKeys);
+  }, [payrollFile, selectedPayrollSheet, customKeys]);
+
+  const canRunIPETesting = useMemo(() => {
+    return !!(payrollFile && ctcFile && selectedPayrollSheet && selectedCtcSheet && canCreateColumnMap);
+  }, [payrollFile, ctcFile, selectedPayrollSheet, selectedCtcSheet, canCreateColumnMap]);
+
+  // Create and upload column map to cloud (based on ipe_testing.py logic)
+  const createAndUploadColumnMap = async () => {
+    if (!canCreateColumnMap) return;
+
+    try {
+      setProcessingStatus(prev => ({ ...prev, columnMap: "creating" }));
+
+      // Create column map using the same logic as ipe_testing.py
+      const columnMap = Object.fromEntries(
+        IPE_FIELD_NAMES.map((fieldName, index) => [fieldName, customKeys[index]])
+      );
+
+      // Create the output data structure as in ipe_testing.py
+      const outputData = { column_map: columnMap };
+
+      // Upload to cloud as "Execution_Payroll_ColumnMap.json"
+      const filename = "Execution_Payroll_ColumnMap.json";
+      const content = JSON.stringify(outputData, null, 2);
+      
+      await (window as any).cloud.directUpload(content, filename, "juggernaut", "Execution - Payroll Column Map", true);
+      
+      // Also save locally for the Python script to use
+      try {
+        await (window as any).payroll.writeExecutionColumnMap(columnMap);
+      } catch (e) {
+        console.warn("Failed to save column map locally:", e);
+      }
+
+      setProcessingStatus(prev => ({ ...prev, columnMap: "completed" }));
+      setErrorMessage("");
+      
+      console.log("✅ Column map created and uploaded successfully");
+      console.log("Column mapping:", columnMap);
+      
+    } catch (error) {
+      console.error("Failed to create column map:", error);
+      setErrorMessage("Failed to create and upload column map");
+      setProcessingStatus(prev => ({ ...prev, columnMap: "error" }));
+    }
+  };
+
+  // Run IPE Testing (based on ipe_testing.py logic)
   const runIPETesting = async () => {
-    if (!canRunIPETesting()) return;
-
-    setProcessingStatus(prev => ({ ...prev, ipe_testing: "running" }));
+    if (!canRunIPETesting) return;
 
     try {
-      // Simulate IPE testing process
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      setProcessingStatus(prev => ({ ...prev, ipe_testing: "running" }));
+
+      // First create and upload the column map
+      await createAndUploadColumnMap();
+
+      // Prepare input files
+      const inputFiles: string[] = [];
+      if (payrollFile?.filePath) inputFiles.push(payrollFile.filePath);
+      if (ctcFile?.filePath) inputFiles.push(ctcFile.filePath);
+
+      // Run the IPE testing script with the custom keys
+      await (window as any).payroll.run("ipe_testing", {
+        inputFiles,
+        options: {
+          pay_registrar_sheet: selectedPayrollSheet,
+          ctc_sheet: selectedCtcSheet,
+          ipe_custom_keys: customKeys,
+        },
+      });
 
       setProcessingStatus(prev => ({ ...prev, ipe_testing: "completed" }));
+      setErrorMessage("");
+      
     } catch (error) {
+      console.error("IPE Testing failed:", error);
+      setErrorMessage("IPE Testing execution failed");
       setProcessingStatus(prev => ({ ...prev, ipe_testing: "error" }));
     }
   };
 
-  const getFileTypeConfig = (fileTypeId: string) => {
-    return FILE_TYPES.find(ft => ft.id === fileTypeId);
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "completed":
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case "error":
-        return <AlertCircle className="h-4 w-4 text-red-500" />;
-      case "processing":
-      case "running":
-        return <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />;
-      default:
-        return <div className="h-4 w-4 rounded-full border-2 border-gray-300" />;
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -290,9 +328,7 @@ export default function IPETesting({ onBack }: IPETestingProps) {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-white">IPE Testing</h2>
-          <p className="text-gray-400">
-            Upload and process payroll files for integrity testing
-          </p>
+          <p className="text-gray-400">Select Pay Registrar and CTC Report files, map columns, and run IPE testing.</p>
         </div>
         {onBack && (
           <Button variant="outline" onClick={onBack}>
@@ -301,251 +337,361 @@ export default function IPETesting({ onBack }: IPETestingProps) {
         )}
       </div>
 
-      {/* File Upload Section */}
+      {/* Error Display */}
+      {errorMessage && (
+        <Card className="border-red-500/20 bg-red-500/10">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="h-5 w-5 text-red-500" />
+              <div>
+                <h4 className="font-medium text-red-300">Error</h4>
+                <p className="text-sm text-red-200">{errorMessage}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* File Selection */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {FILE_TYPES.map((fileType) => (
-          <Card key={fileType.id} className="border-white/10 bg-black/40">
+        {/* Pay Registrar File */}
+        <Card className="border-white/10 bg-black/40">
             <CardHeader>
               <CardTitle className="flex items-center gap-3 text-white">
-                {fileType.icon}
+              <span>Pay Registrar</span>
+              <span className="rounded bg-red-500/20 px-2 py-1 text-xs text-red-300">Required</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-3">
+              <Label className="text-white">Select File from Cloud</Label>
+                      <FileDropdown fileType="payroll_register" onFileSelected={(fileType, file) => handleCloudFileSelection("payroll", file)} />
+              
+              <div className="text-xs text-gray-400 text-center">OR</div>
+              
+              <div className="space-y-2">
+                <Label className="text-white">Upload Local File (Fallback)</Label>
+                <Input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      handleLocalFileUpload("payroll", file);
+                    }
+                  }}
+                  className="border-white/10 bg-black/40 text-white"
+                />
+              </div>
+            </div>
+
+            {payrollFile && (
+              <div className="space-y-2">
+                <Label className="text-white">Selected File</Label>
+                <div className="flex items-center justify-between rounded border border-white/10 bg-white/5 p-3">
+                  <div className="flex items-center gap-3">
+                    <Link className="h-4 w-4 text-blue-400" />
                 <div>
-                  <div className="flex items-center gap-2">
-                    <span>{fileType.name}</span>
-                    {fileType.required && (
-                      <span className="rounded bg-red-500/20 px-2 py-1 text-xs text-red-300">
-                        Required
-                      </span>
-                    )}
+                      <div className="text-sm font-medium text-white">{payrollFile.fileName}</div>
+                    </div>
                   </div>
-                  <p className="text-sm font-normal text-gray-400">
-                    {fileType.description}
-                  </p>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      setPayrollFile(null);
+                      setPayrollSheets([]);
+                      setSelectedPayrollSheet("");
+                      setPayrollColumns([]);
+                    }}
+                    className="h-6 w-6 p-0 text-red-400 hover:text-red-300"
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
                 </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* CTC Report File */}
+        <Card className="border-white/10 bg-black/40">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-3 text-white">
+              <span>CTC Report</span>
+              <span className="rounded bg-red-500/20 px-2 py-1 text-xs text-red-300">Required</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Help Text */}
-              <div className="rounded border border-blue-500/20 bg-blue-900/10 p-3 text-sm text-blue-200">
-                {fileType.help}
-              </div>
-
-              {/* File Selection */}
-              <div className="space-y-3">
-                <Label className="text-white">Select File from Client Container</Label>
-                <FileDropdown
-                  fileType={fileType.id}
-                  onFileSelected={handleFileSelection}
+            <div className="space-y-3">
+              <Label className="text-white">Select File from Cloud</Label>
+                      <FileDropdown fileType="ctc_report" onFileSelected={(fileType, file) => handleCloudFileSelection("ctc", file)} />
+              
+              <div className="text-xs text-gray-400 text-center">OR</div>
+              
+              <div className="space-y-2">
+                <Label className="text-white">Upload Local File (Fallback)</Label>
+                <Input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      handleLocalFileUpload("ctc", file);
+                    }
+                  }}
+                  className="border-white/10 bg-black/40 text-white"
                 />
               </div>
+            </div>
 
-              {/* Selected Files */}
-              {uploadedFiles[fileType.id] && uploadedFiles[fileType.id].length > 0 && (
+            {ctcFile && (
                 <div className="space-y-2">
                   <Label className="text-white">Selected File</Label>
-                  {uploadedFiles[fileType.id].map((file) => (
-                    <div
-                      key={file.id}
-                      className="flex items-center justify-between rounded border border-white/10 bg-white/5 p-3"
-                    >
+                <div className="flex items-center justify-between rounded border border-white/10 bg-white/5 p-3">
                       <div className="flex items-center gap-3">
-                        {file.cloudFile ? (
                           <Link className="h-4 w-4 text-blue-400" />
-                        ) : (
-                          <File className="h-4 w-4 text-gray-400" />
-                        )}
                         <div>
-                          <div className="text-sm font-medium text-white">
-                            {file.cloudFile ? file.cloudFile.name : file.file.name}
-                          </div>
-                          <div className="text-xs text-gray-400">
-                            {file.cloudFile ? (
-                              <span className="text-blue-400">Cloud File {file.cloudFile.reference && `- ${file.cloudFile.reference}`}</span>
-                            ) : (
-                              `${(file.file.size / 1024 / 1024).toFixed(2)} MB`
-                            )}
-                          </div>
+                      <div className="text-sm font-medium text-white">{ctcFile.fileName}</div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {processingStatus[fileType.id] === "processing" && (
-                          <div className="flex items-center gap-2">
-                            <RefreshCw className="h-4 w-4 text-blue-400 animate-spin" />
-                            <span className="text-xs text-blue-400">Processing...</span>
-                          </div>
-                        )}
-                        {processingStatus[fileType.id] === "completed" && (
-                          <div className="flex items-center gap-2">
-                            <CheckCircle className="h-4 w-4 text-green-500" />
-                            <span className="text-xs text-green-400">Processed</span>
-                          </div>
-                        )}
-                        {processingStatus[fileType.id] === "error" && (
-                          <div className="flex items-center gap-2">
-                            <AlertCircle className="h-4 w-4 text-red-500" />
-                            <span className="text-xs text-red-400">Error</span>
-                          </div>
-                        )}
-                        {!processingStatus[fileType.id] && file.status === "completed" && (
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                        )}
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => handleFileRemove(fileType.id, file.id)}
+                    onClick={() => {
+                      setCtcFile(null);
+                      setCtcSheets([]);
+                      setSelectedCtcSheet("");
+                    }}
                           className="h-6 w-6 p-0 text-red-400 hover:text-red-300"
                         >
                           <X className="h-3 w-3" />
                         </Button>
                       </div>
                     </div>
-                  ))}
-                  {/* Follow-up: Sheet selection for Excel files */}
-                  {localPaths[fileType.id] && (
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Sheet Selection */}
+      <Card className="border-white/10 bg-black/40">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-3 text-white">Select Sheets</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            {/* Pay Registrar Sheet */}
+            <div className="space-y-2">
+              <Label className="text-white">Pay Registrar Sheet</Label>
                     <div className="space-y-2">
-                      <Label className="text-white">Select Sheet</Label>
                       <Select
-                        value={selectedSheets[fileType.id] || ""}
-                        onValueChange={async (sheet) => {
-                          setSelectedSheets(prev => ({ ...prev, [fileType.id]: sheet }));
-                          const local = localPaths[fileType.id];
-                          if (local) {
-                            try {
-                              await window.payroll.writeIpeSelection({ filePath: local, sheet });
-                            } catch {}
-                          }
-                        }}
+                  value={selectedPayrollSheet}
+                  onValueChange={setSelectedPayrollSheet}
+                  disabled={!payrollFile || payrollSheets.length === 0}
                       >
                         <SelectTrigger className="border-white/10 bg-black/40 text-white">
-                          <SelectValue placeholder={sheetOptions[fileType.id]?.length ? "Select sheet..." : "Loading sheets..."} />
+                    <SelectValue placeholder={payrollSheets.length ? "Select sheet..." : "Load sheets first"} />
                         </SelectTrigger>
                         <SelectContent className="border-white/10 bg-black/90 text-white">
-                          {sheetOptions[fileType.id]?.length ? (
-                            sheetOptions[fileType.id].map((s) => (
-                              <SelectItem key={s} value={s}>{s}</SelectItem>
-                            ))
-                          ) : (
-                            <SelectItem value="__loading__" disabled>
-                              Loading...
-                            </SelectItem>
-                          )}
+                    {payrollSheets.map((sheet) => (
+                      <SelectItem key={sheet} value={sheet}>{sheet}</SelectItem>
+                    ))}
                         </SelectContent>
                       </Select>
-                    </div>
+                <div className="text-xs text-gray-400">Or type manually:</div>
+                <Input
+                  placeholder="Type sheet name manually..."
+                  value={manualPayrollSheet}
+                  onChange={(e) => setManualPayrollSheet(e.target.value)}
+                  className="border-white/10 bg-black/40 text-white"
+                />
+                {manualPayrollSheet && (
+                  <Button
+                    size="sm"
+                    className="bg-green-600 hover:bg-green-700"
+                    onClick={() => setSelectedPayrollSheet(manualPayrollSheet)}
+                  >
+                    Use "{manualPayrollSheet}"
+                  </Button>
                   )}
                 </div>
-              )}
+            </div>
 
-              {/* Special handling for Payroll Register */}
-              {fileType.id === "payroll_register" && 
-               uploadedFiles.payroll_register && 
-               uploadedFiles.payroll_register.length > 0 && (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-white">Consolidation</Label>
+            {/* CTC Report Sheet */}
+            <div className="space-y-2">
+              <Label className="text-white">CTC Report Sheet</Label>
+              <div className="space-y-2">
+                <Select
+                  value={selectedCtcSheet}
+                  onValueChange={setSelectedCtcSheet}
+                  disabled={!ctcFile || ctcSheets.length === 0}
+                >
+                  <SelectTrigger className="border-white/10 bg-black/40 text-white">
+                    <SelectValue placeholder={ctcSheets.length ? "Select sheet..." : "Load sheets first"} />
+                  </SelectTrigger>
+                  <SelectContent className="border-white/10 bg-black/90 text-white">
+                    {ctcSheets.map((sheet) => (
+                      <SelectItem key={sheet} value={sheet}>{sheet}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div className="text-xs text-gray-400">Or type manually:</div>
+                <Input
+                  placeholder="Type sheet name manually..."
+                  value={manualCtcSheet}
+                  onChange={(e) => setManualCtcSheet(e.target.value)}
+                  className="border-white/10 bg-black/40 text-white"
+                />
+                {manualCtcSheet && (
                     <Button
                       size="sm"
-                      onClick={handleConsolidatePayrollRegister}
-                      disabled={processingStatus.payroll_register === "processing"}
+                    className="bg-green-600 hover:bg-green-700"
+                    onClick={() => setSelectedCtcSheet(manualCtcSheet)}
+                  >
+                    Use "{manualCtcSheet}"
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Load Columns Button */}
+      {canLoadColumns && (
+        <Card className="border-white/10 bg-black/40">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-medium text-white">Load Pay Registrar Columns</h4>
+                <p className="text-sm text-gray-400">Get column names from the selected sheet to map to IPE fields</p>
+              </div>
+              <Button
+                onClick={() => payrollFile?.filePath && loadColumnsFromFile(payrollFile.filePath, selectedPayrollSheet)}
+                disabled={processingStatus.columns === "loading"}
                       className="bg-blue-600 hover:bg-blue-700"
                     >
-                      {processingStatus.payroll_register === "processing" ? (
+                {processingStatus.columns === "loading" ? (
                         <>
-                          <div className="mr-2 h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                          Processing...
+                    <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    Loading...
                         </>
                       ) : (
                         <>
-                          <FolderOpen className="mr-2 h-3 w-3" />
-                          Consolidate Files
+                    <Download className="mr-2 h-4 w-4" />
+                    Load Columns
                         </>
                       )}
                     </Button>
                   </div>
+          </CardContent>
+        </Card>
+      )}
 
-                  {consolidatedFiles.payroll_register && (
-                    <div className="rounded border border-green-500/20 bg-green-500/10 p-3">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-green-500" />
-                        <span className="text-sm font-medium text-green-300">
-                          {consolidatedFiles.payroll_register.name}
-                        </span>
-                      </div>
-                      <div className="mt-1 text-xs text-green-200">
-                        Type: {consolidatedFiles.payroll_register.type}
-                      </div>
-                      <div className="mt-1 text-xs text-green-200">
-                        Files: {consolidatedFiles.payroll_register.files.length}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Column Mapping for Additions/Deletions */}
-              {(fileType.id === "additions_list" || fileType.id === "deletions_list") && 
-               uploadedFiles[fileType.id] && 
-               uploadedFiles[fileType.id].length > 0 && (
-                <div className="space-y-3">
-                  <Label className="text-white">
-                    {fileType.id === "additions_list" ? "Date of Joining Column" : "Date of Leaving Column"}
-                  </Label>
+      {/* Custom Keys Input */}
+      <Card className="border-white/10 bg-black/40">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-3 text-white">IPE Custom Keys</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {IPE_FIELD_NAMES.map((fieldName, index) => (
+              <div key={fieldName} className="space-y-1">
+                <Label className="text-white">{fieldName}</Label>
+                <div className="space-y-2">
                   <Select
-                    value={selectedColumns[fileType.id] || ""}
-                    onValueChange={(value) => handleColumnMapping(fileType.id, value)}
+                    value={customKeys[index] || ""}
+                    onValueChange={(value) => handleCustomKeyChange(index, value)}
+                    disabled={payrollColumns.length === 0}
                   >
                     <SelectTrigger className="border-white/10 bg-black/40 text-white">
-                      <SelectValue placeholder="Select column..." />
+                      <SelectValue placeholder={payrollColumns.length ? "Select column..." : "Load columns first"} />
                     </SelectTrigger>
-                    <SelectContent className="border-white/10 bg-black/90 text-white">
-                      <SelectItem value="date_of_joining">Date of Joining</SelectItem>
-                      <SelectItem value="joining_date">Joining Date</SelectItem>
-                      <SelectItem value="doj">DOJ</SelectItem>
-                      <SelectItem value="start_date">Start Date</SelectItem>
-                      <SelectItem value="date_of_leaving">Date of Leaving</SelectItem>
-                      <SelectItem value="leaving_date">Leaving Date</SelectItem>
-                      <SelectItem value="dol">DOL</SelectItem>
-                      <SelectItem value="end_date">End Date</SelectItem>
+                    <SelectContent className="border-white/10 bg-black/90 text-white max-h-64">
+                      {payrollColumns.map((col) => (
+                        <SelectItem key={col} value={col}>{col}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
+                  <div className="text-xs text-gray-400">Or type manually:</div>
+                  <Input
+                    placeholder="Type column name manually..."
+                    value={manualCustomKeys[index] || ""}
+                    onChange={(e) => handleManualCustomKeyChange(index, e.target.value)}
+                    className="border-white/10 bg-black/40 text-white"
+                  />
+                  {manualCustomKeys[index] && (
+                    <Button
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700"
+                      onClick={() => handleCustomKeyChange(index, manualCustomKeys[index])}
+                    >
+                      Use "{manualCustomKeys[index]}"
+                    </Button>
+                  )}
                 </div>
-              )}
+              </div>
+            ))}
+          </div>
+          
+          {/* Example Keys */}
+          <div className="mt-4 p-3 rounded border border-blue-500/20 bg-blue-500/10">
+            <h4 className="text-sm font-medium text-blue-300 mb-2">Example Custom Keys:</h4>
+            <div className="text-xs text-blue-200 font-mono">
+              {EXAMPLE_CUSTOM_KEYS.join(", ")}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-              {/* Tally Integration for Employee Cost Dump */}
-              {fileType.id === "employee_cost_dump" && (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="tally-integration"
-                      checked={showTallyIntegration}
-                      onCheckedChange={setShowTallyIntegration}
-                    />
-                    <Label htmlFor="tally-integration" className="text-white">
-                      Import from Tally
-                    </Label>
+      {/* Create Column Map */}
+      <Card className="border-white/10 bg-black/40">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-3 text-white">Create Column Map</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-400">Create and upload Execution_Payroll_ColumnMap.json to cloud</p>
+              {!canCreateColumnMap && (
+                <p className="mt-1 text-xs text-red-400">Please select files, sheets, and provide all custom keys</p>
+              )}
                   </div>
-                  {showTallyIntegration && (
-                    <div className="rounded border border-yellow-500/20 bg-yellow-900/10 p-3 text-sm text-yellow-200">
-                      <p className="font-medium">Tally Integration</p>
-                      <p className="mt-1">
-                        All ledgers mapped as 'Employee Benefit Expenses' in FS Sub Line will be extracted automatically.
-                      </p>
                       <Button
-                        size="sm"
-                        className="mt-2 bg-yellow-600 hover:bg-yellow-700"
-                      >
-                        <Download className="mr-2 h-3 w-3" />
-                        Import from Tally
+              onClick={createAndUploadColumnMap}
+              disabled={!canCreateColumnMap || processingStatus.columnMap === "creating"}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {processingStatus.columnMap === "creating" ? (
+                <>
+                  <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <Upload className="mr-2 h-4 w-4" />
+                  Create & Upload Column Map
+                </>
+              )}
                       </Button>
                     </div>
-                  )}
+
+          {processingStatus.columnMap === "completed" && (
+            <div className="rounded border border-green-500/20 bg-green-500/10 p-4">
+              <div className="flex items-center gap-3">
+                <CheckCircle className="h-5 w-5 text-green-500" />
+                <div>
+                  <h4 className="font-medium text-green-300">Column Map Created</h4>
+                  <p className="text-sm text-green-200">Execution_Payroll_ColumnMap.json uploaded to juggernaut container</p>
+                </div>
+              </div>
                 </div>
               )}
             </CardContent>
           </Card>
-        ))}
-      </div>
 
-      {/* Execution Section */}
+      {/* Run IPE Testing */}
       <Card className="border-white/10 bg-black/40">
         <CardHeader>
           <CardTitle className="flex items-center gap-3 text-white">
@@ -556,18 +702,14 @@ export default function IPETesting({ onBack }: IPETestingProps) {
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-400">
-                Run automated integrity tests on uploaded payroll data
-              </p>
-              {!canRunIPETesting() && (
-                <p className="mt-1 text-xs text-red-400">
-                  Please upload all required files and consolidate payroll register
-                </p>
+              <p className="text-sm text-gray-400">Run IPE Testing using selected files and custom keys</p>
+              {!canRunIPETesting && (
+                <p className="mt-1 text-xs text-red-400">Please complete all steps above</p>
               )}
             </div>
             <Button
               onClick={runIPETesting}
-              disabled={!canRunIPETesting() || processingStatus.ipe_testing === "running"}
+              disabled={!canRunIPETesting || processingStatus.ipe_testing === "running"}
               className="bg-green-600 hover:bg-green-700 disabled:opacity-50"
             >
               {processingStatus.ipe_testing === "running" ? (
@@ -584,7 +726,6 @@ export default function IPETesting({ onBack }: IPETestingProps) {
             </Button>
           </div>
 
-          {/* Progress Indicator */}
           {processingStatus.ipe_testing === "running" && (
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
@@ -595,27 +736,14 @@ export default function IPETesting({ onBack }: IPETestingProps) {
             </div>
           )}
 
-          {/* Results */}
           {processingStatus.ipe_testing === "completed" && (
             <div className="rounded border border-green-500/20 bg-green-500/10 p-4">
               <div className="flex items-center gap-3">
                 <CheckCircle className="h-5 w-5 text-green-500" />
                 <div>
                   <h4 className="font-medium text-green-300">IPE Testing Completed</h4>
-                  <p className="text-sm text-green-200">
-                    All integrity tests have been executed successfully
-                  </p>
+                  <p className="text-sm text-green-200">All integrity tests have been executed successfully</p>
                 </div>
-              </div>
-              <div className="mt-3 flex gap-2">
-                <Button size="sm" variant="outline" className="border-green-500/30 text-green-300">
-                  <Download className="mr-2 h-3 w-3" />
-                  Download Results
-                </Button>
-                <Button size="sm" variant="outline" className="border-green-500/30 text-green-300">
-                  <FileText className="mr-2 h-3 w-3" />
-                  View Report
-                </Button>
               </div>
             </div>
           )}

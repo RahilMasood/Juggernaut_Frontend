@@ -76,81 +76,61 @@
 @layer base {
   @font-face {
     font-family: "Geist";
-
-    src: url("../assets/fonts/geist/geist.ttf") format("truetype");
+    src: url('/src/assets/fonts/geist/Geist-Regular.ttf') format("truetype");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
   }
   @font-face {
     font-family: "Geist Mono";
+    src: url('/src/assets/fonts/geist-mono/GeistMono-Regular.ttf') format("truetype");
+    font-weight: 400;
+    font-style: normal;
     font-display: swap;
-
-    src: url("../assets/fonts/geist-mono/geist-mono.ttf") format("truetype");
   }
-
   @font-face {
     font-family: "Tomorrow";
+    src: url('/src/assets/fonts/tomorrow/Tomorrow-Regular.ttf') format("truetype");
     font-weight: 400;
     font-style: normal;
-
-    src: url("../assets/fonts/tomorrow/tomorrow-regular.ttf") format("truetype");
-  }
-  @font-face {
-    font-family: "Tomorrow";
-    font-weight: 400;
-    font-style: italic;
-
-    src: url("../assets/fonts/tomorrow/tomorrow-italic.ttf") format("truetype");
-  }
-  @font-face {
-    font-family: "Tomorrow";
-    font-weight: 700;
-    font-style: normal;
-
-    src: url("../assets/fonts/tomorrow/tomorrow-bold.ttf") format("truetype");
-  }
-  @font-face {
-    font-family: "Tomorrow";
-    font-weight: 700;
-    font-style: italic;
-
-    src: url("../assets/fonts/tomorrow/tomorrow-bold-italic.ttf")
-      format("truetype");
+    font-display: swap;
   }
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
+  --background: #0b0f14;
+  --foreground: #e6e8ee;
+  --card: #0e131a;
+  --card-foreground: #e6e8ee;
+  --popover: #0e131a;
+  --popover-foreground: #e6e8ee;
+  --primary: #4da3ff;
+  --primary-foreground: #0a0b0f;
+  --secondary: #121722;
+  --secondary-foreground: #e6e8ee;
+  --muted: #0f1520;
+  --muted-foreground: #aab2c0;
+  --accent: #4da3ff;
+  --accent-foreground: #0a0b0f;
+  --destructive: #ef4444;
+  --destructive-foreground: #fee2e2;
+  --border: #2a2f3a;
+  --input: #1a202c;
+  --ring: #4da3ff;
+  --chart-1: #4da3ff;
+  --chart-2: #22d3ee;
+  --chart-3: #8b5cf6;
+  --chart-4: #f59e0b;
+  --chart-5: #10b981;
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar: #0b0f14;
+  --sidebar-foreground: #e6e8ee;
+  --sidebar-primary: #4da3ff;
+  --sidebar-primary-foreground: #0a0b0f;
+  --sidebar-accent: #121722;
+  --sidebar-accent-foreground: #e6e8ee;
+  --sidebar-border: #2a2f3a;
+  --sidebar-ring: #4da3ff;
 }
 
 /* Dark theme tokens (activated via .dark on html) */
@@ -190,7 +170,7 @@
 }
 
 @theme inline {
-  --color-background: var(--background);
+  
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
@@ -237,12 +217,15 @@
   }
 }
 
+/* Enforce dark background at document level */
+html, body, #app {
+  background-color: var(--background) !important;
+  color: var(--foreground) !important;
+}
+
 /* Glass utility */
 @utility glass {
   backdrop-filter: blur(12px);
   background-color: color-mix(in oklab, var(--color-card) 35%, transparent);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  border: 1px solid color-mix(in oklab, var(--color-card) 70%, transparent);
 }

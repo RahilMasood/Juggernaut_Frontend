@@ -20,7 +20,7 @@ import {
   Link
 } from "lucide-react";
 import { logger } from "../../utils/logger";
-import { CloudFilePicker } from "../ui/cloud-file-picker";
+import { AzureFileUpload } from "../ui/azure-file-upload";
 import { CloudFileEntry } from "../../helpers/ipc/cloud/cloud-context";
 import InternalControlMetadataModal from "./InternalControlMetadataModal";
 import InternalControlForm from "./InternalControlForm";
@@ -130,10 +130,15 @@ export default function FileUploadModal({
     }
   };
 
-  const handleCloudFileSelect = (file: CloudFileEntry) => {
-    setSelectedCloudFile(file);
-    setSelectedFiles(null); // Clear local file selection
-    setUploadStatus({ type: null, message: '' });
+  const handleAzureFileUpload = (files: Array<{ name: string; path: string; cloudUrl?: string }>) => {
+    console.log(`✅ Uploaded ${files.length} file(s) to Azure:`, files);
+    // For now, we'll treat the first file as the selected file
+    if (files.length > 0) {
+      const file = files[0];
+      setSelectedCloudFile({ name: file.name, reference: file.cloudUrl || '' });
+      setSelectedFiles(null); // Clear local file selection
+      setUploadStatus({ type: null, message: '' });
+    }
   };
 
   const handleLocalFilesFromPicker = (files: File[]) => {
@@ -462,11 +467,10 @@ export default function FileUploadModal({
                   Choose Local Files
                 </Button>
                 
-                <CloudFilePicker
-                  onFileSelected={handleCloudFileSelect}
-                  onLocalFileSelected={handleLocalFilesFromPicker}
+                <AzureFileUpload
+                  onFilesUploaded={handleAzureFileUpload}
                   multiple={true}
-                  triggerText="Link Cloud File"
+                  triggerText="Upload to Cloud"
                   className="border-white/10 bg-white/5 text-white hover:bg-white/10"
                 />
               </div>

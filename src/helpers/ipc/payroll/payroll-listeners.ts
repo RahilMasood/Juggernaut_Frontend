@@ -13,6 +13,7 @@ import {
   PAYROLL_OPEN_DIALOG_CHANNEL,
   PAYROLL_UPLOAD_FILE_CHANNEL,
 } from "./payroll-channels";
+import { jugg } from "../../../utils/cloud-storage";
 
 type ScriptMap = Record<string, { file: string; label: string; produces?: string[] }>;
 
@@ -483,14 +484,38 @@ export function addPayrollEventListeners(mainWindow: BrowserWindow) {
   // Helper: download a file from cloud client container to temp path and return local path
   ipcMain.handle("payroll:download-client-file", async (_evt, { filename }: { filename: string }) => {
     try {
+      console.log("Download request for filename:", filename);
+      
+      if (!filename) {
+        return { ok: false, error: 'Filename is required' };
+      }
+      
       const os = await import('os');
-      const temp = os.tmpdir();
+      let temp = os.tmpdir();
+      console.log("Temp directory:", temp);
+      
+      // Fallback if temp directory is not available
+      if (!temp) {
+        temp = path.join(process.cwd(), 'temp');
+        console.log("Using fallback temp directory:", temp);
+      }
+      
+      // Ensure temp directory exists
+      if (!fs.existsSync(temp)) {
+        fs.mkdirSync(temp, { recursive: true });
+      }
+      
       const dest = path.join(temp, filename);
+      console.log("Download destination:", dest);
+      
       const { downloadFile } = await import('../../../utils/cloud-storage');
       const res = await downloadFile('client', filename, dest);
+      console.log("Download result:", res);
+      
       if (res.success && res.filePath) return { ok: true, filePath: res.filePath };
       return { ok: false, error: res.error || 'Download failed' };
     } catch (error) {
+      console.error("Download error:", error);
       return { ok: false, error: (error as Error).message };
     }
   });
@@ -537,18 +562,15 @@ export function addPayrollEventListeners(mainWindow: BrowserWindow) {
         return { ok: false, error: 'No files selected' };
       }
 
-      // Import cloud storage functions
-      const { uploadFile } = require('../../../utils/cloud-storage');
-
       const uploadedFiles: Array<{ originalPath: string; savedPath: string; fileName: string; cloudCode?: string }> = [];
 
-      // Upload each selected file to cloud "client" container
+      // Upload each selected file to cloud "client" container using jugg function
       for (const selectedFile of filePaths) {
         try {
           const fileName = path.basename(selectedFile);
           
-          // Upload to cloud storage
-          const cloudResult = await uploadFile('client', selectedFile, `Employee Benefits - ${fileName}`);
+          // Upload to cloud storage using jugg function with db.json management
+          const cloudResult = await jugg(selectedFile, 'client', `Employee Benefits - ${fileName}`);
           
           if (cloudResult.success) {
             uploadedFiles.push({

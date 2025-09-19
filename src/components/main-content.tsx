@@ -79,7 +79,7 @@ export function MainContent({
   };
 
   return (
-    <div className="flex-1 overflow-auto bg-transparent">
+    <div className="flex-1 overflow-auto bg-background">
       <div className="p-8">{renderContent()}</div>
     </div>
   );

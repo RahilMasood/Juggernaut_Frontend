@@ -10,7 +10,8 @@ import path from 'path';
 
 // === CONFIG ===
 const CONNECTION_STRING = "DefaultEndpointsProtocol=https;AccountName=auditfirmone;AccountKey=noJNGotPPflseazBYfQ5zGTL3ulm7Eq1kxhwPNGXzl04celHpi9xjQsrXIYNTWhFzDsCnYuedKLs+AStDYspZg==;EndpointSuffix=core.windows.net";
-const MAPPING_FILE = "cloud_tree.json";
+const DB_CONTAINER = "juggernaut";
+const DB_BLOB = "db.json";
 const CONTAINERS = ["juggernaut", "client", "tools", "recycle_bin"];
 
 // === INTERFACES ===
@@ -56,66 +57,99 @@ async function getBlobServiceClient() {
 }
 
 // === HELPER FUNCTIONS ===
-function getMappingFilePath(): string {
-  return path.join(process.cwd(), MAPPING_FILE);
-}
-
-async function loadMapping(): Promise<CloudMetadata> {
-  const mappingPath = getMappingFilePath();
+async function downloadJson(container: string, blobName: string): Promise<CloudMetadata> {
   try {
-    if (!fs.existsSync(mappingPath)) {
-      return { juggernaut: [], client: [], tools: [], recycle_bin: [] };
-    }
-    const data = fs.readFileSync(mappingPath, 'utf-8');
-    const parsed = JSON.parse(data);
-    
-    // Check if this is the old format and migrate it
-    if (parsed.Juggernaut || parsed.Client || parsed.Tools || parsed.Recycle_bin) {
-      console.log('Migrating from old cloud structure format...');
-      const migrated = {
-        juggernaut: Array.isArray(parsed.Juggernaut) ? parsed.Juggernaut.map((item: any) => 
-          typeof item === 'string' ? item : item.name || item.filename || ''
-        ).filter(Boolean) : [],
-        client: Array.isArray(parsed.Client) ? parsed.Client.map((item: any) => ({
-          name: item.name || item.filename || '',
-          reference: item.reference || ''
-        })).filter((item: any) => item.name) : [],
-        tools: Array.isArray(parsed.Tools) ? parsed.Tools.map((item: any) => ({
-          name: item.name || item.filename || '',
-          reference: item.reference || ''
-        })).filter((item: any) => item.name) : [],
-        recycle_bin: Array.isArray(parsed.Recycle_bin) ? parsed.Recycle_bin.map((item: any) => 
-          typeof item === 'string' ? item : item.name || item.filename || ''
-        ).filter(Boolean) : []
-      };
-      
-      // Save the migrated format
-      await saveMapping(migrated);
-      console.log('Migration completed successfully');
-      return migrated;
-    }
-    
-    // Ensure all required properties exist and are arrays
-    return {
-      juggernaut: Array.isArray(parsed.juggernaut) ? parsed.juggernaut : [],
-      client: Array.isArray(parsed.client) ? parsed.client : [],
-      tools: Array.isArray(parsed.tools) ? parsed.tools : [],
-      recycle_bin: Array.isArray(parsed.recycle_bin) ? parsed.recycle_bin : []
-    };
+    const client = await getBlobServiceClient();
+    const blobClient = client.getContainerClient(container).getBlobClient(blobName);
+    const downloadBlockBlobResponse = await blobClient.download();
+    const downloaded = await streamToString(downloadBlockBlobResponse.readableStreamBody);
+    return JSON.parse(downloaded);
   } catch (error) {
-    console.error('Error loading mapping file:', error);
+    // If db.json doesn't exist yet, start with empty structure
     return { juggernaut: [], client: [], tools: [], recycle_bin: [] };
   }
 }
 
-async function saveMapping(mapping: CloudMetadata): Promise<void> {
-  const mappingPath = getMappingFilePath();
+async function uploadJson(container: string, blobName: string, data: CloudMetadata): Promise<void> {
+  const client = await getBlobServiceClient();
+  const blockBlobClient = client.getContainerClient(container).getBlockBlobClient(blobName);
+  await blockBlobClient.upload(JSON.stringify(data, null, 4), Buffer.byteLength(JSON.stringify(data, null, 4)), {
+    overwrite: true
+  });
+}
+
+// Helper: convert stream → string
+async function streamToString(readableStream: any): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const chunks: string[] = [];
+    readableStream.on("data", (data: any) => chunks.push(data.toString()));
+    readableStream.on("end", () => resolve(chunks.join("")));
+    readableStream.on("error", reject);
+  });
+}
+
+// Legacy mapping functions for backward compatibility
+function getMappingFilePath(): string {
+  return path.join(process.cwd(), "cloud_tree.json");
+}
+
+async function loadMapping(): Promise<CloudMetadata> {
+  // Try to load from db.json first, fallback to local file
   try {
-    fs.writeFileSync(mappingPath, JSON.stringify(mapping, null, 2), 'utf-8');
+    return await downloadJson(DB_CONTAINER, DB_BLOB);
   } catch (error) {
-    console.error('Error saving mapping file:', error);
-    throw error;
+    console.log('Loading from local mapping file as fallback...');
+    const mappingPath = getMappingFilePath();
+    try {
+      if (!fs.existsSync(mappingPath)) {
+        return { juggernaut: [], client: [], tools: [], recycle_bin: [] };
+      }
+      const data = fs.readFileSync(mappingPath, 'utf-8');
+      const parsed = JSON.parse(data);
+      
+      // Check if this is the old format and migrate it
+      if (parsed.Juggernaut || parsed.Client || parsed.Tools || parsed.Recycle_bin) {
+        console.log('Migrating from old cloud structure format...');
+        const migrated = {
+          juggernaut: Array.isArray(parsed.Juggernaut) ? parsed.Juggernaut.map((item: any) => 
+            typeof item === 'string' ? item : item.name || item.filename || ''
+          ).filter(Boolean) : [],
+          client: Array.isArray(parsed.Client) ? parsed.Client.map((item: any) => ({
+            name: item.name || item.filename || '',
+            reference: item.reference || ''
+          })).filter((item: any) => item.name) : [],
+          tools: Array.isArray(parsed.Tools) ? parsed.Tools.map((item: any) => ({
+            name: item.name || item.filename || '',
+            reference: item.reference || ''
+          })).filter((item: any) => item.name) : [],
+          recycle_bin: Array.isArray(parsed.Recycle_bin) ? parsed.Recycle_bin.map((item: any) => 
+            typeof item === 'string' ? item : item.name || item.filename || ''
+          ).filter(Boolean) : []
+        };
+        
+        // Save the migrated format to db.json
+        await uploadJson(DB_CONTAINER, DB_BLOB, migrated);
+        console.log('Migration completed successfully');
+        return migrated;
+      }
+      
+      // Ensure all required properties exist and are arrays
+      return {
+        juggernaut: Array.isArray(parsed.juggernaut) ? parsed.juggernaut : [],
+        client: Array.isArray(parsed.client) ? parsed.client : [],
+        tools: Array.isArray(parsed.tools) ? parsed.tools : [],
+        recycle_bin: Array.isArray(parsed.recycle_bin) ? parsed.recycle_bin : []
+      };
+    } catch (error) {
+      console.error('Error loading mapping file:', error);
+      return { juggernaut: [], client: [], tools: [], recycle_bin: [] };
+    }
   }
+}
+
+async function saveMapping(mapping: CloudMetadata): Promise<void> {
+  // Save to db.json in Azure blob storage
+  await uploadJson(DB_CONTAINER, DB_BLOB, mapping);
 }
 
 function generateUniqueCode(): string {
@@ -123,6 +157,57 @@ function generateUniqueCode(): string {
 }
 
 // === MAIN FUNCTIONS ===
+// Main Upload + Update Function (jugg function)
+export async function jugg(
+  localFilePath: string,
+  targetContainer: string,
+  reference: string = ""
+): Promise<UploadResult> {
+  try {
+    const client = await getBlobServiceClient();
+    const containerClient = client.getContainerClient(targetContainer);
+    const blobName = path.basename(localFilePath);
+
+    // 1. Upload file
+    const blockBlobClient = containerClient.getBlockBlobClient(blobName);
+    await blockBlobClient.uploadFile(localFilePath, {
+      overwrite: true
+    });
+
+    // 2. Download db.json
+    const db = await downloadJson(DB_CONTAINER, DB_BLOB);
+
+    // 3. Update db.json
+    const entry = { name: blobName, reference: reference };
+
+    if (targetContainer === "juggernaut") {
+      // juggernaut just stores list of names
+      db.juggernaut.push(blobName);
+    } else if (targetContainer === "client") {
+      db.client.push(entry);
+    } else if (targetContainer === "tools") {
+      db.tools.push(entry);
+    } else if (targetContainer === "recycle_bin") {
+      db.recycle_bin.push(blobName);
+    }
+
+    // 4. Upload updated db.json
+    await uploadJson(DB_CONTAINER, DB_BLOB, db);
+
+    console.log(`✅ Uploaded ${localFilePath} to ${targetContainer}/${blobName} and updated db.json`);
+    return {
+      success: true,
+      code: blobName
+    };
+  } catch (error) {
+    console.error('Error in jugg function:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
+  }
+}
+
 export async function uploadFile(
   container: string,
   filePath: string,
@@ -161,54 +246,8 @@ export async function uploadFile(
       };
     }
 
-    const mapping = await loadMapping();
-    const filename = customFilename || path.basename(filePath);
-
-    // Upload file to Azure with blob name = filename
-    const client = await getBlobServiceClient();
-    const containerClient = client.getContainerClient(container);
-    const blobClient = containerClient.getBlobClient(filename);
-    const blockBlobClient = blobClient.getBlockBlobClient();
-    
-    const fileData = fs.readFileSync(filePath);
-    
-    await blockBlobClient.upload(fileData, fileData.length, {
-      blobHTTPHeaders: {
-        blobContentType: getMimeType(filename)
-      }
-    });
-
-    // Update metadata based on container type
-    if (container.toLowerCase() === 'juggernaut') {
-      // For juggernaut, just add filename to array
-      if (Array.isArray(mapping.juggernaut) && !mapping.juggernaut.includes(filename)) {
-        mapping.juggernaut.push(filename);
-      }
-    } else if (container.toLowerCase() === 'client' || container.toLowerCase() === 'tools') {
-      // For client and tools, add object with name and reference
-      const entry: CloudFileEntry = {
-        name: filename,
-        reference: reference
-      };
-      
-      const containerKey = container.toLowerCase() as keyof CloudMetadata;
-      if (Array.isArray(mapping[containerKey])) {
-        (mapping[containerKey] as CloudFileEntry[]).push(entry);
-      }
-    } else if (container.toLowerCase() === 'recycle_bin') {
-      // For recycle_bin, just add filename to array
-      if (Array.isArray(mapping.recycle_bin) && !mapping.recycle_bin.includes(filename)) {
-        mapping.recycle_bin.push(filename);
-      }
-    }
-
-    await saveMapping(mapping);
-
-    console.log(`Uploaded ${filename} to container ${container}`);
-    return {
-      success: true,
-      code: filename
-    };
+    // Use the new jugg function for upload with db.json management
+    return await jugg(filePath, container, reference);
 
   } catch (error) {
     console.error('Error uploading file:', error);
@@ -225,6 +264,19 @@ export async function downloadFile(
   downloadPath: string
 ): Promise<DownloadResult> {
   try {
+    console.log("downloadFile called with:", { container, filename, downloadPath });
+    
+    // Validate inputs
+    if (!container) {
+      return { success: false, error: 'Container is required' };
+    }
+    if (!filename) {
+      return { success: false, error: 'Filename is required' };
+    }
+    if (!downloadPath) {
+      return { success: false, error: 'Download path is required' };
+    }
+    
     // Validate container
     if (!CONTAINERS.includes(container.toLowerCase())) {
       return {
@@ -248,6 +300,7 @@ export async function downloadFile(
 
     // Ensure download directory exists
     const downloadDir = path.dirname(downloadPath);
+    console.log("Download directory:", downloadDir);
     if (!fs.existsSync(downloadDir)) {
       fs.mkdirSync(downloadDir, { recursive: true });
     }
