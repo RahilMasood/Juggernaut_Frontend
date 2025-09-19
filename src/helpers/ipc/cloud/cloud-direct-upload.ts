@@ -21,9 +21,9 @@ export function addCloudDirectUploadListener(mainWindow: BrowserWindow) {
         console.log('Cloud direct upload handler called:', { filename, container });
         
         try {
-          // Create temporary file
+          // Create temporary file with neutral name (no temp_ in final blob)
           const tempDir = os.tmpdir();
-          const tempFilePath = path.join(tempDir, `temp_${filename}`);
+          const tempFilePath = path.join(tempDir, `${Date.now()}_${filename}`);
           
           // Write content to temp file
           fs.writeFileSync(tempFilePath, content, 'utf8');

@@ -3,7 +3,7 @@ import { BlobServiceClient } from "@azure/storage-blob";
 import * as os from "os";
 import * as path from "path";
 import * as fs from "fs";
-import { jugg } from "../../../utils/cloud-storage";
+import { uploadContent } from "../../../utils/cloud-storage";
 
 const AZURE_UPLOAD_CHANNEL = "azure:upload-file";
 
@@ -33,30 +33,17 @@ export function addAzureUploadListener(mainWindow: BrowserWindow) {
         console.log('Azure upload handler called:', { fileName, containerName });
         
         try {
-          // Create temporary file from base64 content
-          const tempDir = os.tmpdir();
-          const tempFilePath = path.join(tempDir, `temp_${fileName}`);
-          
-          // Convert base64 content to buffer and write to temp file
-          const fileBuffer = Buffer.from(fileContent, 'base64');
-          fs.writeFileSync(tempFilePath, fileBuffer);
-          
-          // Use jugg function to upload with db.json management
-          const result = await jugg(tempFilePath, containerName || CONTAINER_NAME, reference);
-          
-          // Clean up temp file
-          try {
-            if (fs.existsSync(tempFilePath)) {
-              fs.unlinkSync(tempFilePath);
-            }
-          } catch (cleanupError) {
-            console.warn('Failed to clean up temp file:', cleanupError);
-          }
+          // Upload content directly with the original filename (no temp_ prefix)
+          const result = await uploadContent(
+            containerName || CONTAINER_NAME,
+            fileContent,
+            fileName,
+            reference,
+            true // overwrite if exists
+          );
           
           if (result.success) {
-            console.log(`Successfully uploaded ${fileName} to Azure Blob Storage with db.json update`);
-            
-            // Return success response
+            console.log(`Successfully uploaded ${fileName} with db.json update`);
             return {
               success: true,
               cloudUrl: `https://auditfirmone.blob.core.windows.net/${containerName}/${fileName}`,
