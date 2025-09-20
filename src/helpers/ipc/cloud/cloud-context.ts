@@ -2,6 +2,7 @@ import {
   CLOUD_UPLOAD_CHANNEL,
   CLOUD_DOWNLOAD_CHANNEL,
   CLOUD_LIST_CHANNEL,
+  CLOUD_LIST_AZURE_CHANNEL,
   CLOUD_DELETE_CHANNEL,
   CLOUD_PROGRESS_CHANNEL,
   CLOUD_DIRECT_UPLOAD_CHANNEL,
@@ -91,6 +92,9 @@ export function exposeCloudContext() {
     
     list: (request: CloudListRequest): Promise<CloudListResult> =>
       ipcRenderer.invoke(CLOUD_LIST_CHANNEL, request),
+    
+    listFilesFromAzure: (request: CloudListRequest): Promise<CloudListResult> =>
+      ipcRenderer.invoke(CLOUD_LIST_AZURE_CHANNEL, request),
     
     delete: (request: CloudDeleteRequest): Promise<CloudDeleteResult> =>
       ipcRenderer.invoke(CLOUD_DELETE_CHANNEL, request),

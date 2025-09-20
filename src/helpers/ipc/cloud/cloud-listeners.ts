@@ -4,6 +4,7 @@ import {
   CLOUD_DIRECT_UPLOAD_CHANNEL,
   CLOUD_DOWNLOAD_CHANNEL,
   CLOUD_LIST_CHANNEL,
+  CLOUD_LIST_AZURE_CHANNEL,
   CLOUD_DELETE_CHANNEL,
   CLOUD_PROGRESS_CHANNEL,
   CLOUD_WRITE_TEMP_FILE_CHANNEL,
@@ -15,6 +16,7 @@ import {
   uploadContent,
   downloadFile,
   listFiles,
+  listFilesFromAzure,
   deleteFile,
   checkFileExists,
   CONTAINERS,
@@ -222,6 +224,25 @@ export function addCloudEventListeners(mainWindow: BrowserWindow) {
     async (_event, request: CloudListRequest): Promise<CloudListResult> => {
       try {
         const files = await listFiles(request.container);
+        return {
+          success: true,
+          files,
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : "Unknown error",
+        };
+      }
+    }
+  );
+
+  // List files directly from Azure container
+  ipcMain.handle(
+    CLOUD_LIST_AZURE_CHANNEL,
+    async (_event, request: CloudListRequest): Promise<CloudListResult> => {
+      try {
+        const files = await listFilesFromAzure(request.container);
         return {
           success: true,
           files,

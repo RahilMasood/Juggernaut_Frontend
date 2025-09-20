@@ -6,7 +6,7 @@ from azure.storage.blob import BlobServiceClient
 # === CONFIG ===
 CONNECTION_STRING = "DefaultEndpointsProtocol=https;AccountName=auditfirmone;AccountKey=noJNGotPPflseazBYfQ5zGTL3ulm7Eq1kxhwPNGXzl04celHpi9xjQsrXIYNTWhFzDsCnYuedKLs+AStDYspZg==;EndpointSuffix=core.windows.net"
 MAPPING_FILE = "cloud_tree.json"  # where we keep your JSON mapping
-CONTAINERS = ["juggernaut", "client", "tools", "recycle_bin"]
+CONTAINERS = ["juggernaut", "client", "tools", "rbin"]
 
 # === INIT AZURE CLIENT ===
 blob_service_client = BlobServiceClient.from_connection_string(CONNECTION_STRING)

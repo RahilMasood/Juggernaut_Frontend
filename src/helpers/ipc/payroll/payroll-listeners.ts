@@ -127,6 +127,11 @@ const SCRIPTS: ScriptMap = {
     label: "Accuracy Check",
     produces: ["CTC_Actuary.xlsx"],
   },
+  "pay_registrar_processor": {
+    file: path.join(PAYROLL_CODES_DIR, "pay_registrar_processor.py"),
+    label: "Pay Registrar Processor",
+    produces: ["Execution_Payroll_PRColumnMap.json"],
+  },
 };
 
 

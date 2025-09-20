@@ -12,7 +12,7 @@ import path from 'path';
 const CONNECTION_STRING = "DefaultEndpointsProtocol=https;AccountName=auditfirmone;AccountKey=noJNGotPPflseazBYfQ5zGTL3ulm7Eq1kxhwPNGXzl04celHpi9xjQsrXIYNTWhFzDsCnYuedKLs+AStDYspZg==;EndpointSuffix=core.windows.net";
 const DB_CONTAINER = "juggernaut";
 const DB_BLOB = "db.json";
-const CONTAINERS = ["juggernaut", "client", "tools", "recycle_bin"];
+const CONTAINERS = ["juggernaut", "client", "tools", "rbin"];
 
 // === INTERFACES ===
 export interface CloudFileEntry {
@@ -24,7 +24,7 @@ export interface CloudMetadata {
   juggernaut: string[];
   client: CloudFileEntry[];
   tools: CloudFileEntry[];
-  recycle_bin: string[];
+  rbin: string[];
 }
 
 export interface UploadResult {
@@ -66,7 +66,7 @@ async function downloadJson(container: string, blobName: string): Promise<CloudM
     return JSON.parse(downloaded);
   } catch (error) {
     // If db.json doesn't exist yet, start with empty structure
-    return { juggernaut: [], client: [], tools: [], recycle_bin: [] };
+    return { juggernaut: [], client: [], tools: [], rbin: [] };
   }
 }
 
@@ -102,13 +102,13 @@ async function loadMapping(): Promise<CloudMetadata> {
     const mappingPath = getMappingFilePath();
     try {
       if (!fs.existsSync(mappingPath)) {
-        return { juggernaut: [], client: [], tools: [], recycle_bin: [] };
+        return { juggernaut: [], client: [], tools: [], rbin: [] };
       }
       const data = fs.readFileSync(mappingPath, 'utf-8');
       const parsed = JSON.parse(data);
       
       // Check if this is the old format and migrate it
-      if (parsed.Juggernaut || parsed.Client || parsed.Tools || parsed.Recycle_bin) {
+      if (parsed.Juggernaut || parsed.Client || parsed.Tools || parsed.rbin) {
         console.log('Migrating from old cloud structure format...');
         const migrated = {
           juggernaut: Array.isArray(parsed.Juggernaut) ? parsed.Juggernaut.map((item: any) => 
@@ -122,7 +122,7 @@ async function loadMapping(): Promise<CloudMetadata> {
             name: item.name || item.filename || '',
             reference: item.reference || ''
           })).filter((item: any) => item.name) : [],
-          recycle_bin: Array.isArray(parsed.Recycle_bin) ? parsed.Recycle_bin.map((item: any) => 
+          rbin: Array.isArray(parsed.rbin) ? parsed.rbin.map((item: any) => 
             typeof item === 'string' ? item : item.name || item.filename || ''
           ).filter(Boolean) : []
         };
@@ -138,11 +138,11 @@ async function loadMapping(): Promise<CloudMetadata> {
         juggernaut: Array.isArray(parsed.juggernaut) ? parsed.juggernaut : [],
         client: Array.isArray(parsed.client) ? parsed.client : [],
         tools: Array.isArray(parsed.tools) ? parsed.tools : [],
-        recycle_bin: Array.isArray(parsed.recycle_bin) ? parsed.recycle_bin : []
+        rbin: Array.isArray(parsed.rbin) ? parsed.rbin : []
       };
     } catch (error) {
       console.error('Error loading mapping file:', error);
-      return { juggernaut: [], client: [], tools: [], recycle_bin: [] };
+      return { juggernaut: [], client: [], tools: [], rbin: [] };
     }
   }
 }
@@ -187,8 +187,8 @@ export async function jugg(
       db.client.push(entry);
     } else if (targetContainer === "tools") {
       db.tools.push(entry);
-    } else if (targetContainer === "recycle_bin") {
-      db.recycle_bin.push(blobName);
+    } else if (targetContainer === "rbin") {
+      db.rbin.push(blobName);
     }
 
     // 4. Upload updated db.json
@@ -339,8 +339,8 @@ export async function listFiles(container: string): Promise<CloudFileEntry[]> {
     const containerKey = container.toLowerCase() as keyof CloudMetadata;
     const containerData = mapping[containerKey];
 
-    if (container.toLowerCase() === 'juggernaut' || container.toLowerCase() === 'recycle_bin') {
-      // For juggernaut and recycle_bin, convert string array to CloudFileEntry array
+    if (container.toLowerCase() === 'juggernaut' || container.toLowerCase() === 'rbin') {
+      // For juggernaut and rbin, convert string array to CloudFileEntry array
       return (containerData as string[]).map(filename => ({
         name: filename,
         reference: ''
@@ -365,8 +365,8 @@ export async function deleteFile(container: string, filename: string): Promise<b
     const containerKey = container.toLowerCase() as keyof CloudMetadata;
 
     // Remove from metadata
-    if (container.toLowerCase() === 'juggernaut' || container.toLowerCase() === 'recycle_bin') {
-      // For juggernaut and recycle_bin, remove from string array
+    if (container.toLowerCase() === 'juggernaut' || container.toLowerCase() === 'rbin') {
+      // For juggernaut and rbin, remove from string array
       const stringArray = mapping[containerKey] as string[];
       if (Array.isArray(stringArray)) {
         const index = stringArray.indexOf(filename);
@@ -444,8 +444,8 @@ export async function checkFileExists(
     const containerKey = container.toLowerCase() as keyof CloudMetadata;
     const containerData = mapping[containerKey];
 
-    if (container.toLowerCase() === 'juggernaut' || container.toLowerCase() === 'recycle_bin') {
-      // For juggernaut and recycle_bin, check string array
+    if (container.toLowerCase() === 'juggernaut' || container.toLowerCase() === 'rbin') {
+      // For juggernaut and rbin, check string array
       return {
         exists: (containerData as string[]).includes(filename)
       };
@@ -574,10 +574,10 @@ export async function uploadContent(
           containerArray.push(entry);
         }
       }
-    } else if (container.toLowerCase() === 'recycle_bin') {
-      // For recycle_bin, just add filename to array if not exists
-      if (Array.isArray(mapping.recycle_bin) && !mapping.recycle_bin.includes(filename)) {
-        mapping.recycle_bin.push(filename);
+    } else if (container.toLowerCase() === 'rbin') {
+      // For rbin, just add filename to array if not exists
+      if (Array.isArray(mapping.rbin) && !mapping.rbin.includes(filename)) {
+        mapping.rbin.push(filename);
       }
     }
 
@@ -595,6 +595,28 @@ export async function uploadContent(
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred'
     };
+  }
+}
+
+// List files directly from Azure container (bypasses metadata)
+export async function listFilesFromAzure(container: string): Promise<CloudFileEntry[]> {
+  try {
+    const client = await getBlobServiceClient();
+    const containerClient = client.getContainerClient(container);
+    
+    const files: CloudFileEntry[] = [];
+    for await (const blob of containerClient.listBlobs()) {
+      files.push({
+        name: blob.name,
+        reference: blob.name // Use blob name as reference for direct access
+      });
+    }
+    
+    console.log(`Listed ${files.length} files from ${container} container`);
+    return files;
+  } catch (error) {
+    console.error(`Error listing files from Azure container ${container}:`, error);
+    return [];
   }
 }
 
