@@ -18,6 +18,7 @@ def main():
     site_hostname = "juggernautenterprises.sharepoint.com"
     site_path = "/sites/TestCloud"
     doc_library = "TestClient"
+    fy_year = "TestClient_FY25"
     folder_name = "juggernaut"
     file_name = "Libraries_Romm.json"
 
@@ -61,7 +62,7 @@ def main():
             raise Exception(f"Library '{doc_library}' not found in site '{site_path}'")
 
         # --- 4️⃣ Download file from SharePoint ---
-        download_url = f"https://graph.microsoft.com/v1.0/drives/{drive_id}/root:/{folder_name}/{file_name}:/content"
+        download_url = f"https://graph.microsoft.com/v1.0/drives/{drive_id}/root:/{fy_year}/{folder_name}/{file_name}:/content"
         resp = requests.get(download_url, headers=headers)
         resp.raise_for_status()
         data = resp.json()  # directly parse JSON
@@ -80,7 +81,7 @@ def main():
         data["romm_library"].append(new_entry)
 
         # --- 6️⃣ Upload back (overwrite same file) ---
-        upload_url = f"https://graph.microsoft.com/v1.0/drives/{drive_id}/root:/{folder_name}/{file_name}:/content"
+        upload_url = f"https://graph.microsoft.com/v1.0/drives/{drive_id}/root:/{fy_year}/{folder_name}/{file_name}:/content"
         update_resp = requests.put(upload_url, headers=headers, data=json.dumps(data, indent=4).encode("utf-8"))
         update_resp.raise_for_status()
 

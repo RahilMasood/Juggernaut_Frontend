@@ -13,6 +13,7 @@ const CLIENT_SECRET = "JAZ8Q~xlY-EDlgbLtgJaqjPNAjsHfYFavwxbkdjE";
 const SITE_HOSTNAME = "juggernautenterprises.sharepoint.com";
 const SITE_PATH = "/sites/TestCloud";
 const DOC_LIBRARY = "TestClient";
+const FY_YEAR =  "TestClient_FY25"
 const FOLDER_NAME = "juggernaut";
 const FILE_NAME = "Libraries_Romm.json";
 
@@ -150,7 +151,7 @@ export class SharePointService {
       const driveId = await this.getDriveId(siteId);
 
       // Download file
-      const downloadUrl = `https://graph.microsoft.com/v1.0/drives/${driveId}/root:/${FOLDER_NAME}/${FILE_NAME}:/content`;
+      const downloadUrl = `https://graph.microsoft.com/v1.0/drives/${driveId}/root:/${FY_YEAR}/${FOLDER_NAME}/${FILE_NAME}:/content`;
       const headers = { Authorization: `Bearer ${this.accessToken}` };
 
       const response = await fetch(downloadUrl, { headers });
@@ -209,7 +210,7 @@ export class SharePointService {
       const driveId = await this.getDriveId(siteId);
 
       // Upload file - match Python implementation exactly
-      const uploadUrl = `https://graph.microsoft.com/v1.0/drives/${driveId}/root:/${FOLDER_NAME}/${FILE_NAME}:/content`;
+      const uploadUrl = `https://graph.microsoft.com/v1.0/drives/${driveId}/root:/${FY_YEAR}/${FOLDER_NAME}/${FILE_NAME}:/content`;
       const headers = {
         Authorization: `Bearer ${this.accessToken}`,
         "Content-Type": "application/json",
