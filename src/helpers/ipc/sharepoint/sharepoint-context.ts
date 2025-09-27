@@ -14,5 +14,6 @@ export function exposeSharePointContext() {
       description: string;
       assertion: string;
     }) => ipcRenderer.invoke(SHAREPOINT_CHANNELS.ADD_ROMM_ENTRY, formData),
+    readRommLibrary: () => ipcRenderer.invoke(SHAREPOINT_CHANNELS.READ_ROMM_LIBRARY),
   });
 }

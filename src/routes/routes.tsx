@@ -2,6 +2,7 @@ import { createRoute } from "@tanstack/react-router";
 import { RootRoute } from "./__root";
 import HomePage from "../pages/HomePage";
 import PayrollModulePage from "../pages/PayrollModulePage";
+import RommLibraryPage from "../pages/RommLibraryPage";
 
 // TODO: Steps to add a new route:
 // 1. Create a new page component in the '../pages/' directory (e.g., NewPage.tsx)
@@ -34,4 +35,10 @@ export const PayrollModuleRoute = createRoute({
   component: PayrollModulePage,
 });
 
-export const rootTree = RootRoute.addChildren([HomeRoute, PayrollModuleRoute]);
+export const RommLibraryRoute = createRoute({
+  getParentRoute: () => RootRoute,
+  path: "/romm-library",
+  component: RommLibraryPage,
+});
+
+export const rootTree = RootRoute.addChildren([HomeRoute, PayrollModuleRoute, RommLibraryRoute]);

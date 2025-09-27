@@ -7,6 +7,7 @@ import { ProfitLossSection } from "./profit-loss-section";
 import { ChartsSection } from "./charts-section";
 import DocumentsPage from "./documents/DocumentsPage";
 import LibrariesPage from "./libraries/LibrariesPage";
+import RommLibraryPage from "../pages/RommLibraryPage";
 import PayrollRunner from "./payroll/PayrollRunner";
 import PayrollLanding from "./payroll/PayrollLanding";
 import PayrollRomms from "./payroll/PayrollRomms";
@@ -60,7 +61,7 @@ export const mainContentRoutes: Record<string, RouteConfig> = {
     component: LibrariesPage,
   },
   "romm-library": {
-    component: LibrariesPage,
+    component: RommLibraryPage,
   },
   "control-owner-library": {
     component: LibrariesPage,
