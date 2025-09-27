@@ -6,6 +6,7 @@ import { exposePayrollContext } from "./payroll/payroll-context";
 import { exposeInternalControlsContext } from "./internal-controls/internal-controls-context";
 import { exposeCloudContext } from "./cloud/cloud-context";
 import { exposeAzureContext } from "./azure/azure-context";
+import { exposeSharePointContext } from "./sharepoint/sharepoint-context";
 
 export default function exposeContexts() {
   exposeWindowContext();
@@ -16,4 +17,5 @@ export default function exposeContexts() {
   exposeInternalControlsContext();
   exposeCloudContext();
   exposeAzureContext();
+  exposeSharePointContext();
 }

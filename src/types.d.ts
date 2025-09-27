@@ -162,6 +162,15 @@ interface ElectronAPI {
   uploadFileToAzure: (request: AzureUploadRequest) => Promise<AzureUploadResult>;
 }
 
+interface SharePointAPI {
+  addRommEntry: (formData: {
+    "romm-id": string;
+    workspace: string;
+    description: string;
+    assertion: string;
+  }) => Promise<{ success: boolean; data?: any; error?: string }>;
+}
+
 declare interface Window {
   themeMode: ThemeModeContext;
   electronWindow: ElectronWindow;
@@ -170,6 +179,7 @@ declare interface Window {
   internalControls: InternalControlsContext;
   cloud: CloudContext;
   electronAPI: ElectronAPI;
+  sharePointAPI: SharePointAPI;
   payroll: {
     acceptedInputs: () => Promise<string[]>;
     run: (

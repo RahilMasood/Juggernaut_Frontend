@@ -8,6 +8,7 @@ import { addInternalControlsEventListeners } from "./internal-controls/internal-
 import { addCloudEventListeners } from "./cloud/cloud-listeners";
 import { addAzureUploadListener } from "./cloud/azure-upload";
 import { testCloudHandlers } from "./cloud/cloud-handler-test";
+import { registerSharePointListeners } from "./sharepoint/sharepoint-listeners";
 
 export default function registerListeners(mainWindow: BrowserWindow) {
   console.log('Registering all IPC listeners...');
@@ -20,6 +21,7 @@ export default function registerListeners(mainWindow: BrowserWindow) {
   addCloudEventListeners(mainWindow);
   console.log('About to register cloud file operation listeners...');
   addAzureUploadListener(mainWindow);
+  registerSharePointListeners();
   console.log('All IPC listeners registered successfully');
   
   // Optional: verify handlers

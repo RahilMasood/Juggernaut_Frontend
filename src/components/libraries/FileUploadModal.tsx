@@ -24,6 +24,8 @@ import { AzureFileUpload } from "../ui/azure-file-upload";
 import { CloudFileEntry } from "../../helpers/ipc/cloud/cloud-context";
 import InternalControlMetadataModal from "./InternalControlMetadataModal";
 import InternalControlForm from "./InternalControlForm";
+import RommDialog from "./RommDialog";
+// import { sharePointService, RommEntry } from "../../utils/sharepoint-service";
 
 interface LibraryOption {
   id: string;
@@ -109,6 +111,11 @@ export default function FileUploadModal({
   const [controlMetadata, setControlMetadata] = useState<any>(null);
   const [controlTemplate, setControlTemplate] = useState<any>(null);
   
+  // ROMM dialog state
+  const [isRommDialogOpen, setIsRommDialogOpen] = useState(false);
+  const [rommFormLoading, setRommFormLoading] = useState(false);
+  // const [rommEntries, setRommEntries] = useState<RommEntry[]>([]);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleLibrarySelect = (libraryId: string) => {
@@ -118,6 +125,45 @@ export default function FileUploadModal({
     // If Internal Control Library is selected, show metadata modal
     if (libraryId === 'internal-control') {
       setShowMetadataModal(true);
+    }
+    
+    // If ROMM Library is selected, open ROMM dialog
+    if (libraryId === 'romm') {
+      setIsRommDialogOpen(true);
+    }
+  };
+
+  const handleRommSubmit = async (formData: {
+    "romm-id": string;
+    workspace: string;
+    description: string;
+    assertion: string;
+  }) => {
+    setRommFormLoading(true);
+    try {
+      logger.info("Submitting ROMM form", { formData });
+      
+      // Use real SharePoint API via IPC
+      if (window.sharePointAPI && window.sharePointAPI.addRommEntry) {
+        const result = await window.sharePointAPI.addRommEntry(formData);
+        
+        if (result.success) {
+          logger.info("ROMM entry added successfully to SharePoint");
+          alert("ROMM entry added successfully to SharePoint!");
+        } else {
+          throw new Error(result.error || "Failed to add ROMM entry");
+        }
+      } else {
+        // Fallback to mock if API not available
+        logger.warn("SharePoint API not available, using mock");
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        alert("ROMM entry added successfully (mock)!");
+      }
+    } catch (error) {
+      logger.error("Failed to submit ROMM form", { error, formData });
+      alert(`Failed to add ROMM entry: ${error instanceof Error ? error.message : "Unknown error"}`);
+    } finally {
+      setRommFormLoading(false);
     }
   };
 
@@ -591,6 +637,14 @@ export default function FileUploadModal({
           template={controlTemplate}
         />
       )}
+
+      {/* ROMM Dialog */}
+      <RommDialog
+        isOpen={isRommDialogOpen}
+        onClose={() => setIsRommDialogOpen(false)}
+        onSubmit={handleRommSubmit}
+        isLoading={rommFormLoading}
+      />
     </div>
   );
 }
