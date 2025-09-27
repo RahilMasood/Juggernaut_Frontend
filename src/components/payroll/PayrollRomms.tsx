@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
@@ -72,6 +72,15 @@ export default function PayrollRomms({
   const [selectedControlForViewing, setSelectedControlForViewing] = useState<any>(null);
   const [controlViewerTemplate, setControlViewerTemplate] = useState<any>(null);
   const [isControlViewerOpen, setIsControlViewerOpen] = useState(false);
+  
+  // Autosave status state
+  const [autosaveStatus, setAutosaveStatus] = useState<{
+    [rommId: string]: {
+      status: 'saving' | 'saved' | 'error';
+      lastSaved?: Date;
+      error?: string;
+    }
+  }>({});
 
   // Load persisted ROMM-control linkages
   useEffect(() => {
@@ -85,11 +94,61 @@ export default function PayrollRomms({
     }
   }, []);
 
-  // Load ROMMS data from Instructions.json
+  // Load ROMMS data from SharePoint for Employee Benefits Expense
   useEffect(() => {
     const loadRommsData = async () => {
       try {
-        // Load the Instructions.json file from the payroll directory
+        // Check if SharePoint API is available
+        console.log("SharePoint API available:", !!window.sharePointAPI);
+        console.log("SharePoint updateRommEntry available:", !!window.sharePointAPI?.updateRommEntry);
+        
+        // Try to fetch from SharePoint first
+        if (window.sharePointAPI?.readRommLibraryByWorkspace) {
+          console.log("Fetching ROMM data from SharePoint for Employee Benefits Expense...");
+          const sharePointResponse = await window.sharePointAPI.readRommLibraryByWorkspace("Employee Benefits Expense");
+          
+          if (sharePointResponse.success && sharePointResponse.data?.romm_library) {
+            console.log("Successfully loaded ROMM data from SharePoint:", sharePointResponse.data);
+            
+            // Transform SharePoint data to component format
+            const rommsData: RommItem[] = sharePointResponse.data.romm_library.map((entry: any) => ({
+              id: entry["romm-id"],
+              risk: entry.description, // Use description as the risk text
+              assertion: entry.assertion,
+              options: ["Lower", "Higher", "Significant", "NRPMM"], // Standard options
+            }));
+
+            setRomms(rommsData);
+            if (rommsData.length > 0) {
+              setSelectedRommId(rommsData[0].id);
+            }
+
+            // Load saved assessments and documentation from SharePoint
+            const savedSelections: Record<string, string> = {};
+            const savedDocumentation: Record<string, string> = {};
+            
+            sharePointResponse.data.romm_library.forEach((entry: any) => {
+              if (entry["assesment"] && entry["assesment"] !== "") {
+                savedSelections[entry["romm-id"]] = entry["assesment"];
+              }
+              if (entry["documentation"] && entry["documentation"] !== "") {
+                savedDocumentation[entry["romm-id"]] = entry["documentation"];
+              }
+            });
+
+            console.log("Loaded saved assessments from SharePoint:", savedSelections);
+            console.log("Loaded saved documentation from SharePoint:", savedDocumentation);
+            
+            setRommSelections(savedSelections);
+            setRommDocumentation(savedDocumentation);
+            return; // Successfully loaded from SharePoint
+          } else {
+            console.warn("SharePoint data not available, falling back to local data:", sharePointResponse.error);
+          }
+        }
+
+        // Fallback to local Instructions.json
+        console.log("Falling back to local Instructions.json...");
         const response = await fetch("/payroll/Instructions.json");
         if (!response.ok) {
           throw new Error("Failed to load Instructions.json");
@@ -142,7 +201,7 @@ export default function PayrollRomms({
         }
       } catch (error) {
         console.error("Error loading ROMMS data:", error);
-        // Fallback to hardcoded data if file loading fails
+        // Final fallback to hardcoded data if all else fails
         const fallbackData: RommItem[] = [
           {
             "id": "EBE.SR.001",
@@ -205,21 +264,158 @@ export default function PayrollRomms({
     }
   }, []);
 
-  const handleRommSelection = (rommId: string, option: string) => {
+  const handleRommSelection = async (rommId: string, option: string) => {
+    // Update local state immediately for UI responsiveness
     setRommSelections((prev) => ({
       ...prev,
       [rommId]: option,
     }));
+
+    // Set saving status
+    setAutosaveStatus(prev => ({
+      ...prev,
+      [rommId]: { status: 'saving' }
+    }));
+
+    // Autosave to SharePoint
+    try {
+      if (window.sharePointAPI?.updateRommEntry) {
+        console.log(`Autosaving ROMM ${rommId} assessment to SharePoint:`, { 
+          rommId, 
+          assessment: option, 
+          documentation: rommDocumentation[rommId] || "" 
+        });
+        
+        const updateResponse = await window.sharePointAPI.updateRommEntry({
+          rommId: rommId,
+          assessment: option,
+          documentation: rommDocumentation[rommId] || "" // Include existing documentation
+        });
+        
+        console.log(`SharePoint update response for ${rommId}:`, updateResponse);
+        
+        if (updateResponse.success) {
+          console.log(`Successfully autosaved ROMM ${rommId} assessment to SharePoint`);
+          setAutosaveStatus(prev => ({
+            ...prev,
+            [rommId]: { 
+              status: 'saved',
+              lastSaved: new Date()
+            }
+          }));
+        } else {
+          console.error(`Failed to autosave ROMM ${rommId} assessment to SharePoint:`, updateResponse.error);
+          setAutosaveStatus(prev => ({
+            ...prev,
+            [rommId]: { 
+              status: 'error',
+              error: updateResponse.error || 'Unknown error'
+            }
+          }));
+        }
+      } else {
+        console.warn("SharePoint API not available for autosave");
+        setAutosaveStatus(prev => ({
+          ...prev,
+          [rommId]: { 
+            status: 'error',
+            error: 'SharePoint API not available'
+          }
+        }));
+      }
+    } catch (error) {
+      console.error(`Error autosaving ROMM ${rommId} assessment:`, error);
+      setAutosaveStatus(prev => ({
+        ...prev,
+        [rommId]: { 
+          status: 'error',
+          error: error instanceof Error ? error.message : 'Unknown error'
+        }
+      }));
+    }
   };
 
+  // Debounced autosave function for documentation
+  const debouncedAutosave = useCallback(
+    (() => {
+      let timeoutId: NodeJS.Timeout;
+      return (rommId: string, documentation: string) => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(async () => {
+          // Set saving status
+          setAutosaveStatus(prev => ({
+            ...prev,
+            [rommId]: { status: 'saving' }
+          }));
+
+          // Autosave to SharePoint
+          try {
+            if (window.sharePointAPI?.updateRommEntry) {
+              console.log(`Autosaving ROMM ${rommId} documentation to SharePoint:`, { documentation });
+              
+              const updateResponse = await window.sharePointAPI.updateRommEntry({
+                rommId: rommId,
+                assessment: rommSelections[rommId] || "", // Include existing assessment
+                documentation: documentation
+              });
+              
+              if (updateResponse.success) {
+                console.log(`Successfully autosaved ROMM ${rommId} documentation to SharePoint`);
+                setAutosaveStatus(prev => ({
+                  ...prev,
+                  [rommId]: { 
+                    status: 'saved',
+                    lastSaved: new Date()
+                  }
+                }));
+              } else {
+                console.error(`Failed to autosave ROMM ${rommId} documentation to SharePoint:`, updateResponse.error);
+                setAutosaveStatus(prev => ({
+                  ...prev,
+                  [rommId]: { 
+                    status: 'error',
+                    error: updateResponse.error || 'Unknown error'
+                  }
+                }));
+              }
+            } else {
+              console.warn("SharePoint API not available for autosave");
+              setAutosaveStatus(prev => ({
+                ...prev,
+                [rommId]: { 
+                  status: 'error',
+                  error: 'SharePoint API not available'
+                }
+              }));
+            }
+          } catch (error) {
+            console.error(`Error autosaving ROMM ${rommId} documentation:`, error);
+            setAutosaveStatus(prev => ({
+              ...prev,
+              [rommId]: { 
+                status: 'error',
+                error: error instanceof Error ? error.message : 'Unknown error'
+              }
+            }));
+          }
+        }, 1000); // 1 second delay
+      };
+    })(),
+    [rommSelections]
+  );
+
   const handleDocumentationChange = (rommId: string, documentation: string) => {
+    // Update local state immediately for UI responsiveness
     setRommDocumentation((prev) => ({
       ...prev,
       [rommId]: documentation,
     }));
+
+    // Trigger debounced autosave
+    debouncedAutosave(rommId, documentation);
   };
 
-  const handleAssociateControls = (selectedControls: InternalControl[]) => {
+  const handleAssociateControls = async (selectedControls: InternalControl[]) => {
     if (selectedRommId) {
       // Update local state
       const newAssociations = {
@@ -242,12 +438,37 @@ export default function PayrollRomms({
       // Save ROMM-control linkages to localStorage for persistence (legacy support)
       localStorage.setItem('rommControlLinkages', JSON.stringify(newAssociations));
       
+      // Save to SharePoint
+      try {
+        if (window.sharePointAPI?.updateRommEntry) {
+          console.log(`Saving control associations for ROMM ${selectedRommId} to SharePoint:`, selectedControls.map(c => c.control_id));
+          
+          const updateResponse = await window.sharePointAPI.updateRommEntry({
+            rommId: selectedRommId,
+            assessment: rommSelections[selectedRommId] || "",
+            documentation: rommDocumentation[selectedRommId] || "",
+            controlIds: selectedControls.map(control => control.control_id),
+            procedureIds: associatedProcedures[selectedRommId]?.map(p => p.procedure_id) || []
+          });
+          
+          if (updateResponse.success) {
+            console.log(`Successfully saved control associations for ROMM ${selectedRommId} to SharePoint`);
+          } else {
+            console.error(`Failed to save control associations for ROMM ${selectedRommId} to SharePoint:`, updateResponse.error);
+          }
+        } else {
+          console.warn("SharePoint API not available for saving control associations");
+        }
+      } catch (error) {
+        console.error(`Error saving control associations for ROMM ${selectedRommId}:`, error);
+      }
+      
       // Dispatch custom event to notify other components
       window.dispatchEvent(new CustomEvent('rommControlLinkagesUpdated'));
     }
   };
 
-  const handleRemoveControl = (rommId: string, controlId: string) => {
+  const handleRemoveControl = async (rommId: string, controlId: string) => {
     const newAssociations = {
       ...associatedControls,
       [rommId]: associatedControls[rommId]?.filter(control => control.control_id !== controlId) || []
@@ -260,24 +481,101 @@ export default function PayrollRomms({
     // Save updated ROMM-control linkages to localStorage (legacy support)
     localStorage.setItem('rommControlLinkages', JSON.stringify(newAssociations));
     
+    // Save to SharePoint
+    try {
+      if (window.sharePointAPI?.updateRommEntry) {
+        console.log(`Saving updated control associations for ROMM ${rommId} to SharePoint after removal`);
+        
+        const updateResponse = await window.sharePointAPI.updateRommEntry({
+          rommId: rommId,
+          assessment: rommSelections[rommId] || "",
+          documentation: rommDocumentation[rommId] || "",
+          controlIds: newAssociations[rommId]?.map(c => c.control_id) || [],
+          procedureIds: associatedProcedures[rommId]?.map(p => p.procedure_id) || []
+        });
+        
+        if (updateResponse.success) {
+          console.log(`Successfully saved updated control associations for ROMM ${rommId} to SharePoint`);
+        } else {
+          console.error(`Failed to save updated control associations for ROMM ${rommId} to SharePoint:`, updateResponse.error);
+        }
+      } else {
+        console.warn("SharePoint API not available for saving updated control associations");
+      }
+    } catch (error) {
+      console.error(`Error saving updated control associations for ROMM ${rommId}:`, error);
+    }
+    
     // Dispatch custom event to notify other components
     window.dispatchEvent(new CustomEvent('rommControlLinkagesUpdated'));
   };
 
-  const handleAssociateProcedures = (selectedProcedures: SubstantiveProcedure[]) => {
+  const handleAssociateProcedures = async (selectedProcedures: SubstantiveProcedure[]) => {
     if (selectedRommId) {
       setAssociatedProcedures(prev => ({
         ...prev,
         [selectedRommId]: selectedProcedures
       }));
+
+      // Save to SharePoint
+      try {
+        if (window.sharePointAPI?.updateRommEntry) {
+          console.log(`Saving procedure associations for ROMM ${selectedRommId} to SharePoint:`, selectedProcedures.map(p => p.procedure_id));
+          
+          const updateResponse = await window.sharePointAPI.updateRommEntry({
+            rommId: selectedRommId,
+            assessment: rommSelections[selectedRommId] || "",
+            documentation: rommDocumentation[selectedRommId] || "",
+            controlIds: associatedControls[selectedRommId]?.map(c => c.control_id) || [],
+            procedureIds: selectedProcedures.map(procedure => procedure.procedure_id)
+          });
+          
+          if (updateResponse.success) {
+            console.log(`Successfully saved procedure associations for ROMM ${selectedRommId} to SharePoint`);
+          } else {
+            console.error(`Failed to save procedure associations for ROMM ${selectedRommId} to SharePoint:`, updateResponse.error);
+          }
+        } else {
+          console.warn("SharePoint API not available for saving procedure associations");
+        }
+      } catch (error) {
+        console.error(`Error saving procedure associations for ROMM ${selectedRommId}:`, error);
+      }
     }
   };
 
-  const handleRemoveProcedure = (rommId: string, procedureId: string) => {
-    setAssociatedProcedures(prev => ({
-      ...prev,
-      [rommId]: prev[rommId]?.filter(procedure => procedure.id !== procedureId) || []
-    }));
+  const handleRemoveProcedure = async (rommId: string, procedureId: string) => {
+    const updatedProcedures = {
+      ...associatedProcedures,
+      [rommId]: associatedProcedures[rommId]?.filter(procedure => procedure.id !== procedureId) || []
+    };
+    
+    setAssociatedProcedures(updatedProcedures);
+
+    // Save to SharePoint
+    try {
+      if (window.sharePointAPI?.updateRommEntry) {
+        console.log(`Saving updated procedure associations for ROMM ${rommId} to SharePoint after removal`);
+        
+        const updateResponse = await window.sharePointAPI.updateRommEntry({
+          rommId: rommId,
+          assessment: rommSelections[rommId] || "",
+          documentation: rommDocumentation[rommId] || "",
+          controlIds: associatedControls[rommId]?.map(c => c.control_id) || [],
+          procedureIds: updatedProcedures[rommId]?.map(p => p.procedure_id) || []
+        });
+        
+        if (updateResponse.success) {
+          console.log(`Successfully saved updated procedure associations for ROMM ${rommId} to SharePoint`);
+        } else {
+          console.error(`Failed to save updated procedure associations for ROMM ${rommId} to SharePoint:`, updateResponse.error);
+        }
+      } else {
+        console.warn("SharePoint API not available for saving updated procedure associations");
+      }
+    } catch (error) {
+      console.error(`Error saving updated procedure associations for ROMM ${rommId}:`, error);
+    }
   };
 
   const isRommComplete = (rommId: string) => {
@@ -362,6 +660,7 @@ export default function PayrollRomms({
   };
 
   const handleComplete = () => {
+    // Data is already saved via autosave, just complete the form
     const completeData = {
       selections: rommSelections,
       documentation: rommDocumentation,
@@ -385,6 +684,60 @@ export default function PayrollRomms({
           <Badge className="bg-white/10 text-white/80">
             {Object.keys(rommSelections).length} / {romms.length} Complete
           </Badge>
+          
+          {/* Autosave Status Indicator */}
+          {selectedRommId && autosaveStatus[selectedRommId] && (
+            <div className="flex items-center gap-2">
+              {autosaveStatus[selectedRommId].status === 'saving' && (
+                <div className="flex items-center gap-1 text-yellow-400">
+                  <div className="h-2 w-2 bg-yellow-400 rounded-full animate-pulse"></div>
+                  <span className="text-xs">Saving...</span>
+                </div>
+              )}
+              {autosaveStatus[selectedRommId].status === 'saved' && (
+                <div className="flex items-center gap-1 text-green-400">
+                  <div className="h-2 w-2 bg-green-400 rounded-full"></div>
+                  <span className="text-xs">
+                    Saved {autosaveStatus[selectedRommId].lastSaved && 
+                      `at ${autosaveStatus[selectedRommId].lastSaved!.toLocaleTimeString()}`}
+                  </span>
+                </div>
+              )}
+              {autosaveStatus[selectedRommId].status === 'error' && (
+                <div className="flex items-center gap-1 text-red-400">
+                  <div className="h-2 w-2 bg-red-400 rounded-full"></div>
+                  <span className="text-xs">Save failed</span>
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* Debug: Manual test button */}
+          {selectedRommId && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={async () => {
+                console.log("Manual test of autosave for:", selectedRommId);
+                if (window.sharePointAPI?.updateRommEntry) {
+                  try {
+                    const response = await window.sharePointAPI.updateRommEntry({
+                      rommId: selectedRommId,
+                      assessment: "Test",
+                      documentation: "Manual test"
+                    });
+                    console.log("Manual test response:", response);
+                  } catch (error) {
+                    console.error("Manual test error:", error);
+                  }
+                }
+              }}
+              className="text-xs"
+            >
+              Test Save
+            </Button>
+          )}
+          
           <Button variant="outline" onClick={onBack}>
             Back to Landing
           </Button>

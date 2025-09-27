@@ -14,6 +14,14 @@ export function exposeSharePointContext() {
       description: string;
       assertion: string;
     }) => ipcRenderer.invoke(SHAREPOINT_CHANNELS.ADD_ROMM_ENTRY, formData),
+  updateRommEntry: (updateData: {
+    rommId: string;
+    assessment: string;
+    documentation: string;
+    controlIds?: string[];
+    procedureIds?: string[];
+  }) => ipcRenderer.invoke(SHAREPOINT_CHANNELS.UPDATE_ROMM_ENTRY, updateData),
     readRommLibrary: () => ipcRenderer.invoke(SHAREPOINT_CHANNELS.READ_ROMM_LIBRARY),
+    readRommLibraryByWorkspace: (workspace: string) => ipcRenderer.invoke(SHAREPOINT_CHANNELS.READ_ROMM_LIBRARY_BY_WORKSPACE, workspace),
   });
 }

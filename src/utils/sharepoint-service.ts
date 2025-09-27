@@ -123,6 +123,42 @@ export class SharePointService {
   }
 
   /**
+   * Download ROMM library file from SharePoint with workspace filter
+   */
+  async downloadRommLibraryByWorkspace(workspace: string): Promise<SharePointResponse> {
+    try {
+      logger.info(`Downloading ROMM library from SharePoint for workspace: ${workspace}`);
+
+      // First, get the full library
+      const fullLibraryResponse = await this.downloadRommLibrary();
+      
+      if (!fullLibraryResponse.success || !fullLibraryResponse.data) {
+        return fullLibraryResponse;
+      }
+
+      // Filter by workspace
+      const filteredLibrary: RommLibrary = {
+        romm_library: fullLibraryResponse.data.romm_library.filter(
+          (entry: RommEntry) => entry.workspace === workspace
+        )
+      };
+
+      logger.info(`Found ${filteredLibrary.romm_library.length} ROMM entries for workspace: ${workspace}`);
+
+      return {
+        success: true,
+        data: filteredLibrary,
+      };
+    } catch (error) {
+      logger.error("Failed to download ROMM library by workspace", { error, workspace });
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  }
+
+  /**
    * Download ROMM library file from SharePoint
    */
   async downloadRommLibrary(): Promise<SharePointResponse> {

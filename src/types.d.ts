@@ -169,7 +169,15 @@ interface SharePointAPI {
     description: string;
     assertion: string;
   }) => Promise<{ success: boolean; data?: any; error?: string }>;
+  updateRommEntry: (updateData: {
+    rommId: string;
+    assessment: string;
+    documentation: string;
+    controlIds?: string[];
+    procedureIds?: string[];
+  }) => Promise<{ success: boolean; data?: any; error?: string }>;
   readRommLibrary: () => Promise<{ success: boolean; data?: any; error?: string }>;
+  readRommLibraryByWorkspace: (workspace: string) => Promise<{ success: boolean; data?: any; error?: string }>;
 }
 
 declare interface Window {
