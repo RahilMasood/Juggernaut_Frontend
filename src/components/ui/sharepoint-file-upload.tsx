@@ -31,6 +31,7 @@ interface UploadStatus {
   webUrl?: string;
 }
 
+
 export function SharePointFileUpload({
   onFilesUploaded,
   multiple = true,
@@ -50,12 +51,14 @@ export function SharePointFileUpload({
   const [uploadMode, setUploadMode] = useState<'local' | 'cloud'>('local');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+
   // Load cloud files when component mounts or when switching to cloud mode
   useEffect(() => {
     if (uploadMode === 'cloud' && cloudFiles.length === 0) {
       loadCloudFiles();
     }
   }, [uploadMode]);
+
 
   const loadCloudFiles = async () => {
     setIsLoadingCloudFiles(true);
@@ -77,6 +80,7 @@ export function SharePointFileUpload({
       setIsLoadingCloudFiles(false);
     }
   };
+
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
@@ -108,6 +112,7 @@ export function SharePointFileUpload({
       }
     }
   };
+
 
   const removeCloudFile = (cloudFile: CloudFile) => {
     setSelectedCloudFiles(prev => prev.filter(f => f.name !== cloudFile.name));
@@ -521,6 +526,7 @@ export function SharePointFileUpload({
           )}
         </>
       )}
+
     </div>
   );
 }

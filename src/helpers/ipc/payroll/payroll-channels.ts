@@ -5,5 +5,6 @@ export const PAYROLL_DOWNLOAD_RESULT_CHANNEL = "payroll:download-result";
 export const PAYROLL_PROGRESS_CHANNEL = "payroll:progress";
 export const PAYROLL_OPEN_DIALOG_CHANNEL = "payroll:open-dialog";
 export const PAYROLL_UPLOAD_FILE_CHANNEL = "payroll:upload-file";
+export const PAYROLL_LOAD_EXCEL_COLUMNS_CHANNEL = "payroll:load-excel-columns";
 
 

@@ -186,6 +186,9 @@ interface SharePointAPI {
     fyYear?: string;
   }) => Promise<{ success: boolean; data?: any; error?: string }>;
   loadCloudFiles: () => Promise<{ success: boolean; data?: any; error?: string }>;
+  loadClientFiles: () => Promise<{ success: boolean; data?: any; error?: string }>;
+  loadExcelColumns: (fileName: string) => Promise<{ success: boolean; data?: any; error?: string }>;
+  executeIPE: (payload: { payrollFile: string; customKeys: string[] }) => Promise<{ success: boolean; data?: any; error?: string }>;
 }
 
 declare interface Window {
@@ -207,6 +210,7 @@ declare interface Window {
       Array<{ id: string; label: string; createdAt: number; filePath: string; size: number; mimeType?: string }>
     >;
     downloadResult: (id: string) => Promise<{ ok: boolean; filePath?: string; error?: string }>;
+    loadExcelColumns: (fileName: string) => Promise<{ ok: boolean; columns?: string[]; error?: string }>;
     onProgress: (
       handler: (payload: { runId: string; progress: number; status: "running" | "success" | "error"; message?: string; error?: string }) => void,
     ) => () => void;

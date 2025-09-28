@@ -6,6 +6,7 @@ import {
   PAYROLL_RUN_SCRIPT_CHANNEL,
   PAYROLL_OPEN_DIALOG_CHANNEL,
   PAYROLL_UPLOAD_FILE_CHANNEL,
+  PAYROLL_LOAD_EXCEL_COLUMNS_CHANNEL,
 } from "./payroll-channels";
 
 export function exposePayrollContext() {
@@ -59,6 +60,8 @@ export function exposePayrollContext() {
       ipcRenderer.invoke("payroll:read-ipe-selection"),
     downloadClientFile: (filename: string): Promise<{ ok: boolean; filePath?: string; error?: string }> =>
       ipcRenderer.invoke("payroll:download-client-file", { filename }),
+    loadExcelColumns: (fileName: string): Promise<{ ok: boolean; columns?: string[]; error?: string }> =>
+      ipcRenderer.invoke(PAYROLL_LOAD_EXCEL_COLUMNS_CHANNEL, { fileName }),
     onProgress: (
       handler: (payload: {
         runId: string;

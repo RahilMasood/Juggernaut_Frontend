@@ -386,6 +386,63 @@ export class SharePointService {
   }
 
   /**
+   * Load client files from db.json for IPE Testing
+   */
+  async loadClientFiles(): Promise<SharePointResponse> {
+    try {
+      logger.info("Loading client files from SharePoint db.json for IPE Testing");
+
+      // This method should only be called from the main process
+      // The actual implementation is in the IPC listener
+      throw new Error("This method should be called via IPC from the main process");
+    } catch (error) {
+      logger.error("Failed to load client files", { error });
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error"
+      };
+    }
+  }
+
+  /**
+   * Load Excel columns from payroll file for IPE Testing
+   */
+  async loadExcelColumns(fileName: string): Promise<SharePointResponse> {
+    try {
+      logger.info(`Loading Excel columns from payroll file: ${fileName}`);
+
+      // This method should only be called from the main process
+      // The actual implementation is in the IPC listener
+      throw new Error("This method should be called via IPC from the main process");
+    } catch (error) {
+      logger.error("Failed to load Excel columns", { error, fileName });
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error"
+      };
+    }
+  }
+
+  /**
+   * Execute IPE Testing with column mappings
+   */
+  async executeIPE(payload: { payrollFile: string; customKeys: string[] }): Promise<SharePointResponse> {
+    try {
+      logger.info("Executing IPE Testing", { payload });
+
+      // This method should only be called from the main process
+      // The actual implementation is in the IPC listener
+      throw new Error("This method should be called via IPC from the main process");
+    } catch (error) {
+      logger.error("Failed to execute IPE Testing", { error, payload });
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error"
+      };
+    }
+  }
+
+  /**
    * Upload file to SharePoint client folder
    */
   async uploadFileToSharePoint(
