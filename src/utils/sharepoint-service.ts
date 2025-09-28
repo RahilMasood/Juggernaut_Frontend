@@ -35,7 +35,7 @@ export interface RommLibrary {
 
 export interface SharePointResponse {
   success: boolean;
-  data?: RommLibrary;
+  data?: RommLibrary | any;
   error?: string;
 }
 
@@ -336,7 +336,7 @@ export class SharePointService {
       const library = downloadResponse.data;
 
       // Step 2: Find the entry by romm-id
-      const entryIndex = library.romm_library.findIndex(e => e["romm-id"] === rommId);
+      const entryIndex = library.romm_library.findIndex((e: RommEntry) => e["romm-id"] === rommId);
       if (entryIndex === -1) {
         throw new Error(`ROMM entry with id ${rommId} not found`);
       }
@@ -363,6 +363,94 @@ export class SharePointService {
         success: false,
         error: error instanceof Error ? error.message : "Unknown error"
       };
+    }
+  }
+
+  /**
+   * Upload file to SharePoint client folder
+   */
+  async uploadFileToSharePoint(
+    filePath: string,
+    fileName: string,
+    referenceValue: string = "",
+    folderName: string = "client",
+    fyYear: string = "TestClient_FY25"
+  ): Promise<SharePointResponse> {
+    try {
+      logger.info(`Uploading file to SharePoint: ${fileName}`, { filePath, referenceValue, folderName, fyYear });
+
+      // This method should only be called from the main process
+      // The actual implementation is in the IPC listener
+      throw new Error("This method should be called via IPC from the main process");
+    } catch (error) {
+      logger.error("Failed to upload file to SharePoint", { error, fileName, filePath });
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error"
+      };
+    }
+  }
+
+  /**
+   * Update db.json with new file entry
+   */
+  private async updateDbJson(
+    driveId: string,
+    fileName: string,
+    fileWebUrl: string,
+    referenceValue: string,
+    folderName: string,
+    fyYear: string
+  ): Promise<void> {
+    try {
+      // Download current db.json
+      const dbUrl = `https://graph.microsoft.com/v1.0/drives/${driveId}/root:/${fyYear}/juggernaut/db.json:/content`;
+      const headers = { Authorization: `Bearer ${this.accessToken}` };
+
+      const dbResponse = await fetch(dbUrl, { headers });
+      
+      let dbData: any;
+      if (dbResponse.ok) {
+        dbData = await dbResponse.json();
+      } else {
+        // If db.json doesn't exist yet, start with empty structure
+        dbData = { "juggernaut": [], "client": [], "tools": [], "rbin": [] };
+      }
+
+      // Append new file entry
+      const newEntry = {
+        name: fileName,
+        url: fileWebUrl,
+        reference: referenceValue
+      };
+
+      if (dbData[folderName]) {
+        dbData[folderName].push(newEntry);
+      } else {
+        dbData[folderName] = [newEntry];
+      }
+
+      // Upload updated db.json back
+      const updatedDbContent = JSON.stringify(dbData, null, 4);
+      const dbUploadUrl = `https://graph.microsoft.com/v1.0/drives/${driveId}/root:/${fyYear}/juggernaut/db.json:/content`;
+
+      const dbUploadResponse = await fetch(dbUploadUrl, {
+        method: "PUT",
+        headers: {
+          ...headers,
+          "Content-Type": "application/json",
+        },
+        body: updatedDbContent,
+      });
+
+      if (!dbUploadResponse.ok) {
+        throw new Error(`Failed to update db.json: ${dbUploadResponse.statusText}`);
+      }
+
+      logger.info("Successfully updated db.json with new file entry");
+    } catch (error) {
+      logger.error("Failed to update db.json", { error });
+      throw error;
     }
   }
 

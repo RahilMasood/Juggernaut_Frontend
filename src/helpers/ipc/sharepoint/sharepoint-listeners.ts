@@ -338,5 +338,153 @@ export function registerSharePointListeners() {
     }
   });
 
+  // Handle file upload to SharePoint
+  ipcMain.handle("sharepoint:upload-file", async (event, uploadData) => {
+    try {
+      logger.info("Uploading file to SharePoint via IPC", { uploadData });
+      
+      // === CONFIG ===
+      const TENANT_ID = "114c8106-747f-4cc7-870e-8712e6c23b18";
+      const CLIENT_ID = "b357e50c-c5ef-484d-84df-fe470fe76528";
+      const CLIENT_SECRET = "JAZ8Q~xlY-EDlgbLtgJaqjPNAjsHfYFavwxbkdjE";
+      const SITE_NAME = "TestCloud";
+      const DOC_LIBRARY = "TestClient";
+
+      // === 1️⃣ Get access token ===
+      const { ConfidentialClientApplication } = require('@azure/msal-node');
+      const msalApp = new ConfidentialClientApplication({
+        auth: {
+          clientId: CLIENT_ID,
+          clientSecret: CLIENT_SECRET,
+          authority: `https://login.microsoftonline.com/${TENANT_ID}`
+        }
+      });
+
+      const tokenResponse = await msalApp.acquireTokenByClientCredential({
+        scopes: ["https://graph.microsoft.com/.default"]
+      });
+
+      if (!tokenResponse.accessToken) {
+        throw new Error("Failed to acquire access token");
+      }
+
+      const headers = { "Authorization": `Bearer ${tokenResponse.accessToken}` };
+
+      // === 2️⃣ Get site ID ===
+      const siteResp = await fetch(
+        `https://graph.microsoft.com/v1.0/sites/juggernautenterprises.sharepoint.com:/sites/${SITE_NAME}`,
+        { headers }
+      );
+
+      if (!siteResp.ok) {
+        throw new Error(`Failed to get site ID: ${siteResp.statusText}`);
+      }
+
+      const siteData = await siteResp.json();
+      const siteId = siteData.id;
+
+      // === 3️⃣ Get library (drive) ID for TestClient ===
+      const drivesResp = await fetch(`https://graph.microsoft.com/v1.0/sites/${siteId}/drives`, { headers });
+      
+      if (!drivesResp.ok) {
+        throw new Error(`Failed to get drives: ${drivesResp.statusText}`);
+      }
+
+      const drivesData = await drivesResp.json();
+      const drives = drivesData.value;
+
+      let driveId = null;
+      for (const d of drives) {
+        if (d.name === DOC_LIBRARY) {
+          driveId = d.id;
+          break;
+        }
+      }
+
+      if (!driveId) {
+        throw new Error(`Library '${DOC_LIBRARY}' not found on site '${SITE_NAME}'`);
+      }
+
+      // === 4️⃣ Upload file to folder in the library ===
+      const uploadUrl = `https://graph.microsoft.com/v1.0/drives/${driveId}/root:/${uploadData.fyYear || "TestClient_FY25"}/${uploadData.folderName || "client"}/${uploadData.fileName}:/content`;
+
+      // Convert base64 content to buffer
+      const fileContent = Buffer.from(uploadData.fileContent, 'base64');
+
+      const uploadResp = await fetch(uploadUrl, {
+        method: "PUT",
+        headers,
+        body: fileContent,
+      });
+
+      if (!uploadResp.ok) {
+        throw new Error(`Failed to upload file: ${uploadResp.statusText}`);
+      }
+
+      const uploadResult = await uploadResp.json();
+      const fileWebUrl = uploadResult.webUrl;
+
+      // === 5️⃣ Download current db.json ===
+      const dbUrl = `https://graph.microsoft.com/v1.0/drives/${driveId}/root:/${uploadData.fyYear || "TestClient_FY25"}/juggernaut/db.json:/content`;
+      const dbResp = await fetch(dbUrl, { headers });
+
+      let dbData;
+      if (dbResp.status === 200) {
+        dbData = await dbResp.json();
+      } else {
+        // If db.json doesn't exist yet, start with empty structure
+        dbData = { "juggernaut": [], "client": [], "tools": [], "rbin": [] };
+      }
+
+      // === 6️⃣ Append new file entry ===
+      const newEntry = {
+        name: uploadData.fileName,
+        url: fileWebUrl,
+        reference: uploadData.referenceValue || ""
+      };
+
+      const folderName = uploadData.folderName || "client";
+      if (folderName in dbData) {
+        dbData[folderName].push(newEntry);
+      } else {
+        dbData[folderName] = [newEntry];
+      }
+
+      // === 7️⃣ Upload updated db.json back ===
+      const updatedDbContent = JSON.stringify(dbData, null, 4);
+      const dbUploadUrl = `https://graph.microsoft.com/v1.0/drives/${driveId}/root:/${uploadData.fyYear || "TestClient_FY25"}/juggernaut/db.json:/content`;
+
+      const dbUploadResp = await fetch(dbUploadUrl, {
+        method: "PUT",
+        headers: {
+          ...headers,
+          "Content-Type": "application/json",
+        },
+        body: updatedDbContent,
+      });
+
+      if (!dbUploadResp.ok) {
+        throw new Error(`Failed to update db.json: ${dbUploadResp.statusText}`);
+      }
+
+      logger.info("Successfully uploaded file to SharePoint", { fileName: uploadData.fileName, webUrl: fileWebUrl });
+
+      return {
+        success: true,
+        data: {
+          webUrl: fileWebUrl,
+          fileName: uploadData.fileName,
+          reference: uploadData.referenceValue || ""
+        }
+      };
+    } catch (error) {
+      logger.error("Error uploading file to SharePoint", { error });
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error"
+      };
+    }
+  });
+
   logger.info("SharePoint IPC listeners registered successfully");
 }

@@ -8,6 +8,7 @@ export const SHAREPOINT_CHANNELS = {
   UPDATE_ROMM_ENTRY: "sharepoint:update-romm-entry",
   READ_ROMM_LIBRARY: "sharepoint:read-romm-library",
   READ_ROMM_LIBRARY_BY_WORKSPACE: "sharepoint:read-romm-library-by-workspace",
+  UPLOAD_FILE: "sharepoint:upload-file",
 } as const;
 
 export type SharePointChannels = typeof SHAREPOINT_CHANNELS;

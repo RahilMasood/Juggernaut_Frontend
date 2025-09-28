@@ -178,6 +178,13 @@ interface SharePointAPI {
   }) => Promise<{ success: boolean; data?: any; error?: string }>;
   readRommLibrary: () => Promise<{ success: boolean; data?: any; error?: string }>;
   readRommLibraryByWorkspace: (workspace: string) => Promise<{ success: boolean; data?: any; error?: string }>;
+  uploadFile: (uploadData: {
+    fileContent: string; // base64 content
+    fileName: string;
+    referenceValue?: string;
+    folderName?: string;
+    fyYear?: string;
+  }) => Promise<{ success: boolean; data?: any; error?: string }>;
 }
 
 declare interface Window {

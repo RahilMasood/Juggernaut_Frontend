@@ -23,5 +23,12 @@ export function exposeSharePointContext() {
   }) => ipcRenderer.invoke(SHAREPOINT_CHANNELS.UPDATE_ROMM_ENTRY, updateData),
     readRommLibrary: () => ipcRenderer.invoke(SHAREPOINT_CHANNELS.READ_ROMM_LIBRARY),
     readRommLibraryByWorkspace: (workspace: string) => ipcRenderer.invoke(SHAREPOINT_CHANNELS.READ_ROMM_LIBRARY_BY_WORKSPACE, workspace),
+    uploadFile: (uploadData: {
+      fileContent: string; // base64 content
+      fileName: string;
+      referenceValue?: string;
+      folderName?: string;
+      fyYear?: string;
+    }) => ipcRenderer.invoke(SHAREPOINT_CHANNELS.UPLOAD_FILE, uploadData),
   });
 }

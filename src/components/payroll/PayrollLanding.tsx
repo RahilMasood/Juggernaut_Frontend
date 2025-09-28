@@ -9,7 +9,7 @@ import {
   isPreviewableImage,
   toFileUrl,
 } from "./PayrollDocumentsContext";
-import { AzureFileUpload } from "../ui/azure-file-upload";
+import { SharePointFileUpload } from "../ui/sharepoint-file-upload";
 import { CloudFileEntry } from "../../helpers/ipc/cloud/cloud-context";
 
 type PayrollLandingProps = {
@@ -108,8 +108,8 @@ export default function PayrollLanding({ onSelect }: PayrollLandingProps) {
     }
   };
 
-  const handleAzureFileUpload = (files: Array<{ name: string; path: string; cloudUrl?: string }>) => {
-    console.log(`✅ Uploaded ${files.length} file(s) to Azure:`, files);
+  const handleSharePointFileUpload = (files: Array<{ name: string; path: string; cloudUrl?: string }>) => {
+    console.log(`✅ Uploaded ${files.length} file(s) to SharePoint:`, files);
     // Add the uploaded files to the documents context
     const filePaths = files.map(f => f.path);
     addDocumentsByPaths(filePaths);
@@ -191,14 +191,13 @@ export default function PayrollLanding({ onSelect }: PayrollLandingProps) {
               id="payroll-docs-input"
             />
 
-            <AzureFileUpload
-              onFilesUploaded={handleAzureFileUpload}
+            <SharePointFileUpload
+              onFilesUploaded={handleSharePointFileUpload}
               multiple={true}
-              triggerText="Upload to Cloud"
-              className="h-8 px-3 text-xs border-white/10 bg-blue-500/20 text-white hover:bg-blue-500/30"
+              triggerText="Upload to SharePoint"
+              className="h-8 px-3 text-xs border-white/10 bg-green-500/20 text-white hover:bg-green-500/30"
               showReferenceInput={true}
-              referencePlaceholder="Enter reference name for files"
-              containerName="client"
+              referencePlaceholder="Enter reference name for files (optional)"
             />
           </div>
         </div>
