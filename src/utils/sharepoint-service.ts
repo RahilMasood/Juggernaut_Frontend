@@ -318,6 +318,55 @@ export class SharePointService {
   }
 
   /**
+   * Update an existing ROMM entry by romm-id
+   */
+  async updateRommEntry(
+    rommId: string,
+    updates: Partial<Pick<RommEntry, "assesment" | "documentation" | "control_id" | "procedure_id">>
+  ): Promise<SharePointResponse> {
+    try {
+      logger.info(`Updating ROMM entry ${rommId}`, { updates });
+
+      // Step 1: Download current library
+      const downloadResponse = await this.downloadRommLibrary();
+      if (!downloadResponse.success || !downloadResponse.data) {
+        throw new Error(downloadResponse.error || "Failed to download library");
+      }
+
+      const library = downloadResponse.data;
+
+      // Step 2: Find the entry by romm-id
+      const entryIndex = library.romm_library.findIndex(e => e["romm-id"] === rommId);
+      if (entryIndex === -1) {
+        throw new Error(`ROMM entry with id ${rommId} not found`);
+      }
+
+      // Step 3: Apply updates
+      library.romm_library[entryIndex] = {
+        ...library.romm_library[entryIndex],
+        ...updates
+      };
+
+      // Step 4: Upload updated file back
+      const uploadResponse = await this.uploadRommLibrary(library);
+      if (!uploadResponse.success) {
+        throw new Error(uploadResponse.error || "Failed to upload updated library");
+      }
+
+      return {
+        success: true,
+        data: library
+      };
+    } catch (error) {
+      logger.error("Failed to update ROMM entry", { error, rommId, updates });
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error"
+      };
+    }
+  }
+
+  /**
    * Add new ROMM entry to the library (using Python script)
    */
   async addRommEntry(

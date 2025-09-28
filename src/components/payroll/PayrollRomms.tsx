@@ -448,7 +448,7 @@ export default function PayrollRomms({
             assessment: rommSelections[selectedRommId] || "",
             documentation: rommDocumentation[selectedRommId] || "",
             controlIds: selectedControls.map(control => control.control_id),
-            procedureIds: associatedProcedures[selectedRommId]?.map(p => p.procedure_id) || []
+            procedureIds: associatedProcedures[selectedRommId]?.map(p => p.name) || []
           });
           
           if (updateResponse.success) {
@@ -491,7 +491,7 @@ export default function PayrollRomms({
           assessment: rommSelections[rommId] || "",
           documentation: rommDocumentation[rommId] || "",
           controlIds: newAssociations[rommId]?.map(c => c.control_id) || [],
-          procedureIds: associatedProcedures[rommId]?.map(p => p.procedure_id) || []
+          procedureIds: associatedProcedures[rommId]?.map(p => p.name) || []
         });
         
         if (updateResponse.success) {
@@ -527,7 +527,7 @@ export default function PayrollRomms({
             assessment: rommSelections[selectedRommId] || "",
             documentation: rommDocumentation[selectedRommId] || "",
             controlIds: associatedControls[selectedRommId]?.map(c => c.control_id) || [],
-            procedureIds: selectedProcedures.map(procedure => procedure.procedure_id)
+            procedureIds: selectedProcedures.map(procedure => procedure.name)
           });
           
           if (updateResponse.success) {
@@ -562,7 +562,7 @@ export default function PayrollRomms({
           assessment: rommSelections[rommId] || "",
           documentation: rommDocumentation[rommId] || "",
           controlIds: associatedControls[rommId]?.map(c => c.control_id) || [],
-          procedureIds: updatedProcedures[rommId]?.map(p => p.procedure_id) || []
+          procedureIds: updatedProcedures[rommId]?.map(p => p.name) || []
         });
         
         if (updateResponse.success) {
@@ -656,6 +656,68 @@ export default function PayrollRomms({
         return "Not a Risk of Material Misstatement";
       default:
         return "";
+    }
+  };
+
+  // Handle individual ROMM submission
+  const handleSubmitRomm = async (rommId: string) => {
+    try {
+      console.log(`Submitting ROMM ${rommId} to SharePoint:`, {
+        rommId,
+        assessment: rommSelections[rommId] || "",
+        documentation: rommDocumentation[rommId] || "",
+        controlIds: associatedControls[rommId]?.map(c => c.control_id) || [],
+        procedureNames: associatedProcedures[rommId]?.map(p => p.name) || []
+      });
+
+      if (window.sharePointAPI?.updateRommEntry) {
+        const updateResponse = await window.sharePointAPI.updateRommEntry({
+          rommId: rommId,
+          assessment: rommSelections[rommId] || "",
+          documentation: rommDocumentation[rommId] || "",
+          controlIds: associatedControls[rommId]?.map(c => c.control_id) || [],
+          procedureIds: associatedProcedures[rommId]?.map(p => p.name) || [] // Map to procedure names as requested
+        });
+
+        if (updateResponse.success) {
+          console.log(`Successfully submitted ROMM ${rommId} to SharePoint`);
+          // Show success feedback
+          setAutosaveStatus(prev => ({
+            ...prev,
+            [rommId]: { 
+              status: 'saved',
+              lastSaved: new Date()
+            }
+          }));
+        } else {
+          console.error(`Failed to submit ROMM ${rommId} to SharePoint:`, updateResponse.error);
+          setAutosaveStatus(prev => ({
+            ...prev,
+            [rommId]: { 
+              status: 'error',
+              error: updateResponse.error || 'Unknown error'
+            }
+          }));
+        }
+      } else {
+        console.warn("SharePoint API not available for submission");
+        setAutosaveStatus(prev => ({
+          ...prev,
+          [rommId]: { 
+            status: 'error',
+            error: 'SharePoint API not available'
+          }
+        }));
+      }
+    } catch (error) {
+      console.error(`Error submitting ROMM ${rommId}:`, error);
+      setAutosaveStatus(prev => ({
+        ...prev,
+        [rommId]: { 
+          status: 'error',
+          error: error instanceof Error ? error.message : 'Unknown error'
+        }
+      }));
     }
   };
 
@@ -1030,9 +1092,18 @@ export default function PayrollRomms({
             {/* Risk Assessment Documentation */}
             {selectedRomm && (
               <div className="mt-6 space-y-3">
-                <h4 className="text-md font-medium text-white">
-                  Risk Assessment Documentation
-                </h4>
+                <div className="flex items-center justify-between">
+                  <h4 className="text-md font-medium text-white">
+                    Risk Assessment Documentation
+                  </h4>
+                  <Button
+                    onClick={() => handleSubmitRomm(selectedRomm.id)}
+                    className="bg-green-600 text-white hover:bg-green-700"
+                    disabled={!rommSelections[selectedRomm.id]}
+                  >
+                    Submit to SharePoint
+                  </Button>
+                </div>
                 <Textarea
                   placeholder="Enter your risk assessment documentation here..."
                   value={rommDocumentation[selectedRomm.id] || ""}
