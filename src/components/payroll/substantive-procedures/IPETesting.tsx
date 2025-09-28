@@ -196,41 +196,104 @@ export default function IPETesting({ onBack }: IPETestingProps) {
 
   // Execute IPE Testing
   const executeIPE = async () => {
+    console.log('=== EXECUTE IPE TESTING START ===');
+    console.log('Column mappings:', ipeFormData.columnMappings);
     setIsExecutingIPE(true);
     try {
-      if (window.sharePointAPI?.executeIPE) {
+      if (window.payroll?.run) {
         const customKeys = Object.values(ipeFormData.columnMappings);
-        const result = await window.sharePointAPI.executeIPE({
-          payrollFile: ipeFormData.payrollFile,
-          customKeys: customKeys
-        });
+        console.log('Custom keys for IPE execution:', customKeys);
         
-        if (result.success) {
-          console.log('IPE execution successful:', result.data);
-          // Reset form
-          setIpeFormData({
-            payrollFile: '',
-            columnMappings: {
-              employee_code: '',
-              employee_name: '',
-              designation: '',
-              pay_month: '',
-              date_of_joining: '',
-              date_of_leaving: '',
-              pan: '',
-              gross_pay: '',
-              net_pay: '',
-              total_deductions: '',
-              pf: '',
-              esi: ''
+        const result = await window.payroll.run("execute_ipe_testing", {
+          inputFiles: [],
+          options: {
+            ipe_custom_keys: customKeys,
+            reference_value: ipeFormData.payrollFile || ""
+          }
+        });
+
+        console.log('=== PAYROLL RUN RESULT ===');
+        console.log('Result:', result);
+
+        if (result.ok && result.runId) {
+          console.log('IPE Testing started with runId:', result.runId);
+          
+          // Set up progress listener
+          console.log('Setting up progress listener for IPE execution...');
+          const unsubscribe = window.payroll.onProgress((payload: any) => {
+            console.log('=== IPE PROGRESS PAYLOAD RECEIVED ===');
+            console.log('Payload:', payload);
+            console.log('RunId match:', payload.runId === result.runId);
+            console.log('Status:', payload.status);
+            
+            if (payload.runId === result.runId) {
+              if (payload.status === 'success') {
+                console.log('=== IPE SUCCESS STATUS RECEIVED ===');
+                try {
+                  console.log('Success payload stdout:', payload.stdout);
+                  if (payload.stdout) {
+                    // Look for JSON output in stdout
+                    const lines = payload.stdout.split('\n');
+                    console.log('Stdout lines:', lines);
+                    let jsonOutput = '';
+                    for (const line of lines) {
+                      if (line.trim().startsWith('{') && line.trim().endsWith('}')) {
+                        jsonOutput = line.trim();
+                        break;
+                      }
+                    }
+                    
+                    console.log('Found JSON output:', jsonOutput);
+                    if (jsonOutput) {
+                      const result = JSON.parse(jsonOutput);
+                      console.log('Parsed result:', result);
+                      if (result.success) {
+                        console.log('✅ IPE Testing completed successfully!');
+                        console.log('Message:', result.message);
+                        // Reset form on success
+                        setIpeFormData({
+                          payrollFile: '',
+                          columnMappings: {
+                            employee_code: '',
+                            employee_name: '',
+                            designation: '',
+                            pay_month: '',
+                            date_of_joining: '',
+                            date_of_leaving: '',
+                            pan: '',
+                            gross_pay: '',
+                            net_pay: '',
+                            total_deductions: '',
+                            pf: '',
+                            esi: ''
+                          }
+                        });
+                        setExcelColumns([]);
+                      } else {
+                        console.error('IPE Testing failed:', result.error);
+                      }
+                    } else {
+                      console.error('No JSON output found in stdout');
+                    }
+                  } else {
+                    console.error('No stdout received');
+                  }
+                } catch (parseError) {
+                  console.error('Failed to parse IPE result:', parseError);
+                }
+                unsubscribe();
+              } else if (payload.status === 'error') {
+                console.error('=== IPE ERROR STATUS RECEIVED ===');
+                console.error('IPE Testing failed:', payload.error);
+                unsubscribe();
+              }
             }
           });
-          setExcelColumns([]);
         } else {
-          console.error('IPE execution failed:', result.error);
+          console.error('Failed to start IPE Testing:', result.error);
         }
       } else {
-        console.error('SharePoint API not available');
+        console.error('Payroll API not available');
       }
     } catch (error) {
       console.error('Error executing IPE:', error);

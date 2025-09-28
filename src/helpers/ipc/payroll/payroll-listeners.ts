@@ -148,6 +148,11 @@ const SCRIPTS: ScriptMap = {
     label: "Test Python",
     produces: [],
   },
+  "execute_ipe_testing": {
+    file: path.join(process.cwd(), "scripts", "execute_ipe_testing.py"),
+    label: "Execute IPE Testing",
+    produces: [],
+  },
 };
 
 
