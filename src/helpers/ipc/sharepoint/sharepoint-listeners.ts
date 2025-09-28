@@ -486,5 +486,108 @@ export function registerSharePointListeners() {
     }
   });
 
+  // Handle loading cloud files from db.json
+  ipcMain.handle("sharepoint:load-cloud-files", async (event) => {
+    try {
+      logger.info("Loading cloud files from SharePoint db.json via IPC");
+      
+      // === CONFIG ===
+      const TENANT_ID = "114c8106-747f-4cc7-870e-8712e6c23b18";
+      const CLIENT_ID = "b357e50c-c5ef-484d-84df-fe470fe76528";
+      const CLIENT_SECRET = "JAZ8Q~xlY-EDlgbLtgJaqjPNAjsHfYFavwxbkdjE";
+      const SITE_HOSTNAME = "juggernautenterprises.sharepoint.com";
+      const SITE_PATH = "/sites/TestCloud";
+      const DOC_LIBRARY = "TestClient";
+      const FY_YEAR = "TestClient_FY25";
+      const FOLDER_NAME = "juggernaut";
+      const FILE_NAME = "db.json";
+
+      // === 1️⃣ Acquire token ===
+      const { ConfidentialClientApplication } = require('@azure/msal-node');
+      const msalApp = new ConfidentialClientApplication({
+        auth: {
+          clientId: CLIENT_ID,
+          clientSecret: CLIENT_SECRET,
+          authority: `https://login.microsoftonline.com/${TENANT_ID}`
+        }
+      });
+
+      const tokenResponse = await msalApp.acquireTokenByClientCredential({
+        scopes: ["https://graph.microsoft.com/.default"]
+      });
+
+      if (!tokenResponse.accessToken) {
+        throw new Error("Failed to acquire access token");
+      }
+
+      const headers = { "Authorization": `Bearer ${tokenResponse.accessToken}` };
+
+      // === 2️⃣ Get site ID ===
+      const siteUrl = `https://graph.microsoft.com/v1.0/sites/${SITE_HOSTNAME}:${SITE_PATH}`;
+      const siteResp = await fetch(siteUrl, { headers });
+
+      if (!siteResp.ok) {
+        throw new Error(`Failed to get site ID: ${siteResp.statusText}`);
+      }
+
+      const siteData = await siteResp.json();
+      const siteId = siteData.id;
+
+      // === 3️⃣ Get drive ID ===
+      const drivesResp = await fetch(`https://graph.microsoft.com/v1.0/sites/${siteId}/drives`, { headers });
+      
+      if (!drivesResp.ok) {
+        throw new Error(`Failed to get drives: ${drivesResp.statusText}`);
+      }
+
+      const drivesData = await drivesResp.json();
+      const drives = drivesData.value;
+
+      let driveId = null;
+      for (const d of drives) {
+        if (d.name === DOC_LIBRARY) {
+          driveId = d.id;
+          break;
+        }
+      }
+
+      if (!driveId) {
+        throw new Error(`Library '${DOC_LIBRARY}' not found in site '${SITE_PATH}'`);
+      }
+
+      // === 4️⃣ Fetch file content directly as JSON ===
+      const downloadUrl = `https://graph.microsoft.com/v1.0/drives/${driveId}/root:/${FY_YEAR}/${FOLDER_NAME}/${FILE_NAME}:/content`;
+      const resp = await fetch(downloadUrl, { headers });
+
+      if (!resp.ok) {
+        throw new Error(`Failed to download db.json: ${resp.statusText}`);
+      }
+
+      const data = await resp.json();
+
+      // === 5️⃣ Extract client files ===
+      const clientFiles = data.client || [];
+      
+      logger.info("Successfully loaded cloud files from SharePoint", { count: clientFiles.length });
+
+      return {
+        success: true,
+        data: {
+          files: clientFiles.map((file: any) => ({
+            name: file.name || '',
+            url: file.url || '',
+            reference: file.reference || ''
+          }))
+        }
+      };
+    } catch (error) {
+      logger.error("Error loading cloud files from SharePoint", { error });
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error"
+      };
+    }
+  });
+
   logger.info("SharePoint IPC listeners registered successfully");
 }

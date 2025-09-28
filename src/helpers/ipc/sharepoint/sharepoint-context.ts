@@ -30,5 +30,6 @@ export function exposeSharePointContext() {
       folderName?: string;
       fyYear?: string;
     }) => ipcRenderer.invoke(SHAREPOINT_CHANNELS.UPLOAD_FILE, uploadData),
+    loadCloudFiles: () => ipcRenderer.invoke(SHAREPOINT_CHANNELS.LOAD_CLOUD_FILES),
   });
 }

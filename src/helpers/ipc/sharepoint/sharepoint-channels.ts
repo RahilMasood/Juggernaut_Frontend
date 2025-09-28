@@ -9,6 +9,7 @@ export const SHAREPOINT_CHANNELS = {
   READ_ROMM_LIBRARY: "sharepoint:read-romm-library",
   READ_ROMM_LIBRARY_BY_WORKSPACE: "sharepoint:read-romm-library-by-workspace",
   UPLOAD_FILE: "sharepoint:upload-file",
+  LOAD_CLOUD_FILES: "sharepoint:load-cloud-files",
 } as const;
 
 export type SharePointChannels = typeof SHAREPOINT_CHANNELS;

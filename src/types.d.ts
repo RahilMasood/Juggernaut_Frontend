@@ -185,6 +185,7 @@ interface SharePointAPI {
     folderName?: string;
     fyYear?: string;
   }) => Promise<{ success: boolean; data?: any; error?: string }>;
+  loadCloudFiles: () => Promise<{ success: boolean; data?: any; error?: string }>;
 }
 
 declare interface Window {

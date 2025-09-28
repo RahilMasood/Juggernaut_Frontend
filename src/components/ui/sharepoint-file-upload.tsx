@@ -1,9 +1,10 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Button } from "./button";
 import { Input } from "./input";
 import { Card, CardContent } from "./card";
 import { Badge } from "./badge";
-import { Upload, X, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./select";
+import { Upload, X, CheckCircle2, AlertCircle, Loader2, Cloud, FolderOpen } from "lucide-react";
 import { sharePointService } from "../../utils/sharepoint-service";
 
 interface SharePointFileUploadProps {
@@ -14,6 +15,12 @@ interface SharePointFileUploadProps {
   triggerText?: string;
   showReferenceInput?: boolean;
   referencePlaceholder?: string;
+}
+
+interface CloudFile {
+  name: string;
+  url: string;
+  reference: string;
 }
 
 interface UploadStatus {
@@ -37,7 +44,39 @@ export function SharePointFileUpload({
   const [referenceName, setReferenceName] = useState<string>("");
   const [uploadStatuses, setUploadStatuses] = useState<UploadStatus[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [cloudFiles, setCloudFiles] = useState<CloudFile[]>([]);
+  const [selectedCloudFiles, setSelectedCloudFiles] = useState<CloudFile[]>([]);
+  const [isLoadingCloudFiles, setIsLoadingCloudFiles] = useState(false);
+  const [uploadMode, setUploadMode] = useState<'local' | 'cloud'>('local');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Load cloud files when component mounts or when switching to cloud mode
+  useEffect(() => {
+    if (uploadMode === 'cloud' && cloudFiles.length === 0) {
+      loadCloudFiles();
+    }
+  }, [uploadMode]);
+
+  const loadCloudFiles = async () => {
+    setIsLoadingCloudFiles(true);
+    try {
+      if (window.sharePointAPI?.loadCloudFiles) {
+        const result = await window.sharePointAPI.loadCloudFiles();
+        if (result.success && result.data?.files) {
+          setCloudFiles(result.data.files);
+          console.log('Loaded cloud files:', result.data.files);
+        } else {
+          console.error('Failed to load cloud files:', result.error);
+        }
+      } else {
+        console.error('SharePoint API not available');
+      }
+    } catch (error) {
+      console.error('Error loading cloud files:', error);
+    } finally {
+      setIsLoadingCloudFiles(false);
+    }
+  };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
@@ -54,6 +93,24 @@ export function SharePointFileUpload({
   const removeFile = (index: number) => {
     setSelectedFiles(prev => prev.filter((_, i) => i !== index));
     setUploadStatuses(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleCloudFileSelect = (cloudFile: CloudFile) => {
+    if (selectedCloudFiles.find(f => f.name === cloudFile.name)) {
+      // Remove if already selected
+      setSelectedCloudFiles(prev => prev.filter(f => f.name !== cloudFile.name));
+    } else {
+      // Add if not selected
+      if (multiple) {
+        setSelectedCloudFiles(prev => [...prev, cloudFile]);
+      } else {
+        setSelectedCloudFiles([cloudFile]);
+      }
+    }
+  };
+
+  const removeCloudFile = (cloudFile: CloudFile) => {
+    setSelectedCloudFiles(prev => prev.filter(f => f.name !== cloudFile.name));
   };
 
   const uploadFileToSharePoint = async (file: File): Promise<{ success: boolean; webUrl?: string; error?: string }> => {
@@ -120,56 +177,75 @@ export function SharePointFileUpload({
   };
 
   const handleUpload = async () => {
-    if (selectedFiles.length === 0) return;
+    if (uploadMode === 'local' && selectedFiles.length === 0) return;
+    if (uploadMode === 'cloud' && selectedCloudFiles.length === 0) return;
 
     setIsUploading(true);
     
     try {
-      const uploadPromises = selectedFiles.map(async (file, index) => {
-        // Update status to uploading
-        setUploadStatuses(prev => prev.map((status, i) => 
-          i === index ? { ...status, status: 'uploading' } : status
-        ));
+      if (uploadMode === 'local') {
+        // Handle local file upload
+        const uploadPromises = selectedFiles.map(async (file, index) => {
+          // Update status to uploading
+          setUploadStatuses(prev => prev.map((status, i) => 
+            i === index ? { ...status, status: 'uploading' } : status
+          ));
 
-        const result = await uploadFileToSharePoint(file);
+          const result = await uploadFileToSharePoint(file);
+          
+          // Update status based on result
+          setUploadStatuses(prev => prev.map((status, i) => 
+            i === index ? { 
+              ...status, 
+              status: result.success ? 'success' : 'error',
+              webUrl: result.webUrl,
+              error: result.error
+            } : status
+          ));
+
+          return {
+            name: file.name,
+            path: file.name, // In a real implementation, this would be the actual file path
+            cloudUrl: result.webUrl
+          };
+        });
+
+        const results = await Promise.all(uploadPromises);
+        const successfulUploads = results.filter(r => r.cloudUrl);
         
-        // Update status based on result
-        setUploadStatuses(prev => prev.map((status, i) => 
-          i === index ? { 
-            ...status, 
-            status: result.success ? 'success' : 'error',
-            webUrl: result.webUrl,
-            error: result.error
-          } : status
-        ));
+        if (successfulUploads.length > 0) {
+          onFilesUploaded(successfulUploads);
+          console.log(`✅ Uploaded ${successfulUploads.length} file(s) to SharePoint:`, successfulUploads);
+        }
 
-        return {
-          name: file.name,
-          path: file.name, // In a real implementation, this would be the actual file path
-          cloudUrl: result.webUrl
-        };
-      });
+        // Clear files after successful upload
+        setTimeout(() => {
+          setSelectedFiles([]);
+          setUploadStatuses([]);
+          setReferenceName("");
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
+        }, 2000);
+      } else {
+        // Handle cloud file association
+        const cloudFileResults = selectedCloudFiles.map(cloudFile => ({
+          name: cloudFile.name,
+          path: cloudFile.name,
+          cloudUrl: cloudFile.url
+        }));
 
-      const results = await Promise.all(uploadPromises);
-      const successfulUploads = results.filter(r => r.cloudUrl);
-      
-      if (successfulUploads.length > 0) {
-        onFilesUploaded(successfulUploads);
-        console.log(`✅ Uploaded ${successfulUploads.length} file(s) to SharePoint:`, successfulUploads);
+        onFilesUploaded(cloudFileResults);
+        console.log(`✅ Associated ${cloudFileResults.length} cloud file(s):`, cloudFileResults);
+
+        // Clear selected cloud files after association
+        setTimeout(() => {
+          setSelectedCloudFiles([]);
+        }, 2000);
       }
 
-      // Clear files after successful upload
-      setTimeout(() => {
-        setSelectedFiles([]);
-        setUploadStatuses([]);
-        setReferenceName("");
-        if (fileInputRef.current) {
-          fileInputRef.current.value = '';
-        }
-      }, 2000);
-
     } catch (error) {
-      console.error('Upload failed:', error);
+      console.error('Upload/Association failed:', error);
     } finally {
       setIsUploading(false);
     }
@@ -203,113 +279,247 @@ export function SharePointFileUpload({
 
   return (
     <div className={`space-y-4 ${className}`}>
-      {/* File Input */}
+      {/* Mode Selection */}
       <div className="flex items-center gap-2">
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple={multiple}
-          accept={accept}
-          onChange={handleFileSelect}
-          className="hidden"
-          id="sharepoint-file-upload"
-        />
         <Button
-          type="button"
-          variant="outline"
-          onClick={() => fileInputRef.current?.click()}
+          variant={uploadMode === 'local' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setUploadMode('local')}
           className="flex items-center gap-2"
         >
-          <Upload className="h-4 w-4" />
-          {triggerText}
+          <FolderOpen className="h-4 w-4" />
+          Upload Local Files
+        </Button>
+        <Button
+          variant={uploadMode === 'cloud' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setUploadMode('cloud')}
+          className="flex items-center gap-2"
+        >
+          <Cloud className="h-4 w-4" />
+          Select from Cloud
         </Button>
       </div>
 
-      {/* Reference Input */}
-      {showReferenceInput && (
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-white/80">
-            Reference Name (Optional)
-          </label>
-          <Input
-            type="text"
-            placeholder={referencePlaceholder}
-            value={referenceName}
-            onChange={(e) => setReferenceName(e.target.value)}
-            className="bg-white/5 border-white/20 text-white placeholder:text-white/50"
-          />
-        </div>
+      {/* Local Upload Mode */}
+      {uploadMode === 'local' && (
+        <>
+          {/* File Input */}
+          <div className="flex items-center gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple={multiple}
+              accept={accept}
+              onChange={handleFileSelect}
+              className="hidden"
+              id="sharepoint-file-upload"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center gap-2"
+            >
+              <Upload className="h-4 w-4" />
+              {triggerText}
+            </Button>
+          </div>
+
+          {/* Reference Input */}
+          {showReferenceInput && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-white/80">
+                Reference Name (Optional)
+              </label>
+              <Input
+                type="text"
+                placeholder={referencePlaceholder}
+                value={referenceName}
+                onChange={(e) => setReferenceName(e.target.value)}
+                className="bg-white/5 border-white/20 text-white placeholder:text-white/50"
+              />
+            </div>
+          )}
+
+          {/* Selected Files */}
+          {selectedFiles.length > 0 && (
+            <Card className="border-white/10 bg-white/5">
+              <CardContent className="p-4">
+                <div className="space-y-2">
+                  <div className="text-sm font-medium text-white">Selected Files</div>
+                  {selectedFiles.map((file, index) => {
+                    const status = uploadStatuses[index];
+                    return (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 p-3"
+                      >
+                        <div className="flex items-center gap-3">
+                          {getStatusIcon(status?.status || 'uploading')}
+                          <div className="flex-1">
+                            <div className="text-sm text-white">{file.name}</div>
+                            <div className="text-xs text-white/60">
+                              {(file.size / 1024 / 1024).toFixed(2)} MB
+                            </div>
+                            {status?.error && (
+                              <div className="text-xs text-red-400 mt-1">
+                                {status.error}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {status && (
+                            <Badge className={`text-xs ${getStatusColor(status.status)}`}>
+                              {status.status}
+                            </Badge>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeFile(index)}
+                            className="text-white/60 hover:text-white hover:bg-white/10"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Upload Button */}
+                <div className="mt-4 flex justify-end">
+                  <Button
+                    onClick={handleUpload}
+                    disabled={isUploading}
+                    className="bg-green-600 text-white hover:bg-green-700"
+                  >
+                    {isUploading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-4 w-4 mr-2" />
+                        Upload to SharePoint
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </>
       )}
 
-      {/* Selected Files */}
-      {selectedFiles.length > 0 && (
-        <Card className="border-white/10 bg-white/5">
-          <CardContent className="p-4">
-            <div className="space-y-2">
-              <div className="text-sm font-medium text-white">Selected Files</div>
-              {selectedFiles.map((file, index) => {
-                const status = uploadStatuses[index];
-                return (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 p-3"
-                  >
-                    <div className="flex items-center gap-3">
-                      {getStatusIcon(status?.status || 'uploading')}
-                      <div className="flex-1">
-                        <div className="text-sm text-white">{file.name}</div>
-                        <div className="text-xs text-white/60">
-                          {(file.size / 1024 / 1024).toFixed(2)} MB
-                        </div>
-                        {status?.error && (
-                          <div className="text-xs text-red-400 mt-1">
-                            {status.error}
+      {/* Cloud Selection Mode */}
+      {uploadMode === 'cloud' && (
+        <>
+          <div className="flex items-center gap-4">
+            <Button
+              onClick={loadCloudFiles}
+              disabled={isLoadingCloudFiles}
+              className="flex items-center gap-2"
+            >
+              {isLoadingCloudFiles ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Cloud className="h-4 w-4" />
+              )}
+              {isLoadingCloudFiles ? 'Loading...' : 'Load Cloud Files'}
+            </Button>
+          </div>
+
+          {cloudFiles.length > 0 && (
+            <Card className="border-white/10 bg-white/5">
+              <CardContent className="p-4">
+                <div className="space-y-2">
+                  <h4 className="font-medium text-sm text-white">Available Cloud Files:</h4>
+                  <div className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto">
+                    {cloudFiles.map((cloudFile, index) => (
+                      <div
+                        key={index}
+                        className={`flex items-center justify-between p-2 rounded cursor-pointer transition-colors ${
+                          selectedCloudFiles.find(f => f.name === cloudFile.name)
+                            ? 'bg-blue-100 border border-blue-300'
+                            : 'bg-white/5 hover:bg-white/10'
+                        }`}
+                        onClick={() => handleCloudFileSelect(cloudFile)}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Cloud className="h-4 w-4 text-blue-500" />
+                          <div>
+                            <span className="text-sm font-medium text-white">{cloudFile.name}</span>
+                            {cloudFile.reference && (
+                              <span className="text-xs text-white/60 ml-2">({cloudFile.reference})</span>
+                            )}
                           </div>
+                        </div>
+                        {selectedCloudFiles.find(f => f.name === cloudFile.name) && (
+                          <CheckCircle2 className="h-4 w-4 text-blue-500" />
                         )}
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {status && (
-                        <Badge className={`text-xs ${getStatusColor(status.status)}`}>
-                          {status.status}
-                        </Badge>
-                      )}
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {selectedCloudFiles.length > 0 && (
+            <Card className="border-white/10 bg-white/5">
+              <CardContent className="p-4">
+                <div className="space-y-2">
+                  <h4 className="font-medium text-sm text-white">Selected Cloud Files:</h4>
+                  {selectedCloudFiles.map((cloudFile, index) => (
+                    <div key={index} className="flex items-center justify-between p-2 bg-blue-50 rounded">
+                      <div className="flex items-center gap-2">
+                        <Cloud className="h-4 w-4 text-blue-500" />
+                        <span className="text-sm text-white">{cloudFile.name}</span>
+                        {cloudFile.reference && (
+                          <Badge variant="secondary" className="text-xs">
+                            {cloudFile.reference}
+                          </Badge>
+                        )}
+                      </div>
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => removeFile(index)}
-                        className="text-white/60 hover:text-white hover:bg-white/10"
+                        onClick={() => removeCloudFile(cloudFile)}
+                        className="h-6 w-6 p-0"
                       >
-                        <X className="h-4 w-4" />
+                        <X className="h-3 w-3" />
                       </Button>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
-            {/* Upload Button */}
-            <div className="mt-4 flex justify-end">
-              <Button
-                onClick={handleUpload}
-                disabled={isUploading}
-                className="bg-green-600 text-white hover:bg-green-700"
-              >
-                {isUploading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Uploading...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="h-4 w-4 mr-2" />
-                    Upload to SharePoint
-                  </>
-                )}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+          {selectedCloudFiles.length > 0 && (
+            <Button
+              onClick={handleUpload}
+              disabled={isUploading}
+              className="w-full bg-blue-600 hover:bg-blue-700"
+            >
+              {isUploading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Associating Files...
+                </>
+              ) : (
+                <>
+                  <Cloud className="h-4 w-4 mr-2" />
+                  Associate Cloud Files
+                </>
+              )}
+            </Button>
+          )}
+        </>
       )}
     </div>
   );

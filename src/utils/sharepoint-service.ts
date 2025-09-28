@@ -367,6 +367,25 @@ export class SharePointService {
   }
 
   /**
+   * Load cloud files from db.json
+   */
+  async loadCloudFiles(): Promise<SharePointResponse> {
+    try {
+      logger.info("Loading cloud files from SharePoint db.json");
+
+      // This method should only be called from the main process
+      // The actual implementation is in the IPC listener
+      throw new Error("This method should be called via IPC from the main process");
+    } catch (error) {
+      logger.error("Failed to load cloud files", { error });
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error"
+      };
+    }
+  }
+
+  /**
    * Upload file to SharePoint client folder
    */
   async uploadFileToSharePoint(
