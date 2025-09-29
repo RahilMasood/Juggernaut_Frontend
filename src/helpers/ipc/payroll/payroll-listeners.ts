@@ -153,6 +153,11 @@ const SCRIPTS: ScriptMap = {
     label: "Execute IPE Testing",
     produces: [],
   },
+  "execute_exception_sharepoint": {
+    file: path.join(process.cwd(), "scripts", "execute_exception_sharepoint.py"),
+    label: "Execution Payroll Exception Testing",
+    produces: [],
+  },
 };
 
 
@@ -429,6 +434,22 @@ export function addPayrollEventListeners(mainWindow: BrowserWindow) {
       // Spawn Python process
       const child = spawn(pythonCmd, argsList, { cwd, env });
 
+      // For execute_exception_sharepoint, pass options via stdin as JSON
+      try {
+        if (scriptKey === "execute_exception_sharepoint" && options) {
+          const payload: Record<string, unknown> = {};
+          if (typeof (options as any).pay_registrar === 'string') payload.pay_registrar = (options as any).pay_registrar;
+          if (Array.isArray((options as any).expn_no)) payload.expn_no = (options as any).expn_no;
+          const jsonPayload = JSON.stringify(payload);
+          if (child.stdin && jsonPayload.length > 0) {
+            child.stdin.write(jsonPayload);
+            child.stdin.end();
+          }
+        }
+      } catch (stdinError) {
+        console.warn("Failed to write JSON payload to Python stdin:", stdinError);
+      }
+
       let stdout = "";
       let stderr = "";
 
@@ -446,6 +467,18 @@ export function addPayrollEventListeners(mainWindow: BrowserWindow) {
         } else {
           emit(10, "running", text.trim(), undefined, stdout, stderr);
         }
+
+        // If we detect a JSON line indicating success, immediately emit success
+        try {
+          const lines = text.split("\n");
+          const jsonLine = lines.find((l) => l.trim().startsWith("{") && l.trim().endsWith("}"));
+          if (jsonLine) {
+            const parsed = JSON.parse(jsonLine);
+            if (parsed && parsed.success) {
+              emit(100, "success", "Completed successfully", undefined, stdout, stderr);
+            }
+          }
+        } catch {}
       });
       
       child.stderr.on("data", (d) => {

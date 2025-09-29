@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../../ui/card";
@@ -47,20 +47,7 @@ interface Exception {
   result?: string;
 }
 
-interface ColumnMapping {
-  employeeCode: string;
-  month: string;
-  designation: string;
-  dateOfLeaving: string;
-  dateOfJoining: string;
-  pan: string;
-  grossPay: string;
-  netPay: string;
-  employeeName: string;
-  providentFund: string;
-  esi: string;
-  totalDeductions: string;
-}
+interface ClientFile { name: string; reference: string }
 
 const EXCEPTIONS: Exception[] = [
   {
@@ -140,40 +127,38 @@ const EXCEPTIONS: Exception[] = [
   },
 ];
 
-const COLUMN_OPTIONS = [
-  { value: "employee_code", label: "Employee Code/ID", icon: <User className="h-4 w-4" /> },
-  { value: "month", label: "Month", icon: <Calendar className="h-4 w-4" /> },
-  { value: "designation", label: "Designation", icon: <Building className="h-4 w-4" /> },
-  { value: "date_of_leaving", label: "Date of Leaving", icon: <Calendar className="h-4 w-4" /> },
-  { value: "date_of_joining", label: "Date of Joining", icon: <Calendar className="h-4 w-4" /> },
-  { value: "pan", label: "PAN", icon: <CreditCard className="h-4 w-4" /> },
-  { value: "gross_pay", label: "Gross Pay", icon: <CreditCard className="h-4 w-4" /> },
-  { value: "net_pay", label: "Net Pay", icon: <CreditCard className="h-4 w-4" /> },
-  { value: "employee_name", label: "Employee Name", icon: <User className="h-4 w-4" /> },
-  { value: "provident_fund", label: "Provident Fund", icon: <CreditCard className="h-4 w-4" /> },
-  { value: "esi", label: "ESI", icon: <CreditCard className="h-4 w-4" /> },
-  { value: "total_deductions", label: "Total Deductions", icon: <CreditCard className="h-4 w-4" /> },
-];
+// Column mapping removed per requirements
 
 export default function ExceptionTesting({ onBack }: ExceptionTestingProps) {
   const [exceptions, setExceptions] = useState<Exception[]>(EXCEPTIONS);
-  const [columnMapping, setColumnMapping] = useState<ColumnMapping>({
-    employeeCode: "",
-    month: "",
-    designation: "",
-    dateOfLeaving: "",
-    dateOfJoining: "",
-    pan: "",
-    grossPay: "",
-    netPay: "",
-    employeeName: "",
-    providentFund: "",
-    esi: "",
-    totalDeductions: "",
-  });
+  const [clientFiles, setClientFiles] = useState<ClientFile[]>([]);
+  const [isLoadingClientFiles, setIsLoadingClientFiles] = useState(false);
+  const [selectedPayrollFile, setSelectedPayrollFile] = useState<string>("");
   const [processingStatus, setProcessingStatus] = useState<"idle" | "running" | "completed" | "error">("idle");
   const [progress, setProgress] = useState(0);
   const [results, setResults] = useState<Record<number, string>>({});
+  const [fileUrl, setFileUrl] = useState<string>("");
+
+  useEffect(() => {
+    loadClientFiles();
+  }, []);
+
+  const loadClientFiles = async () => {
+    setIsLoadingClientFiles(true);
+    try {
+      if (window.sharePointAPI?.loadCloudFiles) {
+        const result = await window.sharePointAPI.loadCloudFiles();
+        if (result.success && result.data?.files) {
+          const files = result.data.files.map((file: any) => ({ name: file.name, reference: file.reference || "" }));
+          setClientFiles(files);
+        }
+      }
+    } catch (e) {
+      // ignore
+    } finally {
+      setIsLoadingClientFiles(false);
+    }
+  };
 
   const handleExceptionToggle = (exceptionId: number) => {
     setExceptions(prev =>
@@ -190,17 +175,10 @@ export default function ExceptionTesting({ onBack }: ExceptionTestingProps) {
     );
   };
 
-  const handleColumnMappingChange = (field: keyof ColumnMapping, value: string) => {
-    setColumnMapping(prev => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
-
   const canRunTests = () => {
     const hasSelectedExceptions = exceptions.some(exp => exp.selected);
-    const hasRequiredMappings = columnMapping.employeeCode && columnMapping.month && columnMapping.grossPay && columnMapping.netPay;
-    return hasSelectedExceptions && hasRequiredMappings;
+    const hasPayroll = !!selectedPayrollFile;
+    return hasSelectedExceptions && hasPayroll;
   };
 
   const runExceptionTests = async () => {
@@ -210,35 +188,81 @@ export default function ExceptionTesting({ onBack }: ExceptionTestingProps) {
     setProgress(0);
 
     try {
-      // Simulate test execution with progress updates
-      const selectedExceptions = exceptions.filter(exp => exp.selected);
-      
-      for (let i = 0; i < selectedExceptions.length; i++) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setProgress(((i + 1) / selectedExceptions.length) * 100);
+      const selectedExceptions = exceptions.filter(exp => exp.selected).map(e => e.id);
+      // If user selected all, maintain requested list order
+      const expn_no = selectedExceptions.length === EXCEPTIONS.length ? [1,2,3,4,5,7,8,9,10,11,12,13] : selectedExceptions;
 
-        // Simulate test results
-        const exception = selectedExceptions[i];
-        const hasExceptions = Math.random() > 0.7; // 30% chance of finding exceptions
-        const exceptionCount = hasExceptions ? Math.floor(Math.random() * 50) + 1 : 0;
-        
-        const result = hasExceptions 
-          ? `${exceptionCount} exceptions found`
-          : "No exception found";
-        
-        setResults(prev => ({
-          ...prev,
-          [exception.id]: result,
-        }));
+      // Send to backend to run Python SharePoint exception testing
+      if (window.payroll?.run) {
+        const result = await window.payroll.run("execute_exception_sharepoint", {
+          inputFiles: [],
+          options: {
+            pay_registrar: selectedPayrollFile,
+            expn_no,
+          },
+        });
 
-        setExceptions(prev =>
-          prev.map(exp =>
-            exp.id === exception.id ? { ...exp, result } : exp
-          )
-        );
+        if (result.ok && result.runId) {
+          const unsubscribe = window.payroll.onProgress((payload: any) => {
+            if (payload.runId === result.runId) {
+              if (payload.status === "running") {
+                setProgress((prev) => Math.min(95, Math.max(5, prev + 5)));
+                // Fallback: if JSON appears early in stdout, finalize
+                try {
+                  if (payload.stdout) {
+                    const lines = String(payload.stdout).split("\n");
+                    const jsonLine = lines.find((l: string) => l.trim().startsWith("{") && l.trim().endsWith("}"));
+                    if (jsonLine) {
+                      const parsed = JSON.parse(jsonLine);
+                      if (parsed.success) {
+                        setProcessingStatus("completed");
+                        setProgress(100);
+                        if (parsed.file_web_url) setFileUrl(parsed.file_web_url);
+                        unsubscribe();
+                        return;
+                      }
+                    }
+                  }
+                } catch {}
+              } else if (payload.status === "success") {
+                try {
+                  if (payload.stdout) {
+                    const lines = String(payload.stdout).split("\n");
+                    const jsonLine = lines.find((l: string) => l.trim().startsWith("{") && l.trim().endsWith("}"));
+                    if (jsonLine) {
+                      const parsed = JSON.parse(jsonLine);
+                      if (parsed.success) {
+                        setProcessingStatus("completed");
+                        setProgress(100);
+                        if (parsed.file_web_url) setFileUrl(parsed.file_web_url);
+                      } else {
+                        setProcessingStatus("error");
+                      }
+                    } else {
+                      setProcessingStatus("completed");
+                      setProgress(100);
+                    }
+                  } else {
+                    setProcessingStatus("completed");
+                    setProgress(100);
+                  }
+                } catch {
+                  setProcessingStatus("completed");
+                  setProgress(100);
+                }
+                unsubscribe();
+              } else if (payload.status === "error") {
+                setProcessingStatus("error");
+                unsubscribe();
+              }
+            }
+          });
+        } else {
+          setProcessingStatus("error");
+        }
+      } else {
+        setProcessingStatus("error");
       }
-
-      setProcessingStatus("completed");
     } catch (error) {
       setProcessingStatus("error");
     }
@@ -281,82 +305,39 @@ export default function ExceptionTesting({ onBack }: ExceptionTestingProps) {
         )}
       </div>
 
-      {/* Column Mapping Section */}
+      {/* Step 1: Select Payroll File */}
       <Card className="border-white/10 bg-black/40">
         <CardHeader>
           <CardTitle className="flex items-center gap-3 text-white">
             <Settings className="h-5 w-5" />
-            Column Mapping
+            Step 1: Select Payroll File
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="rounded border border-blue-500/20 bg-blue-900/10 p-3 text-sm text-blue-200">
-            <p className="font-medium">Map your payroll register columns to the required fields:</p>
-            <p className="mt-1">Select the appropriate column names from your consolidated payroll register.</p>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {COLUMN_OPTIONS.map((column) => (
-              <div key={column.value} className="space-y-2">
-                <Label className="flex items-center gap-2 text-white">
-                  {column.icon}
-                  {column.label}
-                </Label>
-                <Select
-                  value={columnMapping[column.value as keyof ColumnMapping] || ""}
-                  onValueChange={(value) => handleColumnMappingChange(column.value as keyof ColumnMapping, value)}
-                >
-                  <SelectTrigger className="border-white/10 bg-black/40 text-white">
-                    <SelectValue placeholder="Select column..." />
-                  </SelectTrigger>
-                  <SelectContent className="border-white/10 bg-black/90 text-white">
-                    <SelectItem value="pernr">Pernr</SelectItem>
-                    <SelectItem value="employee_id">Employee ID</SelectItem>
-                    <SelectItem value="emp_code">Emp Code</SelectItem>
-                    <SelectItem value="month_year">Month Year</SelectItem>
-                    <SelectItem value="pay_month">Pay Month</SelectItem>
-                    <SelectItem value="design_code">Design Code</SelectItem>
-                    <SelectItem value="designation">Designation</SelectItem>
-                    <SelectItem value="doj">DOJ</SelectItem>
-                    <SelectItem value="dol">DOL</SelectItem>
-                    <SelectItem value="date_of_joining">Date of Joining</SelectItem>
-                    <SelectItem value="date_of_leaving">Date of Leaving</SelectItem>
-                    <SelectItem value="pan_number">PAN Number</SelectItem>
-                    <SelectItem value="pan">PAN</SelectItem>
-                    <SelectItem value="gross">Gross</SelectItem>
-                    <SelectItem value="gross_pay">Gross Pay</SelectItem>
-                    <SelectItem value="net_pay">Net Pay</SelectItem>
-                    <SelectItem value="employee_name">Employee Name</SelectItem>
-                    <SelectItem value="emp_name">Emp Name</SelectItem>
-                    <SelectItem value="prov_fund">Prov. Fund</SelectItem>
-                    <SelectItem value="pf">PF</SelectItem>
-                    <SelectItem value="esi">E.S.I</SelectItem>
-                    <SelectItem value="ded_tot">Ded Tot</SelectItem>
-                    <SelectItem value="total_deductions">Total Deductions</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            ))}
-          </div>
-
-          <div className="flex items-center justify-between pt-4">
-            <div className="text-sm text-gray-400">
-              Required fields: Employee Code, Month, Gross Pay, Net Pay
-            </div>
-            <div className="flex items-center gap-2">
-              {columnMapping.employeeCode && columnMapping.month && columnMapping.grossPay && columnMapping.netPay ? (
-                <span className="flex items-center gap-1 text-xs text-green-400">
-                  <CheckCircle className="h-3 w-3" />
-                  Required mappings complete
-                </span>
+        <CardContent className="space-y-3">
+          <div className="flex items-center gap-3">
+            <Button onClick={loadClientFiles} disabled={isLoadingClientFiles} className="flex items-center gap-2">
+              {isLoadingClientFiles ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
               ) : (
-                <span className="flex items-center gap-1 text-xs text-red-400">
-                  <AlertTriangle className="h-3 w-3" />
-                  Missing required mappings
-                </span>
+                <Settings className="h-4 w-4" />
               )}
-            </div>
+              {isLoadingClientFiles ? "Loading..." : "Load Client Files"}
+            </Button>
           </div>
+          {clientFiles.length > 0 && (
+            <Select value={selectedPayrollFile} onValueChange={setSelectedPayrollFile}>
+              <SelectTrigger className="border-white/10 bg-black/40 text-white">
+                <SelectValue placeholder="Select payroll file..." />
+              </SelectTrigger>
+              <SelectContent className="border-white/10 bg-black/90 text-white max-h-64">
+                {clientFiles.map((file, index) => (
+                  <SelectItem key={index} value={file.name}>
+                    {file.name} {file.reference && `(${file.reference})`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </CardContent>
       </Card>
 
@@ -434,7 +415,7 @@ export default function ExceptionTesting({ onBack }: ExceptionTestingProps) {
               </p>
               {!canRunTests() && (
                 <p className="mt-1 text-xs text-red-400">
-                  Please select at least one exception test and complete required column mappings
+                  Please select at least one exception test and choose the payroll file
                 </p>
               )}
             </div>
@@ -520,9 +501,16 @@ export default function ExceptionTesting({ onBack }: ExceptionTestingProps) {
                   <Download className="mr-2 h-4 w-4" />
                   Download Excel Report
                 </Button>
-                <Button variant="outline" className="border-green-500/30 text-green-300">
+                <Button
+                  variant="outline"
+                  className="border-green-500/30 text-green-300"
+                  onClick={() => {
+                    if (fileUrl) window.open(fileUrl, "_blank");
+                  }}
+                  disabled={!fileUrl}
+                >
                   <FileText className="mr-2 h-4 w-4" />
-                  View Detailed Results
+                  Open Exception Testing
                 </Button>
               </div>
             </div>
