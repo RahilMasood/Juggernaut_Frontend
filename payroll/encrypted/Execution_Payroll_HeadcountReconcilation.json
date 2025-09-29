@@ -1,0 +1,160 @@
+{
+    "Headcount_Reconciliation": [
+        {
+            "Month": "Apr-24",
+            "Opening": 2000,
+            "Joiners": 2,
+            "Leavers": 33,
+            "Closing": 1969
+        },
+        {
+            "Month": "May-24",
+            "Opening": 1969,
+            "Joiners": 5,
+            "Leavers": 76,
+            "Closing": 1898
+        },
+        {
+            "Month": "Jun-24",
+            "Opening": 1898,
+            "Joiners": 2,
+            "Leavers": 59,
+            "Closing": 1841
+        },
+        {
+            "Month": "Jul-24",
+            "Opening": 1841,
+            "Joiners": 1,
+            "Leavers": 64,
+            "Closing": 1778
+        },
+        {
+            "Month": "Aug-24",
+            "Opening": 1778,
+            "Joiners": 4,
+            "Leavers": 83,
+            "Closing": 1699
+        },
+        {
+            "Month": "Sep-24",
+            "Opening": 1699,
+            "Joiners": 3,
+            "Leavers": 22,
+            "Closing": 1680
+        },
+        {
+            "Month": "Oct-24",
+            "Opening": 1680,
+            "Joiners": 11,
+            "Leavers": 29,
+            "Closing": 1662
+        },
+        {
+            "Month": "Nov-24",
+            "Opening": 1662,
+            "Joiners": 5,
+            "Leavers": 14,
+            "Closing": 1653
+        },
+        {
+            "Month": "Dec-24",
+            "Opening": 1653,
+            "Joiners": 7,
+            "Leavers": 17,
+            "Closing": 1643
+        },
+        {
+            "Month": "Jan-25",
+            "Opening": 1643,
+            "Joiners": 4,
+            "Leavers": 28,
+            "Closing": 1619
+        },
+        {
+            "Month": "Feb-25",
+            "Opening": 1619,
+            "Joiners": 10,
+            "Leavers": 17,
+            "Closing": 1612
+        },
+        {
+            "Month": "Mar-25",
+            "Opening": 1612,
+            "Joiners": 7,
+            "Leavers": 20,
+            "Closing": 1599
+        }
+    ],
+    "Test_Reconciliation": [
+        {
+            "Particulars": "As per Above Headcount",
+            "Employees": 1599
+        },
+        {
+            "Particulars": "As per CTC Report",
+            "Employees": 1775
+        },
+        {
+            "Particulars": "Difference",
+            "Employees": -176
+        },
+        {
+            "Particulars": "--User added rows--",
+            "Employees": 0
+        },
+        {
+            "Particulars": "Net Difference",
+            "Employees": -176
+        }
+    ],
+    "Quarterly_Weighted_Average_Headcount": {
+        "Q1": {
+            "Weighted Figure": 11544,
+            "Total Weight": 6,
+            "Weighted Average": 1924.0
+        },
+        "Q2": {
+            "Weighted Figure": 10412,
+            "Total Weight": 6,
+            "Weighted Average": 1735.33
+        },
+        "Q3": {
+            "Weighted Figure": 9935,
+            "Total Weight": 6,
+            "Weighted Average": 1655.83
+        },
+        "Q4": {
+            "Weighted Figure": 9680,
+            "Total Weight": 6,
+            "Weighted Average": 1613.33
+        }
+    },
+    "Annual_Weighted_Average_Headcount": {
+        "Year": "FY24-25",
+        "Weighted Figure": 138759,
+        "Total Weight": 78,
+        "Weighted Average": 1778.96
+    },
+    "Average_Gross_Pay_Quarterly": {
+        "Q1": {
+            "Gross Pay": 419579722,
+            "Weighted Average Headcount": 1924,
+            "Average Pay": 218076.78
+        },
+        "Q2": {
+            "Gross Pay": 388713916,
+            "Weighted Average Headcount": 1735,
+            "Average Pay": 224042.6
+        },
+        "Q3": {
+            "Gross Pay": 452859931,
+            "Weighted Average Headcount": 1655,
+            "Average Pay": 273631.38
+        },
+        "Q4": {
+            "Gross Pay": 421520211,
+            "Weighted Average Headcount": 1613,
+            "Average Pay": 261326.85
+        }
+    }
+}

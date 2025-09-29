@@ -360,6 +360,94 @@ export default function HeadcountReconciliation({ onBack }: HeadcountReconciliat
     }
   };
 
+  const displayHeadcountFromJson = async () => {
+    setProcessingStatus("running");
+    try {
+      if (window.payroll?.run) {
+        const result = await window.payroll.run("download_headcount_results", { inputFiles: [], options: {} });
+        if (result.ok && result.runId) {
+          const unsubscribe = window.payroll.onProgress((payload: any) => {
+            if (payload.runId === result.runId) {
+              if (payload.status === 'running') return;
+              if (payload.status === 'success') {
+                try {
+                  const stdout = String(payload.stdout || '');
+                  let data: any = null;
+                  try { data = JSON.parse(stdout); } catch {}
+                  if (!data) {
+                    const start = stdout.indexOf('{');
+                    const end = stdout.lastIndexOf('}');
+                    if (start !== -1 && end !== -1 && end > start) {
+                      data = JSON.parse(stdout.substring(start, end + 1));
+                    }
+                  }
+                  if (data) {
+                    if (Array.isArray(data.Headcount_Reconciliation)) {
+                      const m = data.Headcount_Reconciliation.map((r: any) => ({
+                        month: r.Month,
+                        opening: Number(r.Opening),
+                        joiners: Number(r.Joiners),
+                        leavers: Number(r.Leavers),
+                        closing: Number(r.Closing),
+                      }));
+                      setMonthlyData(m);
+                      if (m.length > 0) setOpeningHeadcount(m[0].opening);
+                    }
+                    if (Array.isArray(data.Test_Reconciliation) && data.Test_Reconciliation.length >= 2) {
+                      setCtcReportCount(Number(data.Test_Reconciliation[1].Employees) || 0);
+                    }
+                    if (data.Quarterly_Weighted_Average_Headcount) {
+                      const qd: QuarterlyData[] = Object.entries(data.Quarterly_Weighted_Average_Headcount).map(([q, v]: any) => ({
+                        quarter: String(q),
+                        weightedFigure: Number(v['Weighted Figure']),
+                        totalWeight: Number(v['Total Weight']),
+                        weightedAverage: Number(v['Weighted Average']),
+                      }));
+                      setQuarterlyData(qd);
+                    }
+                    if (data.Annual_Weighted_Average_Headcount) {
+                      const ad = data.Annual_Weighted_Average_Headcount;
+                      setAnnualData([{ 
+                        year: String(ad['Year']),
+                        weightedFigure: Number(ad['Weighted Figure']),
+                        totalWeight: Number(ad['Total Weight']),
+                        weightedAverage: Number(ad['Weighted Average']),
+                      }]);
+                    }
+                    if (data.Average_Gross_Pay_Quarterly) {
+                      const qp: QuarterlyPayData[] = Object.entries(data.Average_Gross_Pay_Quarterly).map(([q, v]: any) => ({
+                        quarter: String(q),
+                        grossPay: Number(v['Gross Pay']),
+                        weightedAverageHeadcount: Number(v['Weighted Average Headcount']),
+                        averagePay: Number(v['Average Pay']),
+                      }));
+                      setQuarterlyPayData(qp);
+                    }
+                    setProcessingStatus('completed');
+                  } else {
+                    setProcessingStatus('error');
+                  }
+                } catch {
+                  setProcessingStatus('error');
+                }
+                unsubscribe();
+              } else if (payload.status === 'error') {
+                setProcessingStatus('error');
+                unsubscribe();
+              }
+            }
+          });
+        } else {
+          setProcessingStatus('error');
+        }
+      } else {
+        setProcessingStatus('error');
+      }
+    } catch {
+      setProcessingStatus('error');
+    }
+  };
+
   const chartData = [
     ...quarterlyPayData.map(q => ({
       quarter: q.quarter,
@@ -794,29 +882,36 @@ export default function HeadcountReconciliation({ onBack }: HeadcountReconciliat
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-400">
-                Generate comprehensive headcount reconciliation report
-              </p>
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-sm text-gray-400">
+              Display latest JSON from SharePoint or run a fresh reconciliation
             </div>
-            <Button
-              onClick={runHeadcountReconciliation}
-              disabled={processingStatus === "running"}
-              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
-            >
-              {processingStatus === "running" ? (
-                <>
-                  <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  Processing...
-                </>
-              ) : (
-                <>
-                  <Play className="mr-2 h-4 w-4" />
-                  Run Reconciliation
-                </>
-              )}
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={displayHeadcountFromJson}
+                disabled={processingStatus === "running"}
+                className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50"
+              >
+                Display Headcount Reconciliation
+              </Button>
+              <Button
+                onClick={runHeadcountReconciliation}
+                disabled={processingStatus === "running"}
+                className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+              >
+                {processingStatus === "running" ? (
+                  <>
+                    <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <Play className="mr-2 h-4 w-4" />
+                    Run Reconciliation
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
 
           {processingStatus === "completed" && (

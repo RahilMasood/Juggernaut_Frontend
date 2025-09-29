@@ -163,6 +163,11 @@ const SCRIPTS: ScriptMap = {
     label: "Execution Payroll Headcount Reconciliation",
     produces: [],
   },
+  "download_headcount_results": {
+    file: path.join(process.cwd(), "scripts", "download_headcount_results.py"),
+    label: "Download Headcount Results",
+    produces: [],
+  },
 };
 
 
