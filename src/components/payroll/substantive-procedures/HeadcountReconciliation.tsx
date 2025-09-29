@@ -96,6 +96,39 @@ export default function HeadcountReconciliation({ onBack }: HeadcountReconciliat
   const [reconciliationRows, setReconciliationRows] = useState<Array<{ id: string; description: string; amount: number }>>([]);
   const [processingStatus, setProcessingStatus] = useState<"idle" | "running" | "completed" | "error">("idle");
   const [showCharts, setShowCharts] = useState(true);
+  const [fileUrl, setFileUrl] = useState<string>("");
+
+  // IPE-style client file dropdowns
+  const [clientFiles, setClientFiles] = useState<Array<{ name: string; reference: string }>>([]);
+  const [isLoadingClientFiles, setIsLoadingClientFiles] = useState(false);
+  const [payRegistrar, setPayRegistrar] = useState<string>("");
+  const [ctcFile, setCtcFile] = useState<string>("");
+  const [addList, setAddList] = useState<string>("");
+  const [delList, setDelList] = useState<string>("");
+  const [addColumns, setAddColumns] = useState<string[]>([]);
+  const [delColumns, setDelColumns] = useState<string[]>([]);
+  const [dojal, setDojal] = useState<string>("");
+  const [doldl, setDoldl] = useState<string>("");
+  const [openingHeadcountInput, setOpeningHeadcountInput] = useState<number>(2000);
+
+  useEffect(() => {
+    loadClientFiles();
+  }, []);
+
+  const loadClientFiles = async () => {
+    setIsLoadingClientFiles(true);
+    try {
+      if (window.sharePointAPI?.loadCloudFiles) {
+        const result = await window.sharePointAPI.loadCloudFiles();
+        if (result.success && result.data?.files) {
+          const files = result.data.files.map((f: any) => ({ name: f.name, reference: f.reference || "" }));
+          setClientFiles(files);
+        }
+      }
+    } finally {
+      setIsLoadingClientFiles(false);
+    }
+  };
 
   // Initialize monthly data
   useEffect(() => {
@@ -167,21 +200,7 @@ export default function HeadcountReconciliation({ onBack }: HeadcountReconciliat
     }
   }, [monthlyData]);
 
-  // Calculate quarterly average pay
-  useEffect(() => {
-    const quarterlyPay: QuarterlyPayData[] = quarterlyData.map(q => {
-      const grossPay = Math.random() * 10000000 + 5000000; // Simulated data
-      const averagePay = grossPay / q.weightedAverage;
-      
-      return {
-        quarter: q.quarter,
-        grossPay: Math.round(grossPay),
-        weightedAverageHeadcount: q.weightedAverage,
-        averagePay: Math.round(averagePay),
-      };
-    });
-    setQuarterlyPayData(quarterlyPay);
-  }, [quarterlyData]);
+  // Remove simulated quarterly pay; will be set from JSON
 
   const handleMonthlyDataChange = (monthIndex: number, field: keyof MonthlyData, value: number) => {
     setMonthlyData(prev => {
@@ -218,15 +237,126 @@ export default function HeadcountReconciliation({ onBack }: HeadcountReconciliat
     return headcountDifference - reconciliationTotal;
   };
 
+  const handleLoadColumns = async () => {
+    try {
+      if (window.payroll?.loadExcelColumns) {
+        if (addList) {
+          const resAdd = await window.payroll.loadExcelColumns(addList.includes(' (') ? addList.split(' (')[0] : addList);
+          if (resAdd.ok && resAdd.columns) setAddColumns(resAdd.columns);
+        }
+        if (delList) {
+          const resDel = await window.payroll.loadExcelColumns(delList.includes(' (') ? delList.split(' (')[0] : delList);
+          if (resDel.ok && resDel.columns) setDelColumns(resDel.columns);
+        }
+      }
+    } catch {}
+  };
+
+  const canCalculate = () => {
+    return !!(payRegistrar && ctcFile && addList && delList && dojal && doldl);
+  };
+
   const runHeadcountReconciliation = async () => {
     setProcessingStatus("running");
-    
+    setFileUrl("");
     try {
-      // Simulate processing
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      setProcessingStatus("completed");
-    } catch (error) {
-      setProcessingStatus("error");
+      if (window.payroll?.run) {
+        const result = await window.payroll.run("execute_headcount_sharepoint", {
+          inputFiles: [],
+          options: {
+            add_list: addList,
+            del_list: delList,
+            ctc_file: ctcFile,
+            pay_registrar: payRegistrar,
+            opening_apr: openingHeadcountInput,
+            dojal,
+            doldl,
+          },
+        });
+        if (result.ok && result.runId) {
+          const unsubscribe = window.payroll.onProgress((payload: any) => {
+            if (payload.runId === result.runId) {
+              if (payload.status === 'running') return;
+              if (payload.status === 'success') {
+                try {
+                  const lines = String(payload.stdout || '').split('\n');
+                  const jsonLine = lines.find((l: string) => l.trim().startsWith('{') && l.trim().endsWith('}'));
+                  if (jsonLine) {
+                    const parsed = JSON.parse(jsonLine);
+                    if (parsed.success) {
+                      setProcessingStatus('completed');
+                      if (parsed.file_web_url) setFileUrl(parsed.file_web_url);
+                      const data = parsed.data;
+                      if (data) {
+                        // Monthly
+                        if (Array.isArray(data.Headcount_Reconciliation)) {
+                          const m = data.Headcount_Reconciliation.map((r: any, idx: number) => ({
+                            month: r.Month,
+                            opening: Number(r.Opening),
+                            joiners: Number(r.Joiners),
+                            leavers: Number(r.Leavers),
+                            closing: Number(r.Closing),
+                          }));
+                          setMonthlyData(m);
+                          if (m.length > 0) setOpeningHeadcount(m[0].opening);
+                        }
+                        // Test Reconciliation
+                        if (Array.isArray(data.Test_Reconciliation) && data.Test_Reconciliation.length >= 2) {
+                          setCtcReportCount(Number(data.Test_Reconciliation[1].Employees) || 0);
+                        }
+                        // Quarterly Weighted
+                        if (data.Quarterly_Weighted_Average_Headcount) {
+                          const qd: QuarterlyData[] = Object.entries(data.Quarterly_Weighted_Average_Headcount).map(([q, v]: any) => ({
+                            quarter: q,
+                            weightedFigure: Number(v['Weighted Figure']),
+                            totalWeight: Number(v['Total Weight']),
+                            weightedAverage: Number(v['Weighted Average']),
+                          }));
+                          setQuarterlyData(qd);
+                        }
+                        // Annual
+                        if (data.Annual_Weighted_Average_Headcount) {
+                          const ad = data.Annual_Weighted_Average_Headcount;
+                          setAnnualData([{ 
+                            year: String(ad['Year']), 
+                            weightedFigure: Number(ad['Weighted Figure']),
+                            totalWeight: Number(ad['Total Weight']),
+                            weightedAverage: Number(ad['Weighted Average']),
+                          }]);
+                        }
+                        // Average Gross Pay Quarterly
+                        if (data.Average_Gross_Pay_Quarterly) {
+                          const qp: QuarterlyPayData[] = Object.entries(data.Average_Gross_Pay_Quarterly).map(([q, v]: any) => ({
+                            quarter: String(q),
+                            grossPay: Number(v['Gross Pay']),
+                            weightedAverageHeadcount: Number(v['Weighted Average Headcount']),
+                            averagePay: Number(v['Average Pay']),
+                          }));
+                          setQuarterlyPayData(qp);
+                        }
+                      }
+                    } else {
+                      setProcessingStatus('error');
+                    }
+                  } else {
+                    setProcessingStatus('completed');
+                  }
+                } catch {
+                  setProcessingStatus('completed');
+                }
+                unsubscribe();
+              } else if (payload.status === 'error') {
+                setProcessingStatus('error');
+                unsubscribe();
+              }
+            }
+          });
+        } else {
+          setProcessingStatus('error');
+        }
+      }
+    } catch (e) {
+      setProcessingStatus('error');
     }
   };
 
@@ -255,8 +385,8 @@ export default function HeadcountReconciliation({ onBack }: HeadcountReconciliat
         )}
       </div>
 
-      {/* Charts Section */}
-      {showCharts && (
+      {/* Charts Section - only show after calculation */}
+      {processingStatus === "completed" && showCharts && (
         <Card className="border-white/10 bg-black/40">
           <CardHeader>
             <CardTitle className="flex items-center justify-between text-white">
@@ -322,8 +452,109 @@ export default function HeadcountReconciliation({ onBack }: HeadcountReconciliat
         </Card>
       )}
 
-      {/* Monthly Reconciliation Table */}
+      {/* Inputs: Select files */}
       <Card className="border-white/10 bg-black/40">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-3 text-white">
+            <Users className="h-5 w-5" />
+            Select Source Files
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-3">
+            <Button onClick={loadClientFiles} disabled={isLoadingClientFiles} className="flex items-center gap-2">
+              {isLoadingClientFiles ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+              ) : (
+                <Users className="h-4 w-4" />
+              )}
+              {isLoadingClientFiles ? 'Loading...' : 'Load Client Files'}
+            </Button>
+          </div>
+          {clientFiles.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <Label className="text-white">Pay Registrar</Label>
+                <Select value={payRegistrar} onValueChange={setPayRegistrar}>
+                  <SelectTrigger className="border-white/10 bg-black/40 text-white"><SelectValue placeholder="Select..." /></SelectTrigger>
+                  <SelectContent className="border-white/10 bg-black/90 text-white max-h-64">
+                    {clientFiles.map((f, i) => (<SelectItem key={i} value={f.name}>{f.name} {f.reference && `(${f.reference})`}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-white">CTC Report</Label>
+                <Select value={ctcFile} onValueChange={setCtcFile}>
+                  <SelectTrigger className="border-white/10 bg-black/40 text-white"><SelectValue placeholder="Select..." /></SelectTrigger>
+                  <SelectContent className="border-white/10 bg-black/90 text-white max-h-64">
+                    {clientFiles.map((f, i) => (<SelectItem key={i} value={f.name}>{f.name} {f.reference && `(${f.reference})`}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-white">Additions Listing</Label>
+                <Select value={addList} onValueChange={setAddList}>
+                  <SelectTrigger className="border-white/10 bg-black/40 text-white"><SelectValue placeholder="Select..." /></SelectTrigger>
+                  <SelectContent className="border-white/10 bg-black/90 text-white max-h-64">
+                    {clientFiles.map((f, i) => (<SelectItem key={i} value={f.name}>{f.name} {f.reference && `(${f.reference})`}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-white">Deletions Listing</Label>
+                <Select value={delList} onValueChange={setDelList}>
+                  <SelectTrigger className="border-white/10 bg-black/40 text-white"><SelectValue placeholder="Select..." /></SelectTrigger>
+                  <SelectContent className="border-white/10 bg-black/90 text-white max-h-64">
+                    {clientFiles.map((f, i) => (<SelectItem key={i} value={f.name}>{f.name} {f.reference && `(${f.reference})`}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Columns selection */}
+      <Card className="border-white/10 bg-black/40">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-3 text-white">
+            <Users className="h-5 w-5" />
+            Map Date Columns
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-3">
+            <Button onClick={handleLoadColumns} disabled={!addList && !delList} className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Get Columns
+            </Button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <Label className="text-white">Date of joining (from Additions Listing)</Label>
+              <Select value={dojal} onValueChange={setDojal}>
+                <SelectTrigger className="border-white/10 bg-black/40 text-white"><SelectValue placeholder="Select column..." /></SelectTrigger>
+                <SelectContent className="border-white/10 bg-black/90 text-white max-h-64">
+                  {addColumns.map((c, i) => (<SelectItem key={i} value={c}>{c}</SelectItem>))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-white">Date of leaving (from Deletions Listing)</Label>
+              <Select value={doldl} onValueChange={setDoldl}>
+                <SelectTrigger className="border-white/10 bg-black/40 text-white"><SelectValue placeholder="Select column..." /></SelectTrigger>
+                <SelectContent className="border-white/10 bg-black/90 text-white max-h-64">
+                  {delColumns.map((c, i) => (<SelectItem key={i} value={c}>{c}</SelectItem>))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Monthly Reconciliation Table - only show after calculation */}
+      {processingStatus === "completed" && (
+        <Card className="border-white/10 bg-black/40">
         <CardHeader>
           <CardTitle className="flex items-center gap-3 text-white">
             <Users className="h-5 w-5" />
@@ -332,20 +563,6 @@ export default function HeadcountReconciliation({ onBack }: HeadcountReconciliat
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="flex items-center gap-4">
-              <div className="space-y-2">
-                <Label className="text-white">Opening Headcount (April)</Label>
-                <Input
-                  type="number"
-                  value={openingHeadcount}
-                  onChange={(e) => setOpeningHeadcount(Number(e.target.value))}
-                  className="w-32 border-white/10 bg-black/40 text-white"
-                />
-              </div>
-              <div className="text-sm text-gray-400">
-                For initial audit: enter manually. For subsequent audits: previous year's closing will be used.
-              </div>
-            </div>
 
             <div className="overflow-x-auto">
               <Table>
@@ -359,37 +576,12 @@ export default function HeadcountReconciliation({ onBack }: HeadcountReconciliat
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {monthlyData.map((month, index) => (
+                  {monthlyData.map((month) => (
                     <TableRow key={month.month}>
                       <TableCell className="text-white">{month.month}</TableCell>
-                      <TableCell className="text-white">
-                        {index === 0 ? (
-                          <Input
-                            type="number"
-                            value={month.opening}
-                            onChange={(e) => handleMonthlyDataChange(index, 'opening', Number(e.target.value))}
-                            className="w-20 border-white/10 bg-black/40 text-white"
-                          />
-                        ) : (
-                          month.opening
-                        )}
-                      </TableCell>
-                      <TableCell className="text-white">
-                        <Input
-                          type="number"
-                          value={month.joiners}
-                          onChange={(e) => handleMonthlyDataChange(index, 'joiners', Number(e.target.value))}
-                          className="w-20 border-white/10 bg-black/40 text-white"
-                        />
-                      </TableCell>
-                      <TableCell className="text-white">
-                        <Input
-                          type="number"
-                          value={month.leavers}
-                          onChange={(e) => handleMonthlyDataChange(index, 'leavers', Number(e.target.value))}
-                          className="w-20 border-white/10 bg-black/40 text-white"
-                        />
-                      </TableCell>
+                      <TableCell className="text-white">{month.opening}</TableCell>
+                      <TableCell className="text-white">{month.joiners}</TableCell>
+                      <TableCell className="text-white">{month.leavers}</TableCell>
                       <TableCell className="text-white font-medium">
                         {month.closing}
                       </TableCell>
@@ -400,10 +592,12 @@ export default function HeadcountReconciliation({ onBack }: HeadcountReconciliat
             </div>
           </div>
         </CardContent>
-      </Card>
+        </Card>
+      )}
 
-      {/* Reconciliation Test */}
-      <Card className="border-white/10 bg-black/40">
+      {/* Reconciliation Test - only show after calculation */}
+      {processingStatus === "completed" && (
+        <Card className="border-white/10 bg-black/40">
         <CardHeader>
           <CardTitle className="flex items-center gap-3 text-white">
             <Calculator className="h-5 w-5" />
@@ -421,15 +615,15 @@ export default function HeadcountReconciliation({ onBack }: HeadcountReconciliat
                 className="border-white/10 bg-black/40 text-white"
               />
             </div>
-            <div className="space-y-2">
-              <Label className="text-white">As per CTC Report (B)</Label>
-              <Input
-                type="number"
-                value={ctcReportCount}
-                onChange={(e) => setCtcReportCount(Number(e.target.value))}
-                className="border-white/10 bg-black/40 text-white"
-              />
-            </div>
+              <div className="space-y-2">
+                <Label className="text-white">As per CTC Report (B)</Label>
+                <Input
+                  type="number"
+                  value={ctcReportCount}
+                  readOnly
+                  className="border-white/10 bg-black/40 text-white"
+                />
+              </div>
           </div>
 
           <div className="space-y-2">
@@ -442,62 +636,13 @@ export default function HeadcountReconciliation({ onBack }: HeadcountReconciliat
             />
           </div>
 
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label className="text-white">Reconciliation Adjustments</Label>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={addReconciliationRow}
-                className="border-white/10"
-              >
-                <Plus className="mr-2 h-3 w-3" />
-                Add Row
-              </Button>
-            </div>
-            
-            {reconciliationRows.map((row) => (
-              <div key={row.id} className="flex items-center gap-3">
-                <Input
-                  type="text"
-                  value={row.description}
-                  onChange={(e) => updateReconciliationRow(row.id, 'description', e.target.value)}
-                  placeholder="Description"
-                  className="flex-1 border-white/10 bg-black/40 text-white"
-                />
-                <Input
-                  type="number"
-                  value={row.amount}
-                  onChange={(e) => updateReconciliationRow(row.id, 'amount', Number(e.target.value))}
-                  placeholder="Amount"
-                  className="w-24 border-white/10 bg-black/40 text-white"
-                />
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => removeReconciliationRow(row.id)}
-                  className="h-8 w-8 p-0 text-red-400 hover:text-red-300"
-                >
-                  <Minus className="h-3 w-3" />
-                </Button>
-              </div>
-            ))}
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-white">Net Difference</Label>
-            <Input
-              type="number"
-              value={calculateNetDifference()}
-              readOnly
-              className="border-white/10 bg-black/40 text-white font-medium"
-            />
-          </div>
         </CardContent>
-      </Card>
+        </Card>
+      )}
 
-      {/* Quarterly Weighted Average */}
-      <Card className="border-white/10 bg-black/40">
+      {/* Quarterly Weighted Average - only show after calculation */}
+      {processingStatus === "completed" && (
+        <Card className="border-white/10 bg-black/40">
         <CardHeader>
           <CardTitle className="flex items-center gap-3 text-white">
             <TrendingUp className="h-5 w-5" />
@@ -528,10 +673,12 @@ export default function HeadcountReconciliation({ onBack }: HeadcountReconciliat
             </Table>
           </div>
         </CardContent>
-      </Card>
+        </Card>
+      )}
 
-      {/* Annual Weighted Average */}
-      <Card className="border-white/10 bg-black/40">
+      {/* Annual Weighted Average - only show after calculation */}
+      {processingStatus === "completed" && (
+        <Card className="border-white/10 bg-black/40">
         <CardHeader>
           <CardTitle className="flex items-center gap-3 text-white">
             <TrendingUp className="h-5 w-5" />
@@ -562,10 +709,12 @@ export default function HeadcountReconciliation({ onBack }: HeadcountReconciliat
             </Table>
           </div>
         </CardContent>
-      </Card>
+        </Card>
+      )}
 
-      {/* Average Gross Pay - Quarterly */}
-      <Card className="border-white/10 bg-black/40">
+      {/* Average Gross Pay - Quarterly - only show after calculation */}
+      {processingStatus === "completed" && (
+        <Card className="border-white/10 bg-black/40">
         <CardHeader>
           <CardTitle className="flex items-center gap-3 text-white">
             <LineChartIcon className="h-5 w-5" />
@@ -607,9 +756,36 @@ export default function HeadcountReconciliation({ onBack }: HeadcountReconciliat
             </Table>
           </div>
         </CardContent>
+        </Card>
+      )}
+
+      {/* Opening Headcount Input */}
+      <Card className="border-white/10 bg-black/40">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-3 text-white">
+            <Users className="h-5 w-5" />
+            Opening Headcount
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-4">
+            <div className="space-y-2">
+              <Label className="text-white">Opening Headcount (April)</Label>
+              <Input
+                type="number"
+                value={openingHeadcountInput}
+                onChange={(e) => setOpeningHeadcountInput(Number(e.target.value))}
+                className="w-32 border-white/10 bg-black/40 text-white"
+              />
+            </div>
+            <div className="text-sm text-gray-400">
+              For initial audit: enter manually. For subsequent audits: previous year's closing will be used.
+            </div>
+          </div>
+        </CardContent>
       </Card>
 
-      {/* Execution Section */}
+      {/* Calculate Button */}
       <Card className="border-white/10 bg-black/40">
         <CardHeader>
           <CardTitle className="flex items-center gap-3 text-white">

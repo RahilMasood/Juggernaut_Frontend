@@ -158,6 +158,11 @@ const SCRIPTS: ScriptMap = {
     label: "Execution Payroll Exception Testing",
     produces: [],
   },
+  "execute_headcount_sharepoint": {
+    file: path.join(process.cwd(), "scripts", "execute_headcount_sharepoint.py"),
+    label: "Execution Payroll Headcount Reconciliation",
+    produces: [],
+  },
 };
 
 
