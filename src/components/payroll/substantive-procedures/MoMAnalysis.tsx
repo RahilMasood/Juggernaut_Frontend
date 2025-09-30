@@ -105,7 +105,9 @@ export default function MoMAnalysis({ onBack }: MoMAnalysisProps) {
       if (window.sharePointAPI?.loadCloudFiles) {
         const result = await window.sharePointAPI.loadCloudFiles();
         if (result.success && result.data?.files) {
-          const files = result.data.files.map((f: any) => ({ name: f.name, reference: f.reference }));
+          const files = result.data.files
+            .map((f: any) => ({ name: String(f.name || "").trim(), reference: f.reference }))
+            .filter((f: any) => f.name && f.name.length > 0);
           setClientFiles(files);
         }
       }
@@ -240,10 +242,14 @@ export default function MoMAnalysis({ onBack }: MoMAnalysisProps) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <Label className="text-white">Pay Registrar</Label>
-                <Select value={payRegistrar} onValueChange={setPayRegistrar}>
+                <Select value={payRegistrar && clientFiles.some(f => f.name === payRegistrar) ? payRegistrar : ""} onValueChange={setPayRegistrar}>
                   <SelectTrigger className="border-white/10 bg-black/40 text-white"><SelectValue placeholder="Select..." /></SelectTrigger>
                   <SelectContent className="border-white/10 bg-black/90 text-white max-h-64">
-                    {clientFiles.map((f, i) => (<SelectItem key={i} value={f.name}>{f.name} {f.reference && `(${f.reference})`}</SelectItem>))}
+                    {clientFiles
+                      .filter((f) => f.name && f.name.trim().length > 0)
+                      .map((f, i) => (
+                        <SelectItem key={i} value={f.name}>{f.name} {f.reference && `(${f.reference})`}</SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>

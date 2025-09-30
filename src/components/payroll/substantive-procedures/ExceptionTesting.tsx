@@ -149,7 +149,12 @@ export default function ExceptionTesting({ onBack }: ExceptionTestingProps) {
       if (window.sharePointAPI?.loadCloudFiles) {
         const result = await window.sharePointAPI.loadCloudFiles();
         if (result.success && result.data?.files) {
-          const files = result.data.files.map((file: any) => ({ name: file.name, reference: file.reference || "" }));
+          const files = result.data.files
+            .map((file: any) => ({ 
+              name: String(file.name || "").trim(), 
+              reference: file.reference || "" 
+            }))
+            .filter((file: any) => file.name && file.name.length > 0);
           setClientFiles(files);
         }
       }
@@ -325,16 +330,18 @@ export default function ExceptionTesting({ onBack }: ExceptionTestingProps) {
             </Button>
           </div>
           {clientFiles.length > 0 && (
-            <Select value={selectedPayrollFile} onValueChange={setSelectedPayrollFile}>
+            <Select value={selectedPayrollFile && clientFiles.some(f => f.name === selectedPayrollFile) ? selectedPayrollFile : ""} onValueChange={setSelectedPayrollFile}>
               <SelectTrigger className="border-white/10 bg-black/40 text-white">
                 <SelectValue placeholder="Select payroll file..." />
               </SelectTrigger>
               <SelectContent className="border-white/10 bg-black/90 text-white max-h-64">
-                {clientFiles.map((file, index) => (
-                  <SelectItem key={index} value={file.name}>
-                    {file.name} {file.reference && `(${file.reference})`}
-                  </SelectItem>
-                ))}
+                {clientFiles
+                  .filter((f) => f.name && f.name.trim().length > 0)
+                  .map((file, index) => (
+                    <SelectItem key={index} value={file.name}>
+                      {file.name} {file.reference && `(${file.reference})`}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
           )}

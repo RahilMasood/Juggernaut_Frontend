@@ -83,11 +83,13 @@ export default function IPETesting({ onBack }: IPETestingProps) {
       if (window.sharePointAPI?.loadCloudFiles) {
         const result = await window.sharePointAPI.loadCloudFiles();
         if (result.success && result.data?.files) {
-          // Transform CloudFile format to ClientFile format
-          const clientFiles = result.data.files.map((file: any) => ({
-            name: file.name,
-            reference: file.reference || ''
-          }));
+          // Transform CloudFile format to ClientFile format and filter out empty names
+          const clientFiles = result.data.files
+            .map((file: any) => ({
+              name: String(file.name || "").trim(),
+              reference: file.reference || ''
+            }))
+            .filter((file: any) => file.name && file.name.length > 0);
           setClientFiles(clientFiles);
           console.log('Loaded client files:', clientFiles);
         } else {
@@ -345,16 +347,18 @@ export default function IPETesting({ onBack }: IPETestingProps) {
             </div>
 
             {clientFiles.length > 0 && (
-              <Select value={ipeFormData.payrollFile} onValueChange={handlePayrollFileChange}>
+              <Select value={ipeFormData.payrollFile && clientFiles.some(f => f.name === ipeFormData.payrollFile) ? ipeFormData.payrollFile : ""} onValueChange={handlePayrollFileChange}>
                 <SelectTrigger className="border-white/10 bg-black/40 text-white">
                   <SelectValue placeholder="Select payroll file..." />
                 </SelectTrigger>
                 <SelectContent className="border-white/10 bg-black/90 text-white max-h-64">
-                  {clientFiles.map((file, index) => (
-                    <SelectItem key={index} value={file.name}>
-                      {file.name} {file.reference && `(${file.reference})`}
-                    </SelectItem>
-                  ))}
+                  {clientFiles
+                    .filter((f) => f.name && f.name.trim().length > 0)
+                    .map((file, index) => (
+                      <SelectItem key={index} value={file.name}>
+                        {file.name} {file.reference && `(${file.reference})`}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             )}
