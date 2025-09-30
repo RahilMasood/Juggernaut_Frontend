@@ -173,6 +173,11 @@ const SCRIPTS: ScriptMap = {
     label: "Execution Payroll MoM Increment",
     produces: [],
   },
+  "execute_increment_analysis_sharepoint": {
+    file: path.join(process.cwd(), "scripts", "execute_increment_analysis_sharepoint.py"),
+    label: "Execution Payroll Increment Analysis",
+    produces: [],
+  },
 };
 
 
@@ -449,17 +454,24 @@ export function addPayrollEventListeners(mainWindow: BrowserWindow) {
       // Spawn Python process
       const child = spawn(pythonCmd, argsList, { cwd, env });
 
-      // For execute_exception_sharepoint, pass options via stdin as JSON
+      // For specific scripts, pass options via stdin as JSON
       try {
+        const payload: Record<string, unknown> = {};
         if (scriptKey === "execute_exception_sharepoint" && options) {
-          const payload: Record<string, unknown> = {};
           if (typeof (options as any).pay_registrar === 'string') payload.pay_registrar = (options as any).pay_registrar;
           if (Array.isArray((options as any).expn_no)) payload.expn_no = (options as any).expn_no;
-          const jsonPayload = JSON.stringify(payload);
-          if (child.stdin && jsonPayload.length > 0) {
-            child.stdin.write(jsonPayload);
-            child.stdin.end();
-          }
+        } else if (scriptKey === "execute_increment_analysis_sharepoint" && options) {
+          if (typeof (options as any).cy_file === 'string') payload.cy_file = (options as any).cy_file;
+          if (typeof (options as any).py_file === 'string') payload.py_file = (options as any).py_file;
+          if (Array.isArray((options as any).incr_columns)) payload.incr_columns = (options as any).incr_columns;
+          if (Array.isArray((options as any).cols_to_sum)) payload.cols_to_sum = (options as any).cols_to_sum;
+          if (typeof (options as any).reconcile_input !== 'undefined') payload.reconcile_input = (options as any).reconcile_input;
+        }
+
+        const jsonPayload = Object.keys(payload).length ? JSON.stringify(payload) : '';
+        if (child.stdin && jsonPayload.length > 0) {
+          child.stdin.write(jsonPayload);
+          child.stdin.end();
         }
       } catch (stdinError) {
         console.warn("Failed to write JSON payload to Python stdin:", stdinError);
