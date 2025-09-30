@@ -76,79 +76,53 @@ const AVAILABLE_COLUMNS = [
 ];
 
 const MONTH_OPTIONS = [
-  "Apr-24", "May-24", "Jun-24", "Jul-24", "Aug-24", "Sep-24",
-  "Oct-24", "Nov-24", "Dec-24", "Jan-25", "Feb-25", "Mar-25"
+  "Apr-25", "May-25", "Jun-25",
+  "Jul-25", "Aug-25", "Sep-25", "Oct-25", "Nov-25", "Dec-25",
+  "Jan-26", "Feb-26", "Mar-26"
 ];
 
 export default function MoMAnalysis({ onBack }: MoMAnalysisProps) {
   const [columnSelection, setColumnSelection] = useState<ColumnSelection>({
-    displayColumns: ["employee_code", "employee_name", "doj", "dol"],
-    calculationColumns: ["basic", "hra"],
+    displayColumns: [],
+    calculationColumns: [],
   });
   const [incrementMonth, setIncrementMonth] = useState<string>("Oct-24");
   const [momData, setMomData] = useState<EmployeeMoMData[]>([]);
   const [processingStatus, setProcessingStatus] = useState<"idle" | "running" | "completed" | "error">("idle");
   const [progress, setProgress] = useState(0);
   const [showSelectedColumns, setShowSelectedColumns] = useState(false);
+  const [payRegistrar, setPayRegistrar] = useState<string>("");
+  const [payRegistrarColumns, setPayRegistrarColumns] = useState<string[]>([]);
+  const [clientFiles, setClientFiles] = useState<Array<{ name: string; reference?: string }>>([]);
+  const [isLoadingClientFiles, setIsLoadingClientFiles] = useState(false);
+  const [showDisplayDropdown, setShowDisplayDropdown] = useState(false);
+  const [showCalcDropdown, setShowCalcDropdown] = useState(false);
 
-  // Generate sample data for demonstration
-  useEffect(() => {
-    const sampleData: EmployeeMoMData[] = [
-      {
-        employeeCode: "EMP001",
-        employeeName: "John Doe",
-        doj: "2023-01-15",
-        dol: "",
-        aprSepTotal: 450000,
-        octMarTotal: 495000,
-        variance: 45000,
-        variancePercentage: 10.0,
-        remarks: "",
-        isNewHire: false,
-        isResigned: false,
-      },
-      {
-        employeeCode: "EMP002",
-        employeeName: "Jane Smith",
-        doj: "2024-06-01",
-        dol: "",
-        aprSepTotal: 180000,
-        octMarTotal: 270000,
-        variance: 90000,
-        variancePercentage: 50.0,
-        remarks: "The variance is due to fresh hiring of the employee in the current year",
-        isNewHire: true,
-        isResigned: false,
-      },
-      {
-        employeeCode: "EMP003",
-        employeeName: "Mike Johnson",
-        doj: "2022-03-10",
-        dol: "2024-11-30",
-        aprSepTotal: 360000,
-        octMarTotal: 120000,
-        variance: -240000,
-        variancePercentage: -66.7,
-        remarks: "The variance is due to resignation of the employee in the current year",
-        isNewHire: false,
-        isResigned: true,
-      },
-      {
-        employeeCode: "EMP004",
-        employeeName: "Sarah Wilson",
-        doj: "2023-08-20",
-        dol: "",
-        aprSepTotal: 320000,
-        octMarTotal: 352000,
-        variance: 32000,
-        variancePercentage: 10.0,
-        remarks: "",
-        isNewHire: false,
-        isResigned: false,
-      },
-    ];
-    setMomData(sampleData);
-  }, []);
+  // Load client files similar to IPE Testing step
+  const loadClientFiles = async () => {
+    setIsLoadingClientFiles(true);
+    try {
+      if (window.sharePointAPI?.loadCloudFiles) {
+        const result = await window.sharePointAPI.loadCloudFiles();
+        if (result.success && result.data?.files) {
+          const files = result.data.files.map((f: any) => ({ name: f.name, reference: f.reference }));
+          setClientFiles(files);
+        }
+      }
+    } finally {
+      setIsLoadingClientFiles(false);
+    }
+  };
+
+  const loadPayRegistrarColumns = async () => {
+    try {
+      if (window.payroll?.loadExcelColumns && payRegistrar) {
+        const fileName = payRegistrar.includes(' (') ? payRegistrar.split(' (')[0] : payRegistrar;
+        const res = await window.payroll.loadExcelColumns(fileName);
+        if (res.ok && Array.isArray(res.columns)) setPayRegistrarColumns(res.columns);
+      }
+    } catch {}
+  };
 
   const handleColumnToggle = (columnType: keyof ColumnSelection, columnValue: string) => {
     setColumnSelection(prev => ({
@@ -178,17 +152,39 @@ export default function MoMAnalysis({ onBack }: MoMAnalysisProps) {
   const runMoMAnalysis = async () => {
     setProcessingStatus("running");
     setProgress(0);
-
     try {
-      // Simulate analysis process
-      for (let i = 0; i <= 100; i += 10) {
-        await new Promise(resolve => setTimeout(resolve, 200));
-        setProgress(i);
+      if (window.payroll?.run) {
+        const res = await window.payroll.run("execute_mom_increment_sharepoint", {
+          inputFiles: [],
+          options: {
+            pay_registrar: payRegistrar,
+            display_cols: columnSelection.displayColumns,
+            calc_cols: columnSelection.calculationColumns,
+            increment_month: incrementMonth,
+          },
+        });
+        if (res.ok && res.runId) {
+          const off = window.payroll.onProgress((payload: any) => {
+            if (payload.runId === res.runId) {
+              if (payload.status === 'running') return;
+              if (payload.status === 'success') {
+                setProcessingStatus('completed');
+                setProgress(100);
+                off();
+              } else if (payload.status === 'error') {
+                setProcessingStatus('error');
+                off();
+              }
+            }
+          });
+        } else {
+          setProcessingStatus('error');
+        }
+      } else {
+        setProcessingStatus('error');
       }
-
-      setProcessingStatus("completed");
-    } catch (error) {
-      setProcessingStatus("error");
+    } catch {
+      setProcessingStatus('error');
     }
   };
 
@@ -201,9 +197,7 @@ export default function MoMAnalysis({ onBack }: MoMAnalysisProps) {
   };
 
   const canRunAnalysis = () => {
-    return columnSelection.displayColumns.length > 0 && 
-           columnSelection.calculationColumns.length > 0 && 
-           incrementMonth;
+    return !!(payRegistrar && columnSelection.displayColumns.length > 0 && columnSelection.calculationColumns.length > 0 && incrementMonth);
   };
 
   return (
@@ -223,85 +217,106 @@ export default function MoMAnalysis({ onBack }: MoMAnalysisProps) {
         )}
       </div>
 
-      {/* Configuration Section */}
+      {/* Select Pay Registrar (ask user which file is Pay Registrar) */}
+      <Card className="border-white/10 bg-black/40">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-3 text-white">
+            <Users className="h-5 w-5" />
+            Step 1: Select Pay Registrar
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-3">
+            <Button onClick={loadClientFiles} disabled={isLoadingClientFiles} className="flex items-center gap-2">
+              {isLoadingClientFiles ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+              ) : (
+                <Users className="h-4 w-4" />
+              )}
+              {isLoadingClientFiles ? 'Loading...' : 'Load Client Files'}
+            </Button>
+          </div>
+          {clientFiles.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <Label className="text-white">Pay Registrar</Label>
+                <Select value={payRegistrar} onValueChange={setPayRegistrar}>
+                  <SelectTrigger className="border-white/10 bg-black/40 text-white"><SelectValue placeholder="Select..." /></SelectTrigger>
+                  <SelectContent className="border-white/10 bg-black/90 text-white max-h-64">
+                    {clientFiles.map((f, i) => (<SelectItem key={i} value={f.name}>{f.name} {f.reference && `(${f.reference})`}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-end">
+                <Button onClick={loadPayRegistrarColumns} disabled={!payRegistrar} className="ml-auto">
+                  Load Excel Columns
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Select Columns (Display & Calculation) */}
       <Card className="border-white/10 bg-black/40">
         <CardHeader>
           <CardTitle className="flex items-center gap-3 text-white">
             <Settings className="h-5 w-5" />
-            Analysis Configuration
+            Step 2: Select Columns
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Column Selection */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Display Columns Dropdown */}
+            <div className="space-y-2">
               <Label className="text-white">Display Columns</Label>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setShowSelectedColumns(!showSelectedColumns)}
-                className="border-white/10"
-              >
-                {showSelectedColumns ? "Hide Selected" : "Show Selected"}
-              </Button>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-              {AVAILABLE_COLUMNS.map((column) => (
-                <div key={column.value} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`display-${column.value}`}
-                    checked={columnSelection.displayColumns.includes(column.value)}
-                    onCheckedChange={() => handleColumnToggle('displayColumns', column.value)}
-                  />
-                  <Label htmlFor={`display-${column.value}`} className="flex items-center gap-2 text-white">
-                    {column.icon}
-                    {column.label}
-                  </Label>
-                </div>
-              ))}
-            </div>
-
-            {showSelectedColumns && (
-              <div className="rounded border border-blue-500/20 bg-blue-900/10 p-3">
-                <p className="text-sm font-medium text-blue-300">Selected Display Columns:</p>
-                <p className="text-sm text-blue-200">
-                  {columnSelection.displayColumns.map(getColumnLabel).join(", ")}
-                </p>
+              <div className="relative">
+                <Button variant="outline" className="w-full justify-between border-white/10" onClick={() => setShowDisplayDropdown(!showDisplayDropdown)}>
+                  {columnSelection.displayColumns.length > 0 ? `${columnSelection.displayColumns.length} selected` : 'Select display columns'}
+                </Button>
+                {showDisplayDropdown && (
+                  <div className="absolute z-10 mt-2 w-full rounded-md border border-white/10 bg-black/90 p-2 max-h-64 overflow-auto">
+                    {(payRegistrarColumns.length > 0 ? payRegistrarColumns : [])
+                      .map((c: any) => (
+                        <div key={String(c)} className="flex items-center gap-2 px-2 py-1 hover:bg-white/5 rounded">
+                          <Checkbox id={`disp-${String(c)}`} checked={columnSelection.displayColumns.includes(String(c))} onCheckedChange={() => handleColumnToggle('displayColumns', String(c))} />
+                          <Label htmlFor={`disp-${String(c)}`} className="text-white text-sm">{String(c)}</Label>
+                        </div>
+                      ))}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-
-          {/* Calculation Columns */}
-          <div className="space-y-4">
-            <Label className="text-white">Calculation Columns (for MoM analysis)</Label>
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-              {AVAILABLE_COLUMNS.filter(col => 
-                ['basic', 'hra', 'da', 'allowances', 'gross', 'pf', 'esi', 'deductions', 'net_pay'].includes(col.value)
-              ).map((column) => (
-                <div key={column.value} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`calc-${column.value}`}
-                    checked={columnSelection.calculationColumns.includes(column.value)}
-                    onCheckedChange={() => handleColumnToggle('calculationColumns', column.value)}
-                  />
-                  <Label htmlFor={`calc-${column.value}`} className="flex items-center gap-2 text-white">
-                    {column.icon}
-                    {column.label}
-                  </Label>
-                </div>
-              ))}
+              {columnSelection.displayColumns.length > 0 && (
+                <div className="text-xs text-blue-300">{columnSelection.displayColumns.join(', ')}</div>
+              )}
             </div>
 
-            <div className="rounded border border-green-500/20 bg-green-900/10 p-3">
-              <p className="text-sm font-medium text-green-300">Selected Calculation Columns:</p>
-              <p className="text-sm text-green-200">
-                {columnSelection.calculationColumns.map(getColumnLabel).join(", ")}
-              </p>
+            {/* Calculation Columns Dropdown */}
+            <div className="space-y-2">
+              <Label className="text-white">Calculation Columns</Label>
+              <div className="relative">
+                <Button variant="outline" className="w-full justify-between border-white/10" onClick={() => setShowCalcDropdown(!showCalcDropdown)}>
+                  {columnSelection.calculationColumns.length > 0 ? `${columnSelection.calculationColumns.length} selected` : 'Select calculation columns'}
+                </Button>
+                {showCalcDropdown && (
+                  <div className="absolute z-10 mt-2 w-full rounded-md border border-white/10 bg-black/90 p-2 max-h-64 overflow-auto">
+                    {(payRegistrarColumns.length > 0 ? payRegistrarColumns : [])
+                      .map((c: any) => (
+                        <div key={String(c)} className="flex items-center gap-2 px-2 py-1 hover:bg-white/5 rounded">
+                          <Checkbox id={`calc-${String(c)}`} checked={columnSelection.calculationColumns.includes(String(c))} onCheckedChange={() => handleColumnToggle('calculationColumns', String(c))} />
+                          <Label htmlFor={`calc-${String(c)}`} className="text-white text-sm">{String(c)}</Label>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
+              {columnSelection.calculationColumns.length > 0 && (
+                <div className="text-xs text-green-300">{columnSelection.calculationColumns.join(', ')}</div>
+              )}
             </div>
           </div>
 
-          {/* Increment Month Selection */}
+          {/* Increment Month Selection (unchanged) */}
           <div className="space-y-2">
             <Label className="text-white">Month of Increment</Label>
             <Select value={incrementMonth} onValueChange={setIncrementMonth}>
@@ -316,127 +331,11 @@ export default function MoMAnalysis({ onBack }: MoMAnalysisProps) {
                 ))}
               </SelectContent>
             </Select>
-            <p className="text-xs text-gray-400">
-              Analysis will be split: Apr-Sep (pre-increment) and {incrementMonth}-Mar (post-increment)
-            </p>
           </div>
         </CardContent>
       </Card>
 
-      {/* Analysis Results */}
-      <Card className="border-white/10 bg-black/40">
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between text-white">
-            <div className="flex items-center gap-3">
-              <BarChart3 className="h-5 w-5" />
-              MoM Analysis Results
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="rounded bg-blue-500/20 px-2 py-1 text-xs text-blue-300">
-                {momData.length} employees
-              </span>
-            </div>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {/* Summary Statistics */}
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              <div className="rounded border border-white/10 bg-white/5 p-4">
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-green-500" />
-                  <span className="text-sm text-gray-400">Positive Variance</span>
-                </div>
-                <p className="text-2xl font-bold text-green-400">
-                  {momData.filter(emp => emp.variance > 0).length}
-                </p>
-              </div>
-              <div className="rounded border border-white/10 bg-white/5 p-4">
-                <div className="flex items-center gap-2">
-                  <TrendingDown className="h-4 w-4 text-red-500" />
-                  <span className="text-sm text-gray-400">Negative Variance</span>
-                </div>
-                <p className="text-2xl font-bold text-red-400">
-                  {momData.filter(emp => emp.variance < 0).length}
-                </p>
-              </div>
-              <div className="rounded border border-white/10 bg-white/5 p-4">
-                <div className="flex items-center gap-2">
-                  <Minus className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm text-gray-400">No Variance</span>
-                </div>
-                <p className="text-2xl font-bold text-gray-400">
-                  {momData.filter(emp => emp.variance === 0).length}
-                </p>
-              </div>
-            </div>
-
-            {/* Detailed Results Table */}
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-white">Employee Code</TableHead>
-                    <TableHead className="text-white">Employee Name</TableHead>
-                    <TableHead className="text-white">DOJ</TableHead>
-                    <TableHead className="text-white">DOL</TableHead>
-                    <TableHead className="text-white">Apr-Sep Total</TableHead>
-                    <TableHead className="text-white">{incrementMonth}-Mar Total</TableHead>
-                    <TableHead className="text-white">Variance</TableHead>
-                    <TableHead className="text-white">Variance %</TableHead>
-                    <TableHead className="text-white">Remarks</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {momData.map((employee) => (
-                    <TableRow key={employee.employeeCode}>
-                      <TableCell className="text-white">{employee.employeeCode}</TableCell>
-                      <TableCell className="text-white">{employee.employeeName}</TableCell>
-                      <TableCell className="text-white">{employee.doj}</TableCell>
-                      <TableCell className="text-white">{employee.dol || "-"}</TableCell>
-                      <TableCell className="text-white">{employee.aprSepTotal.toLocaleString()}</TableCell>
-                      <TableCell className="text-white">{employee.octMarTotal.toLocaleString()}</TableCell>
-                      <TableCell className="text-white">
-                        <div className="flex items-center gap-2">
-                          {getVarianceIcon(employee.variance)}
-                          <span className={getVarianceColor(employee.variance)}>
-                            {employee.variance.toLocaleString()}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-white">
-                        <span className={getVarianceColor(employee.variance)}>
-                          {employee.variancePercentage.toFixed(1)}%
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-white">
-                        <Input
-                          type="text"
-                          value={employee.remarks}
-                          onChange={(e) => updateRemarks(employee.employeeCode, e.target.value)}
-                          placeholder="Enter remarks..."
-                          className="w-64 border-white/10 bg-black/40 text-white"
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-
-            {/* Analysis Notes */}
-            <div className="rounded border border-yellow-500/20 bg-yellow-900/10 p-4">
-              <h4 className="font-medium text-yellow-300">Analysis Notes</h4>
-              <ul className="mt-2 space-y-1 text-sm text-yellow-200">
-                <li>• New hires and resignations are automatically flagged with standard remarks</li>
-                <li>• Variance calculations are based on the sum of selected calculation columns</li>
-                <li>• Analysis period is split at the selected increment month</li>
-                <li>• Manual remarks can be added for other variance explanations</li>
-              </ul>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* MoM Analysis Results removed as requested */}
 
       {/* Execution Section */}
       <Card className="border-white/10 bg-black/40">

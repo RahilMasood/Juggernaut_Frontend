@@ -168,6 +168,11 @@ const SCRIPTS: ScriptMap = {
     label: "Download Headcount Results",
     produces: [],
   },
+  "execute_mom_increment_sharepoint": {
+    file: path.join(process.cwd(), "scripts", "execute_mom_increment_sharepoint.py"),
+    label: "Execution Payroll MoM Increment",
+    produces: [],
+  },
 };
 
 
