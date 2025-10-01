@@ -144,8 +144,8 @@ export default function SalaryAnalytical({ onBack }: SalaryAnalyticalProps) {
           per_mat: parseFloat(performanceMatrix) || 0,
           weighted_avg_headcount_py: parseFloat(weightedAvgHeadcountPY) || 0,
           percentage: parseFloat(percentage) || 0,
-          i_input: selectedPfLedgers.map((name, index) => index + 1), // Convert to indices
-          ii_input: selectedSalaryLedgers.map((name, index) => index + 1), // Convert to indices
+          i_input: selectedPfLedgers.map(name => pfLedgerOptions.findIndex(ledger => ledger.ledger_name === name)).filter(index => index !== -1),
+          ii_input: selectedSalaryLedgers.map(name => salaryLedgerOptions.findIndex(ledger => ledger.ledger_name === name)).filter(index => index !== -1),
           exclude_input: selectedExcludeLedgers
         };
 
