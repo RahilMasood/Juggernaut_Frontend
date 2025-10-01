@@ -178,6 +178,11 @@ const SCRIPTS: ScriptMap = {
     label: "Execution Payroll Increment Analysis",
     produces: [],
   },
+  "execute_salary_analytical": {
+    file: path.join(process.cwd(), "src", "scripts", "execute_salary_analytical.py"),
+    label: "Execution Payroll Salary Analytical",
+    produces: [],
+  },
 };
 
 
@@ -854,6 +859,7 @@ export function addPayrollEventListeners(mainWindow: BrowserWindow) {
       return { ok: false, error: 'Failed to upload files' };
     }
   });
+
 }
 
 

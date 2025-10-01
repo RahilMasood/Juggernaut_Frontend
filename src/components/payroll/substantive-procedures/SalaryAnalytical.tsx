@@ -15,180 +15,192 @@ import {
   SelectValue,
 } from "../../ui/select";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../../ui/table";
-import {
-  Calculator,
-  TrendingUp,
-  TrendingDown,
-  AlertTriangle,
-  CheckCircle,
   Play,
   Download,
   FileText,
-  Settings,
-  DollarSign,
-  Users,
+  Calculator,
   BarChart3,
+  Users,
+  Settings,
+  Loader2,
 } from "lucide-react";
 
 interface SalaryAnalyticalProps {
   onBack?: () => void;
 }
 
-interface LedgerAccount {
-  id: string;
-  name: string;
-  amount: number;
-  selected: boolean;
+interface LedgerItem {
+  ledger_name: string;
+  fs_sub_line_id?: number;
+  note_line_id?: number;
 }
 
-interface ThresholdGuide {
-  riskLevel: string;
-  controlReliance: string;
-  populationPercentage: number;
-  materialityPercentage: number;
-}
-
-interface SalaryExpectation {
-  previousYearAmount: number;
-  currentYearAmount: number;
-  expectedAmount: number;
-  difference: number;
-  threshold: number;
-  withinThreshold: boolean;
-}
-
-const THRESHOLD_GUIDE: ThresholdGuide[] = [
-  { riskLevel: "Lower", controlReliance: "Not relying on controls", populationPercentage: 22, materialityPercentage: 65 },
-  { riskLevel: "Higher", controlReliance: "Relying on controls", populationPercentage: 15, materialityPercentage: 45 },
-  { riskLevel: "Lower", controlReliance: "Relying on controls", populationPercentage: 35, materialityPercentage: 95 },
-  { riskLevel: "Higher", controlReliance: "Not relying on controls", populationPercentage: 25, materialityPercentage: 90 },
-  { riskLevel: "Significant", controlReliance: "Relying on controls", populationPercentage: 20, materialityPercentage: 50 },
+const RISK_ASSESSMENT_OPTIONS = [
+  { value: "Lower", label: "Lower" },
+  { value: "Higher", label: "Higher" },
+  { value: "Significant", label: "Significant" },
 ];
 
-const SAMPLE_LEDGER_ACCOUNTS: LedgerAccount[] = [
-  { id: "ledger_001", name: "Salaries and Wages - Engineering", amount: 2500000, selected: false },
-  { id: "ledger_002", name: "Salaries and Wages - Marketing", amount: 1800000, selected: false },
-  { id: "ledger_003", name: "Salaries and Wages - Sales", amount: 2200000, selected: false },
-  { id: "ledger_004", name: "Salaries and Wages - HR", amount: 800000, selected: false },
-  { id: "ledger_005", name: "Salaries and Wages - Finance", amount: 1200000, selected: false },
-  { id: "ledger_006", name: "Salaries and Wages - Operations", amount: 1500000, selected: false },
-  { id: "ledger_007", name: "Salaries and Wages - Admin", amount: 600000, selected: false },
-  { id: "ledger_008", name: "Salaries and Wages - IT", amount: 900000, selected: false },
+const CONTROL_RELIANCE_OPTIONS = [
+  { value: "Relying on controls", label: "Relying on controls" },
+  { value: "Not relying on controls", label: "Not relying on controls" },
 ];
 
 export default function SalaryAnalytical({ onBack }: SalaryAnalyticalProps) {
-  const [ledgerAccounts, setLedgerAccounts] = useState<LedgerAccount[]>(SAMPLE_LEDGER_ACCOUNTS);
-  const [excludedAccounts, setExcludedAccounts] = useState<string[]>([]);
+  // Salary Calculations state
   const [riskAssessment, setRiskAssessment] = useState<string>("");
   const [controlReliance, setControlReliance] = useState<string>("");
-  const [performanceMateriality, setPerformanceMateriality] = useState<number>(21600000);
-  const [weightedAvgHeadcountPY, setWeightedAvgHeadcountPY] = useState<number>(1601.06);
-  const [salaryExpectation, setSalaryExpectation] = useState<SalaryExpectation | null>(null);
+  const [performanceMatrix, setPerformanceMatrix] = useState<string>("");
+  const [weightedAvgHeadcountPY, setWeightedAvgHeadcountPY] = useState<string>("");
+
+  // PF Analytics state
+  const [pfLedgerOptions, setPfLedgerOptions] = useState<LedgerItem[]>([]);
+  const [salaryLedgerOptions, setSalaryLedgerOptions] = useState<LedgerItem[]>([]);
+  const [selectedPfLedgers, setSelectedPfLedgers] = useState<string[]>([]);
+  const [selectedSalaryLedgers, setSelectedSalaryLedgers] = useState<string[]>([]);
+  const [selectedExcludeLedgers, setSelectedExcludeLedgers] = useState<string[]>([]);
+  const [percentage, setPercentage] = useState<string>("");
+
+  // UI state
+  const [showPfDropdown, setShowPfDropdown] = useState(false);
+  const [showSalaryDropdown, setShowSalaryDropdown] = useState(false);
+  const [showExcludeDropdown, setShowExcludeDropdown] = useState(false);
+  const [isLoadingPfLedgers, setIsLoadingPfLedgers] = useState(false);
+  const [isLoadingSalaryLedgers, setIsLoadingSalaryLedgers] = useState(false);
   const [processingStatus, setProcessingStatus] = useState<"idle" | "running" | "completed" | "error">("idle");
   const [progress, setProgress] = useState(0);
 
-  const handleLedgerToggle = (ledgerId: string) => {
-    setLedgerAccounts(prev =>
-      prev.map(ledger =>
-        ledger.id === ledgerId ? { ...ledger, selected: !ledger.selected } : ledger
-      )
+  // Load PF Ledger Options (fs_sub_line_id = 20031)
+  const loadPfLedgerOptions = async () => {
+    setIsLoadingPfLedgers(true);
+    try {
+      if (window.sharePointAPI?.loadLedgerData) {
+        const result = await window.sharePointAPI.loadLedgerData({
+          fs_sub_line_id: 20031
+        });
+        if (result.success && result.data) {
+          setPfLedgerOptions(result.data);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading PF ledger options:", error);
+    } finally {
+      setIsLoadingPfLedgers(false);
+    }
+  };
+
+  // Load Salary Ledger Options (note_line_id = 30152)
+  const loadSalaryLedgerOptions = async () => {
+    setIsLoadingSalaryLedgers(true);
+    try {
+      if (window.sharePointAPI?.loadLedgerData) {
+        const result = await window.sharePointAPI.loadLedgerData({
+          note_line_id: 30152
+        });
+        if (result.success && result.data) {
+          setSalaryLedgerOptions(result.data);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading salary ledger options:", error);
+    } finally {
+      setIsLoadingSalaryLedgers(false);
+    }
+  };
+
+  const handleLedgerToggle = (ledgerType: 'pf' | 'salary' | 'exclude', ledgerName: string) => {
+    const setterMap = {
+      pf: setSelectedPfLedgers,
+      salary: setSelectedSalaryLedgers,
+      exclude: setSelectedExcludeLedgers
+    };
+    
+    const currentMap = {
+      pf: selectedPfLedgers,
+      salary: selectedSalaryLedgers,
+      exclude: selectedExcludeLedgers
+    };
+
+    const setter = setterMap[ledgerType];
+    const current = currentMap[ledgerType];
+
+    setter(prev => 
+      prev.includes(ledgerName) 
+        ? prev.filter(name => name !== ledgerName)
+        : [...prev, ledgerName]
     );
   };
 
-  const handleExcludedToggle = (ledgerId: string) => {
-    setExcludedAccounts(prev =>
-      prev.includes(ledgerId)
-        ? prev.filter(id => id !== ledgerId)
-        : [...prev, ledgerId]
-    );
-  };
-
-  const getThreshold = () => {
-    const guide = THRESHOLD_GUIDE.find(g => 
-      g.riskLevel === riskAssessment && g.controlReliance === controlReliance
-    );
-    
-    if (!guide) return 0;
-    
-    const populationThreshold = (guide.populationPercentage / 100) * performanceMateriality;
-    const materialityThreshold = (guide.materialityPercentage / 100) * performanceMateriality;
-    
-    return Math.min(populationThreshold, materialityThreshold);
-  };
-
-  const calculateSalaryExpectation = () => {
-    const selectedLedgers = ledgerAccounts.filter(ledger => 
-      ledger.selected && !excludedAccounts.includes(ledger.id)
-    );
-    
-    const totalCurrentYear = selectedLedgers.reduce((sum, ledger) => sum + ledger.amount, 0);
-    const totalPreviousYear = totalCurrentYear * 0.9; // Simulate 10% growth assumption
-    
-    const expectedAmount = totalPreviousYear * (weightedAvgHeadcountPY / 1500); // Adjust for headcount
-    const difference = Math.abs(totalCurrentYear - expectedAmount);
-    const threshold = getThreshold();
-    const withinThreshold = difference <= threshold;
-    
-    setSalaryExpectation({
-      previousYearAmount: totalPreviousYear,
-      currentYearAmount: totalCurrentYear,
-      expectedAmount,
-      difference,
-      threshold,
-      withinThreshold,
-    });
-  };
-
-  const runSalaryAnalytical = async () => {
+  const runAnalytics = async () => {
     setProcessingStatus("running");
     setProgress(0);
 
     try {
-      // Simulate analysis process
-      for (let i = 0; i <= 100; i += 10) {
-        await new Promise(resolve => setTimeout(resolve, 200));
-        setProgress(i);
+      if (window.payroll?.run) {
+        // Prepare inputs for the Python script
+        const inputs = {
+          risk_assessment: riskAssessment,
+          control_reliance: controlReliance,
+          per_mat: parseFloat(performanceMatrix) || 0,
+          weighted_avg_headcount_py: parseFloat(weightedAvgHeadcountPY) || 0,
+          percentage: parseFloat(percentage) || 0,
+          i_input: selectedPfLedgers.map((name, index) => index + 1), // Convert to indices
+          ii_input: selectedSalaryLedgers.map((name, index) => index + 1), // Convert to indices
+          exclude_input: selectedExcludeLedgers
+        };
+
+        const res = await window.payroll.run("execute_salary_analytical", {
+          inputFiles: [],
+          options: inputs,
+        });
+
+        if (res.ok && res.runId) {
+          const off = window.payroll.onProgress((payload: any) => {
+            if (payload.runId === res.runId) {
+              if (payload.status === 'running') {
+                setProgress(payload.progress || 50);
+                return;
+              }
+              if (payload.status === 'success') {
+                setProcessingStatus('completed');
+                setProgress(100);
+                off();
+              } else if (payload.status === 'error') {
+                setProcessingStatus('error');
+                off();
+              }
+            }
+          });
+        } else {
+          setProcessingStatus('error');
+        }
+      } else {
+        setProcessingStatus('error');
       }
-
-      calculateSalaryExpectation();
-      setProcessingStatus("completed");
     } catch (error) {
-      setProcessingStatus("error");
+      console.error("Error running analytics:", error);
+      setProcessingStatus('error');
     }
   };
 
-  const canRunAnalysis = () => {
-    return riskAssessment && 
+  const canRunAnalytics = () => {
+    return !!(
+      riskAssessment && 
            controlReliance && 
-           performanceMateriality > 0 && 
-           weightedAvgHeadcountPY > 0 &&
-           ledgerAccounts.some(ledger => ledger.selected);
-  };
-
-  const getControlRelianceOptions = () => {
-    if (riskAssessment === "Significant") {
-      return ["Relying on controls"];
-    }
-    return ["Relying on controls", "Not relying on controls"];
-  };
-
-  const getStatusIcon = (withinThreshold: boolean) => {
-    return withinThreshold ? (
-      <CheckCircle className="h-4 w-4 text-green-500" />
-    ) : (
-      <AlertTriangle className="h-4 w-4 text-red-500" />
+      performanceMatrix && 
+      weightedAvgHeadcountPY &&
+      selectedPfLedgers.length > 0 &&
+      selectedSalaryLedgers.length > 0 &&
+      percentage
     );
   };
 
-  const getStatusColor = (withinThreshold: boolean) => {
-    return withinThreshold ? "text-green-400" : "text-red-400";
+  // Update control reliance options based on risk assessment
+  const getControlRelianceOptions = () => {
+    if (riskAssessment === "Significant") {
+      return CONTROL_RELIANCE_OPTIONS.filter(option => option.value === "Relying on controls");
+    }
+    return CONTROL_RELIANCE_OPTIONS;
   };
 
   return (
@@ -198,7 +210,7 @@ export default function SalaryAnalytical({ onBack }: SalaryAnalyticalProps) {
         <div>
           <h2 className="text-2xl font-bold text-white">Salary Analytical</h2>
           <p className="text-gray-400">
-            Develop expectations for current year salary based on previous year data
+            Perform substantive analytical procedures on salary and provident fund expenses
           </p>
         </div>
         {onBack && (
@@ -208,96 +220,34 @@ export default function SalaryAnalytical({ onBack }: SalaryAnalyticalProps) {
         )}
       </div>
 
-      {/* Ledger Account Selection */}
+      {/* Salary Calculations Section */}
       <Card className="border-white/10 bg-black/40">
         <CardHeader>
           <CardTitle className="flex items-center gap-3 text-white">
-            <DollarSign className="h-5 w-5" />
-            Ledger Account Selection
+            <Calculator className="h-5 w-5" />
+            Salary Calculations
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="rounded border border-blue-500/20 bg-blue-900/10 p-3 text-sm text-blue-200">
-            <p className="font-medium">Select ledger accounts marked as 'Salaries and Wages' in TB Mapping:</p>
-            <p className="mt-1">Choose which accounts to include in the analytical procedure.</p>
-          </div>
-
-          <div className="space-y-3">
-            <Label className="text-white">Available Ledger Accounts</Label>
-            <div className="max-h-64 space-y-2 overflow-y-auto">
-              {ledgerAccounts.map((ledger) => (
-                <div key={ledger.id} className="flex items-center justify-between rounded border border-white/10 bg-white/5 p-3">
-                  <div className="flex items-center gap-3">
-                    <Checkbox
-                      id={`ledger-${ledger.id}`}
-                      checked={ledger.selected}
-                      onCheckedChange={() => handleLedgerToggle(ledger.id)}
-                    />
-                    <div>
-                      <Label htmlFor={`ledger-${ledger.id}`} className="text-white">
-                        {ledger.name}
-                      </Label>
-                      <div className="text-sm text-gray-400">
-                        Amount: ₹{ledger.amount.toLocaleString()}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-400">
-                      {ledger.selected ? "Included" : "Excluded"}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <Label className="text-white">Excluded Accounts (Optional)</Label>
-            <div className="max-h-32 space-y-2 overflow-y-auto">
-              {ledgerAccounts.filter(ledger => ledger.selected).map((ledger) => (
-                <div key={ledger.id} className="flex items-center gap-3">
-                  <Checkbox
-                    id={`exclude-${ledger.id}`}
-                    checked={excludedAccounts.includes(ledger.id)}
-                    onCheckedChange={() => handleExcludedToggle(ledger.id)}
-                  />
-                  <Label htmlFor={`exclude-${ledger.id}`} className="text-white">
-                    {ledger.name}
-                  </Label>
-                </div>
-              ))}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Risk Assessment and Control Reliance */}
-      <Card className="border-white/10 bg-black/40">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-3 text-white">
-            <Settings className="h-5 w-5" />
-            Risk Assessment & Control Reliance
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="text-white">Assessment of Risk</Label>
+              <Label className="text-white">Assessment of risk</Label>
               <Select value={riskAssessment} onValueChange={setRiskAssessment}>
                 <SelectTrigger className="border-white/10 bg-black/40 text-white">
-                  <SelectValue placeholder="Select risk level" />
+                  <SelectValue placeholder="Select risk assessment" />
                 </SelectTrigger>
                 <SelectContent className="border-white/10 bg-black/90 text-white">
-                  <SelectItem value="Lower">Lower</SelectItem>
-                  <SelectItem value="Higher">Higher</SelectItem>
-                  <SelectItem value="Significant">Significant</SelectItem>
+                  {RISK_ASSESSMENT_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label className="text-white">Control Reliance Approach</Label>
+              <Label className="text-white">Control reliance approach</Label>
               <Select 
                 value={controlReliance} 
                 onValueChange={setControlReliance}
@@ -308,195 +258,247 @@ export default function SalaryAnalytical({ onBack }: SalaryAnalyticalProps) {
                 </SelectTrigger>
                 <SelectContent className="border-white/10 bg-black/90 text-white">
                   {getControlRelianceOptions().map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              {riskAssessment === "Significant" && (
-                <p className="text-xs text-yellow-400">
-                  Significant risk requires control reliance
-                </p>
-              )}
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="text-white">Performance Materiality</Label>
+              <Label className="text-white">Performance Matrix</Label>
               <Input
                 type="number"
-                value={performanceMateriality}
-                onChange={(e) => setPerformanceMateriality(Number(e.target.value))}
+                placeholder="Enter performance matrix value"
+                value={performanceMatrix}
+                onChange={(e) => setPerformanceMatrix(e.target.value)}
                 className="border-white/10 bg-black/40 text-white"
-                placeholder="Enter amount..."
               />
             </div>
 
             <div className="space-y-2">
-              <Label className="text-white">Weighted Average Headcount (Previous Year)</Label>
+              <Label className="text-white">Weighted Avg Headcount Previous Year</Label>
               <Input
                 type="number"
                 step="0.01"
+                placeholder="Enter weighted average headcount"
                 value={weightedAvgHeadcountPY}
-                onChange={(e) => setWeightedAvgHeadcountPY(Number(e.target.value))}
+                onChange={(e) => setWeightedAvgHeadcountPY(e.target.value)}
                 className="border-white/10 bg-black/40 text-white"
-                placeholder="Enter headcount..."
               />
-            </div>
-          </div>
-
-          {/* Threshold Guide */}
-          <div className="rounded border border-yellow-500/20 bg-yellow-900/10 p-4">
-            <h4 className="font-medium text-yellow-300">Threshold Calculation Guide</h4>
-            <div className="mt-3 overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-white">Risk Level</TableHead>
-                    <TableHead className="text-white">Control Reliance</TableHead>
-                    <TableHead className="text-white">Population %</TableHead>
-                    <TableHead className="text-white">Materiality %</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {THRESHOLD_GUIDE.map((guide, index) => (
-                    <TableRow key={index}>
-                      <TableCell className="text-white">{guide.riskLevel}</TableCell>
-                      <TableCell className="text-white">{guide.controlReliance}</TableCell>
-                      <TableCell className="text-white">{guide.populationPercentage}%</TableCell>
-                      <TableCell className="text-white">{guide.materialityPercentage}%</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Analysis Results */}
-      {salaryExpectation && (
+      {/* PF Analytics Section */}
         <Card className="border-white/10 bg-black/40">
           <CardHeader>
             <CardTitle className="flex items-center gap-3 text-white">
-              <Calculator className="h-5 w-5" />
-              Salary Expectation Analysis
+            <BarChart3 className="h-5 w-5" />
+            PF Analytics
             </CardTitle>
           </CardHeader>
-          <CardContent>
+        <CardContent className="space-y-6">
+          {/* Provident Fund Ledger Selection */}
             <div className="space-y-4">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div className="rounded border border-white/10 bg-white/5 p-4">
-                  <div className="flex items-center gap-2">
-                    <DollarSign className="h-4 w-4 text-blue-500" />
-                    <span className="text-sm text-gray-400">Previous Year Amount</span>
-                  </div>
-                  <p className="text-2xl font-bold text-blue-400">
-                    ₹{salaryExpectation.previousYearAmount.toLocaleString()}
-                  </p>
+            <div className="flex items-center gap-3">
+              <Button 
+                onClick={loadPfLedgerOptions} 
+                disabled={isLoadingPfLedgers}
+                className="flex items-center gap-2"
+              >
+                {isLoadingPfLedgers ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Settings className="h-4 w-4" />
+                )}
+                {isLoadingPfLedgers ? 'Loading...' : 'Load Columns'}
+              </Button>
+              <Label className="text-white">
+                Select the ledger accounts comprising of provident fund for substantive analytical procedures on provident fund.
+              </Label>
                 </div>
 
-                <div className="rounded border border-white/10 bg-white/5 p-4">
-                  <div className="flex items-center gap-2">
-                    <DollarSign className="h-4 w-4 text-green-500" />
-                    <span className="text-sm text-gray-400">Current Year Amount</span>
+            {pfLedgerOptions.length > 0 && (
+              <div className="relative">
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-between border-white/10" 
+                  onClick={() => setShowPfDropdown(!showPfDropdown)}
+                >
+                  {selectedPfLedgers.length > 0 ? `${selectedPfLedgers.length} selected` : 'Select PF ledgers'}
+                </Button>
+                {showPfDropdown && (
+                  <div className="absolute z-10 mt-2 w-full rounded-md border border-white/10 bg-black/90 p-2 max-h-64 overflow-auto">
+                    {pfLedgerOptions.map((ledger, index) => (
+                      <div key={index} className="flex items-center gap-2 px-2 py-1 hover:bg-white/5 rounded">
+                        <Checkbox 
+                          id={`pf-${index}`} 
+                          checked={selectedPfLedgers.includes(ledger.ledger_name)} 
+                          onCheckedChange={() => handleLedgerToggle('pf', ledger.ledger_name)} 
+                        />
+                        <Label htmlFor={`pf-${index}`} className="text-white text-sm">
+                          {ledger.ledger_name}
+                        </Label>
                   </div>
-                  <p className="text-2xl font-bold text-green-400">
-                    ₹{salaryExpectation.currentYearAmount.toLocaleString()}
-                  </p>
-                </div>
+                    ))}
+                  </div>
+                )}
+                {selectedPfLedgers.length > 0 && (
+                  <div className="text-xs text-blue-300 mt-1">
+                    {selectedPfLedgers.join(', ')}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
-                <div className="rounded border border-white/10 bg-white/5 p-4">
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 text-purple-500" />
-                    <span className="text-sm text-gray-400">Expected Amount</span>
-                  </div>
-                  <p className="text-2xl font-bold text-purple-400">
-                    ₹{salaryExpectation.expectedAmount.toLocaleString()}
-                  </p>
-                </div>
-
-                <div className="rounded border border-white/10 bg-white/5 p-4">
-                  <div className="flex items-center gap-2">
-                    <Calculator className="h-4 w-4 text-yellow-500" />
-                    <span className="text-sm text-gray-400">Difference</span>
-                  </div>
-                  <p className="text-2xl font-bold text-yellow-400">
-                    ₹{salaryExpectation.difference.toLocaleString()}
-                  </p>
-                </div>
+          {/* Basic Salary Ledger Selection */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <Button 
+                onClick={loadSalaryLedgerOptions} 
+                disabled={isLoadingSalaryLedgers}
+                className="flex items-center gap-2"
+              >
+                {isLoadingSalaryLedgers ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Settings className="h-4 w-4" />
+                )}
+                {isLoadingSalaryLedgers ? 'Loading...' : 'Load Columns'}
+              </Button>
+              <Label className="text-white">
+                Select the ledger accounts comprising balances such as basic salary, etc. on which the substantive analytical procedures are to be performed.
+              </Label>
               </div>
 
-              <div className="rounded border border-white/10 bg-white/5 p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="font-medium text-white">Threshold Analysis</h4>
-                    <p className="text-sm text-gray-400">
-                      Threshold: ₹{salaryExpectation.threshold.toLocaleString()}
-                    </p>
+            {salaryLedgerOptions.length > 0 && (
+              <div className="relative">
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-between border-white/10" 
+                  onClick={() => setShowSalaryDropdown(!showSalaryDropdown)}
+                >
+                  {selectedSalaryLedgers.length > 0 ? `${selectedSalaryLedgers.length} selected` : 'Select salary ledgers'}
+                </Button>
+                {showSalaryDropdown && (
+                  <div className="absolute z-10 mt-2 w-full rounded-md border border-white/10 bg-black/90 p-2 max-h-64 overflow-auto">
+                    {salaryLedgerOptions.map((ledger, index) => (
+                      <div key={index} className="flex items-center gap-2 px-2 py-1 hover:bg-white/5 rounded">
+                        <Checkbox 
+                          id={`salary-${index}`} 
+                          checked={selectedSalaryLedgers.includes(ledger.ledger_name)} 
+                          onCheckedChange={() => handleLedgerToggle('salary', ledger.ledger_name)} 
+                        />
+                        <Label htmlFor={`salary-${index}`} className="text-white text-sm">
+                          {ledger.ledger_name}
+                        </Label>
+                      </div>
+                    ))}
                   </div>
-                  <div className="flex items-center gap-2">
-                    {getStatusIcon(salaryExpectation.withinThreshold)}
-                    <span className={`font-medium ${getStatusColor(salaryExpectation.withinThreshold)}`}>
-                      {salaryExpectation.withinThreshold ? "Within Threshold" : "Exceeds Threshold"}
-                    </span>
+                )}
+                {selectedSalaryLedgers.length > 0 && (
+                  <div className="text-xs text-green-300 mt-1">
+                    {selectedSalaryLedgers.join(', ')}
                   </div>
-                </div>
+                )}
+              </div>
+            )}
               </div>
 
-              {!salaryExpectation.withinThreshold && (
-                <div className="rounded border border-red-500/20 bg-red-500/10 p-4">
-                  <div className="flex items-center gap-2">
-                    <AlertTriangle className="h-5 w-5 text-red-500" />
-                    <h4 className="font-medium text-red-300">Threshold Exceeded</h4>
+          {/* Exclude Ledgers Selection */}
+          <div className="space-y-4">
+            <Label className="text-white">
+              Select ledgers to exclude from analysis (optional)
+            </Label>
+            {salaryLedgerOptions.length > 0 && (
+              <div className="relative">
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-between border-white/10" 
+                  onClick={() => setShowExcludeDropdown(!showExcludeDropdown)}
+                >
+                  {selectedExcludeLedgers.length > 0 ? `${selectedExcludeLedgers.length} selected` : 'Select exclude ledgers'}
+                </Button>
+                {showExcludeDropdown && (
+                  <div className="absolute z-10 mt-2 w-full rounded-md border border-white/10 bg-black/90 p-2 max-h-64 overflow-auto">
+                    {salaryLedgerOptions.map((ledger, index) => (
+                      <div key={index} className="flex items-center gap-2 px-2 py-1 hover:bg-white/5 rounded">
+                        <Checkbox 
+                          id={`exclude-${index}`} 
+                          checked={selectedExcludeLedgers.includes(ledger.ledger_name)} 
+                          onCheckedChange={() => handleLedgerToggle('exclude', ledger.ledger_name)} 
+                        />
+                        <Label htmlFor={`exclude-${index}`} className="text-white text-sm">
+                          {ledger.ledger_name}
+                        </Label>
+                      </div>
+                    ))}
                   </div>
-                  <p className="mt-2 text-sm text-red-200">
-                    The difference between expected and actual salary exceeds the calculated threshold. 
-                    Additional procedures may be required to address this variance.
-                  </p>
+                )}
+                {selectedExcludeLedgers.length > 0 && (
+                  <div className="text-xs text-red-300 mt-1">
+                    {selectedExcludeLedgers.join(', ')}
                 </div>
               )}
+              </div>
+            )}
+          </div>
+
+          {/* Percentage Input */}
+          <div className="space-y-2">
+            <Label className="text-white">Mention the percentage to be used for the analytical procedure</Label>
+            <Input
+              type="number"
+              step="0.01"
+              placeholder="Enter percentage"
+              value={percentage}
+              onChange={(e) => setPercentage(e.target.value)}
+              className="border-white/10 bg-black/40 text-white"
+            />
             </div>
           </CardContent>
         </Card>
-      )}
 
-      {/* Execution Section */}
+      {/* Run Analytics Section */}
       <Card className="border-white/10 bg-black/40">
         <CardHeader>
           <CardTitle className="flex items-center gap-3 text-white">
             <Play className="h-5 w-5" />
-            Execute Salary Analytical
+            Run Analytics
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-400">
-                Run salary expectation analysis with threshold calculations
+                Execute salary analytical procedures with the configured parameters
               </p>
-              {!canRunAnalysis() && (
+              {!canRunAnalytics() && (
                 <p className="mt-1 text-xs text-red-400">
-                  Please complete risk assessment, control reliance, and select ledger accounts
+                  Please fill in all required fields and select ledgers
                 </p>
               )}
             </div>
             <Button
-              onClick={runSalaryAnalytical}
-              disabled={!canRunAnalysis() || processingStatus === "running"}
-              className="bg-orange-600 hover:bg-orange-700 disabled:opacity-50"
+              onClick={runAnalytics}
+              disabled={!canRunAnalytics() || processingStatus === "running"}
+              className="bg-purple-600 hover:bg-purple-700 disabled:opacity-50"
             >
               {processingStatus === "running" ? (
                 <>
                   <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  Analyzing...
+                  Running Analytics...
                 </>
               ) : (
                 <>
                   <Play className="mr-2 h-4 w-4" />
-                  Run Salary Analytical
+                  Run Analytics
                 </>
               )}
             </Button>
@@ -506,7 +508,7 @@ export default function SalaryAnalytical({ onBack }: SalaryAnalyticalProps) {
           {processingStatus === "running" && (
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-orange-300">Processing Salary Analytical...</span>
+                <span className="text-purple-300">Processing Salary Analytics...</span>
                 <span className="text-gray-400">{progress}%</span>
               </div>
               <Progress value={progress} className="h-2" />
@@ -519,21 +521,35 @@ export default function SalaryAnalytical({ onBack }: SalaryAnalyticalProps) {
               <div className="flex items-center gap-3">
                 <FileText className="h-5 w-5 text-green-500" />
                 <div>
-                  <h4 className="font-medium text-green-300">Salary Analytical Completed</h4>
+                  <h4 className="font-medium text-green-300">Analytics Completed</h4>
                   <p className="text-sm text-green-200">
-                    Salary expectation analysis has been completed successfully
+                    Salary analytical procedures have been completed successfully
                   </p>
                 </div>
               </div>
               <div className="mt-3 flex gap-2">
                 <Button variant="outline" className="border-green-500/30 text-green-300">
                   <Download className="mr-2 h-4 w-4" />
-                  Download Report
+                  Download Results
                 </Button>
                 <Button variant="outline" className="border-green-500/30 text-green-300">
                   <FileText className="mr-2 h-4 w-4" />
                   View Analysis
                 </Button>
+              </div>
+            </div>
+          )}
+
+          {processingStatus === "error" && (
+            <div className="rounded border border-red-500/20 bg-red-500/10 p-4">
+              <div className="flex items-center gap-3">
+                <FileText className="h-5 w-5 text-red-500" />
+                <div>
+                  <h4 className="font-medium text-red-300">Error</h4>
+                  <p className="text-sm text-red-200">
+                    An error occurred while running the analytics. Please try again.
+                  </p>
+                </div>
               </div>
             </div>
           )}

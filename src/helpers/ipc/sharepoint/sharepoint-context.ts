@@ -31,5 +31,7 @@ export function exposeSharePointContext() {
       fyYear?: string;
     }) => ipcRenderer.invoke(SHAREPOINT_CHANNELS.UPLOAD_FILE, uploadData),
     loadCloudFiles: () => ipcRenderer.invoke(SHAREPOINT_CHANNELS.LOAD_CLOUD_FILES),
+    loadLedgerData: (filters: { fs_sub_line_id?: number; note_line_id?: number }) => 
+      ipcRenderer.invoke(SHAREPOINT_CHANNELS.LOAD_LEDGER_DATA, filters),
   });
 }

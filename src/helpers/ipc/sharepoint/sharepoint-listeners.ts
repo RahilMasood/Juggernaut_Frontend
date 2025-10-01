@@ -589,5 +589,124 @@ export function registerSharePointListeners() {
     }
   });
 
+  // Handle loading ledger data from SharePoint
+  ipcMain.handle("sharepoint:load-ledger-data", async (event, filters) => {
+    try {
+      logger.info("Loading ledger data from SharePoint", { filters });
+
+      // --- Config ---
+      const tenantId = "114c8106-747f-4cc7-870e-8712e6c23b18";
+      const clientId = "b357e50c-c5ef-484d-84df-fe470fe76528";
+      const clientSecret = "JAZ8Q~xlY-EDlgbLtgJaqjPNAjsHfYFavwxbkdjE";
+
+      const siteHostname = "juggernautenterprises.sharepoint.com";
+      const sitePath = "/sites/TestCloud";
+      const docLibrary = "TestClient";
+      const fyYear = "TestClient_FY25";
+      const folderName = "juggernaut";
+      const fileName = "FinData_LedgerMapping.json";
+
+      // --- 1️⃣ Acquire token ---
+      const tokenResponse = await fetch(
+        `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`,
+        {
+          method: 'POST',
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            client_id: clientId,
+            client_secret: clientSecret,
+            scope: "https://graph.microsoft.com/.default",
+            grant_type: "client_credentials"
+          })
+        }
+      );
+
+      const tokenData = await tokenResponse.json();
+      const accessToken = tokenData.access_token;
+      if (!accessToken) {
+        throw new Error("Failed to acquire access token");
+      }
+
+      const headers = { Authorization: `Bearer ${accessToken}` };
+
+      // --- 2️⃣ Get site ID ---
+      const siteUrl = `https://graph.microsoft.com/v1.0/sites/${siteHostname}:${sitePath}`;
+      const siteResp = await fetch(siteUrl, { headers });
+      
+      if (!siteResp.ok) {
+        throw new Error(`Failed to get site: ${siteResp.statusText}`);
+      }
+
+      const siteData = await siteResp.json();
+      const siteId = siteData.id;
+
+      // --- 3️⃣ Get drive ID ---
+      const drivesResp = await fetch(`https://graph.microsoft.com/v1.0/sites/${siteId}/drives`, { headers });
+      
+      if (!drivesResp.ok) {
+        throw new Error(`Failed to get drives: ${drivesResp.statusText}`);
+      }
+
+      const drivesData = await drivesResp.json();
+      const drives = drivesData.value;
+
+      let driveId = null;
+      for (const d of drives) {
+        if (d.name === docLibrary) {
+          driveId = d.id;
+          break;
+        }
+      }
+
+      if (!driveId) {
+        throw new Error(`Library '${docLibrary}' not found in site '${sitePath}'`);
+      }
+
+      // --- 4️⃣ Download JSON file ---
+      const downloadUrl = `https://graph.microsoft.com/v1.0/drives/${driveId}/root:/${fyYear}/${folderName}/${fileName}:/content`;
+      const resp = await fetch(downloadUrl, { headers });
+
+      if (!resp.ok) {
+        throw new Error(`Failed to download file: ${resp.statusText}`);
+      }
+
+      const data = await resp.json();
+
+      // --- 5️⃣ Filter data based on filters ---
+      let filteredData = data.data || [];
+      
+      if (filters.fs_sub_line_id) {
+        filteredData = filteredData.filter((item: any) => item.fs_sub_line_id === filters.fs_sub_line_id);
+      }
+      
+      if (filters.note_line_id) {
+        filteredData = filteredData.filter((item: any) => item.note_line_id === filters.note_line_id);
+      }
+
+      // Clean ledger names
+      const cleanedData = filteredData.map((item: any) => ({
+        ...item,
+        ledger_name: item.ledger_name
+          ?.replace("_x000D", "")
+          .replace("\n", "")
+          .replace(/_$/, "")
+          .trim() || ""
+      }));
+
+      logger.info("Successfully loaded ledger data from SharePoint", { count: cleanedData.length });
+
+      return {
+        success: true,
+        data: cleanedData
+      };
+    } catch (error) {
+      logger.error("Error loading ledger data from SharePoint", { error });
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error"
+      };
+    }
+  });
+
   logger.info("SharePoint IPC listeners registered successfully");
 }

@@ -188,6 +188,7 @@ interface SharePointAPI {
   loadCloudFiles: () => Promise<{ success: boolean; data?: any; error?: string }>;
   loadClientFiles: () => Promise<{ success: boolean; data?: any; error?: string }>;
   loadExcelColumns: (fileName: string) => Promise<{ success: boolean; data?: any; error?: string }>;
+  loadLedgerData: (filters: { fs_sub_line_id?: number; note_line_id?: number }) => Promise<{ success: boolean; data?: any; error?: string }>;
   executeIPE: (payload: { payrollFile: string; customKeys: string[] }) => Promise<{ success: boolean; data?: any; error?: string }>;
 }
 
