@@ -24,7 +24,6 @@ import HeadcountReconciliation from "./substantive-procedures/HeadcountReconcili
 import MoMAnalysis from "./substantive-procedures/MoMAnalysis";
 import IncrementAnalysis from "./substantive-procedures/IncrementAnalysis";
 import SalaryAnalytical from "./substantive-procedures/SalaryAnalytical";
-import PFAnalytical from "./substantive-procedures/PFAnalytical";
 import ActuaryTesting from "./substantive-procedures/ActuaryTesting";
 import ManagerialRemuneration from "./substantive-procedures/ManagerialRemuneration";
 
@@ -94,15 +93,6 @@ const SUBSTANTIVE_PROCEDURES: ProcedureModule[] = [
     description: "Develop expectations for current year salary based on previous year data",
     icon: <DollarSign className="h-5 w-5" />,
     component: SalaryAnalytical,
-    status: "pending",
-    category: "analysis",
-  },
-  {
-    id: "pf_analytical",
-    name: "PF Analytical",
-    description: "Provident Fund analytical procedures with automated calculations",
-    icon: <Shield className="h-5 w-5" />,
-    component: PFAnalytical,
     status: "pending",
     category: "analysis",
   },

@@ -183,6 +183,11 @@ const SCRIPTS: ScriptMap = {
     label: "Execution Payroll Salary Analytical",
     produces: [],
   },
+  "execute_actuary_testing": {
+    file: path.join(process.cwd(), "scripts", "execute_actuary_testing.py"),
+    label: "Execution Payroll Actuary Testing",
+    produces: [],
+  },
 };
 
 
