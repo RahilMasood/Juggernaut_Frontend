@@ -156,18 +156,17 @@ export default function ManagerialRemuneration({ onBack }: ManagerialRemuneratio
   };
 
   const calculateEffectiveCapital = () => {
-    const effectiveCapital = effectiveCapital.paidUpShareCapital +
-                            effectiveCapital.securitiesPremium +
-                            effectiveCapital.reservesSurplus +
-                            effectiveCapital.longTermLoans -
-                            effectiveCapital.investments -
-                            effectiveCapital.accumulatedLosses -
-                            effectiveCapital.preliminaryExpenses;
-    
-    setEffectiveCapital(prev => ({
-      ...prev,
-      effectiveCapital,
-    }));
+    setEffectiveCapital(prev => {
+      const calculated =
+        prev.paidUpShareCapital +
+        prev.securitiesPremium +
+        prev.reservesSurplus +
+        prev.longTermLoans -
+        prev.investments -
+        prev.accumulatedLosses -
+        prev.preliminaryExpenses;
+      return { ...prev, effectiveCapital: calculated };
+    });
   };
 
   const calculateCompliance = () => {
