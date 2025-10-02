@@ -11,6 +11,11 @@ import RommLibraryPage from "../pages/RommLibraryPage";
 import PayrollRunner from "./payroll/PayrollRunner";
 import PayrollLanding from "./payroll/PayrollLanding";
 import PayrollRomms from "./payroll/PayrollRomms";
+import PPELanding from "./ppe/PPELanding";
+import PPETailoringQuestions from "./payroll/ppe/PPETailoringQuestions";
+import PPERomms from "./payroll/ppe/PPERomms";
+import PPEInternalControls from "./payroll/ppe/PPEInternalControls";
+import PPESubstantiveProcedures from "./payroll/ppe/PPESubstantiveProcedures";
 import {
   ControlsPanel,
   TailoringQuestionsPanel,
@@ -79,7 +84,11 @@ export const mainContentRoutes: Record<string, RouteConfig> = {
     component: LibrariesPage,
   },
   "execution-payroll": {
-    component: PayrollRunner,
+    component: PayrollLanding,
+    requiresSetActiveSection: true,
+  },
+  "execution-ppe": {
+    component: PPELanding,
     requiresSetActiveSection: true,
   },
   "payroll-tailoring": {
@@ -87,6 +96,18 @@ export const mainContentRoutes: Record<string, RouteConfig> = {
   },
   "payroll-controls": {
     component: ControlsPanel,
+  },
+  "ppe-tailoring": {
+    component: PPETailoringQuestions,
+  },
+  "ppe-romms": {
+    component: PPERomms,
+  },
+  "ppe-controls": {
+    component: PPEInternalControls,
+  },
+  "ppe-substantive": {
+    component: PPESubstantiveProcedures,
   },
 };
 
@@ -96,6 +117,8 @@ export const mainContentRoutes: Record<string, RouteConfig> = {
 export const specialRoutes = {
   "payroll-romms": "payroll-romms",
   "payroll-substantive": "payroll-substantive",
+  "ppe-romms": "ppe-romms",
+  "ppe-substantive": "ppe-substantive",
   planning: "planning",
   "engagement-acceptance": "planning",
   "fraud-risk": "planning",
@@ -132,9 +155,27 @@ export function renderSpecialRoute(
         />
       );
 
+    case "ppe-romms":
+      return (
+        <PPERomms
+          onBack={() => setActiveSection?.("execution-ppe")}
+        />
+      );
+
+    case "ppe-substantive":
+      return (
+        <PPESubstantiveProcedures
+          onBack={() => setActiveSection?.("execution-ppe")}
+        />
+      );
+
     case "execution-payroll":
       if (!setActiveSection) return <PayrollRunner />;
       return <PayrollLanding onSelect={setActiveSection} />;
+
+    case "execution-ppe":
+      if (!setActiveSection) return <PPELanding onSelect={() => {}} />;
+      return <PPELanding onSelect={setActiveSection} />;
 
     case "planning":
     case "engagement-acceptance":

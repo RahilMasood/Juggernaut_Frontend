@@ -53,7 +53,8 @@ export function MainContent({
 
       // Handle components that need setActiveSection
       if (routeConfig.requiresSetActiveSection && setActiveSection) {
-        return <PayrollLanding onSelect={setActiveSection} />;
+        // Use the actual component from the route config, not hardcoded PayrollLanding
+        return <Component onSelect={setActiveSection} />;
       }
 
       return <Component {...props} />;

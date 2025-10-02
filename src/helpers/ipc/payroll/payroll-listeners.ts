@@ -188,6 +188,11 @@ const SCRIPTS: ScriptMap = {
     label: "Execution Payroll Actuary Testing",
     produces: [],
   },
+  "execute_ppe_ipe_mapping": {
+    file: path.join(process.cwd(), "scripts", "execute_ppe_ipe_mapping.py"),
+    label: "Execution PPE IPE Mapping",
+    produces: [],
+  },
 };
 
 
