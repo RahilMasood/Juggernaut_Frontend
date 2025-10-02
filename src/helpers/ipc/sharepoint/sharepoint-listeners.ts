@@ -486,7 +486,7 @@ export function registerSharePointListeners() {
     }
   });
 
-  // Handle loading cloud files from db.json
+  // Handle loading cloud files from db.json (with fallback to listing client folder)
   ipcMain.handle("sharepoint:load-cloud-files", async (event) => {
     try {
       logger.info("Loading cloud files from SharePoint db.json via IPC");
@@ -555,31 +555,38 @@ export function registerSharePointListeners() {
         throw new Error(`Library '${DOC_LIBRARY}' not found in site '${SITE_PATH}'`);
       }
 
-      // === 4️⃣ Fetch file content directly as JSON ===
+      // === 4️⃣ Try db.json first; fallback to listing client folder if missing ===
       const downloadUrl = `https://graph.microsoft.com/v1.0/drives/${driveId}/root:/${FY_YEAR}/${FOLDER_NAME}/${FILE_NAME}:/content`;
       const resp = await fetch(downloadUrl, { headers });
 
-      if (!resp.ok) {
-        throw new Error(`Failed to download db.json: ${resp.statusText}`);
+      if (resp.ok) {
+        const data = await resp.json();
+        const clientFiles = data.client || [];
+        logger.info("Successfully loaded cloud files from SharePoint", { count: clientFiles.length });
+        return {
+          success: true,
+          data: {
+            files: clientFiles.map((file: any) => ({
+              name: file.name || '',
+              url: file.url || '',
+              reference: file.reference || ''
+            }))
+          }
+        };
       }
 
-      const data = await resp.json();
-
-      // === 5️⃣ Extract client files ===
-      const clientFiles = data.client || [];
-      
-      logger.info("Successfully loaded cloud files from SharePoint", { count: clientFiles.length });
-
-      return {
-        success: true,
-        data: {
-          files: clientFiles.map((file: any) => ({
-            name: file.name || '',
-            url: file.url || '',
-            reference: file.reference || ''
-          }))
-        }
-      };
+      // Fallback
+      const childrenUrl = `https://graph.microsoft.com/v1.0/drives/${driveId}/root:/${FY_YEAR}/client:/children`;
+      const childrenResp = await fetch(childrenUrl, { headers });
+      if (!childrenResp.ok) {
+        throw new Error(`Failed to list client folder: ${childrenResp.status} ${childrenResp.statusText}`);
+      }
+      const children = await childrenResp.json();
+      const files = (children.value || [])
+        .filter((i: any) => !i.folder)
+        .map((i: any) => ({ name: i.name || '', url: i.webUrl || '', reference: '' }));
+      logger.info("Loaded files from client folder fallback", { count: files.length });
+      return { success: true, data: { files } };
     } catch (error) {
       logger.error("Error loading cloud files from SharePoint", { error });
       return {

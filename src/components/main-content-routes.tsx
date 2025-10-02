@@ -16,6 +16,9 @@ import PPETailoringQuestions from "./payroll/ppe/PPETailoringQuestions";
 import PPERomms from "./payroll/ppe/PPERomms";
 import PPEInternalControls from "./payroll/ppe/PPEInternalControls";
 import PPESubstantiveProcedures from "./payroll/ppe/PPESubstantiveProcedures";
+import PPEIPETesting from "./payroll/ppe/PPEIPETesting";
+import PPEExceptionTesting from "./payroll/ppe/PPEExceptionTesting";
+import PPECwipAnalysis from "./payroll/ppe/PPECwipAnalysis";
 import {
   ControlsPanel,
   TailoringQuestionsPanel,
@@ -109,6 +112,15 @@ export const mainContentRoutes: Record<string, RouteConfig> = {
   "ppe-substantive": {
     component: PPESubstantiveProcedures,
   },
+  "ppe-ipe-testing": {
+    component: PPEIPETesting,
+  },
+  "ppe-exception-testing": {
+    component: PPEExceptionTesting,
+  },
+  "ppe-cwip-analysis": {
+    component: PPECwipAnalysis,
+  },
 };
 
 /**
@@ -166,6 +178,7 @@ export function renderSpecialRoute(
       return (
         <PPESubstantiveProcedures
           onBack={() => setActiveSection?.("execution-ppe")}
+          setActiveSection={setActiveSection}
         />
       );
 

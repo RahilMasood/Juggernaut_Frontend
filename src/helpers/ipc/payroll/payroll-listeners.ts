@@ -193,6 +193,16 @@ const SCRIPTS: ScriptMap = {
     label: "Execution PPE IPE Mapping",
     produces: [],
   },
+  "execute_ppe_exception_testing": {
+    file: path.join(process.cwd(), "scripts", "execute_ppe_exception_testing.py"),
+    label: "Execution PPE Exception Testing",
+    produces: [],
+  },
+  "execute_ppe_cwip_analysis": {
+    file: path.join(process.cwd(), "scripts", "execute_ppe_cwip_analysis.py"),
+    label: "Execution PPE CWIP Analysis",
+    produces: [],
+  },
 };
 
 

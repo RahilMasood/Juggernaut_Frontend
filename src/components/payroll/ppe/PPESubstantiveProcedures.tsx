@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { Button } from "../../ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../ui/card";
-import { ArrowLeft, FileCheck2, Play, Calculator, TrendingUp, DollarSign, Shield, Gavel, Building, Settings } from "lucide-react";
-import PPEIPETesting from "./PPEIPETesting";
+import { ArrowLeft, FileCheck2, Play, Calculator, TrendingUp, DollarSign, Shield, Gavel, Building } from "lucide-react";
 
 interface PPESubstantiveProceduresProps {
   onBack?: () => void;
+  setActiveSection?: (section: string) => void;
 }
 
 interface ProcedureModule {
@@ -70,11 +70,11 @@ const PPE_SUBSTANTIVE_PROCEDURES: ProcedureModule[] = [
   }
 ];
 
-export default function PPESubstantiveProcedures({ onBack }: PPESubstantiveProceduresProps) {
-  const [selectedProcedure, setSelectedProcedure] = useState<string | null>(null);
-
+export default function PPESubstantiveProcedures({ onBack, setActiveSection }: PPESubstantiveProceduresProps) {
   const handleProcedureSelect = (procedureId: string) => {
-    setSelectedProcedure(procedureId);
+    if (setActiveSection) {
+      setActiveSection(procedureId);
+    }
   };
 
   const getCategoryColor = (category: string) => {
@@ -126,9 +126,7 @@ export default function PPESubstantiveProcedures({ onBack }: PPESubstantiveProce
           return (
             <Card
               key={procedure.id}
-              className={`group cursor-pointer border-white/10 bg-white/5 text-white backdrop-blur-sm transition-colors hover:border-white/20 hover:bg-white/10 ${
-                selectedProcedure === procedure.id ? "border-blue-500/50 bg-blue-500/10" : ""
-              }`}
+              className="group cursor-pointer border-white/10 bg-white/5 text-white backdrop-blur-sm transition-colors hover:border-white/20 hover:bg-white/10"
               onClick={() => handleProcedureSelect(procedure.id)}
             >
               <CardContent className="p-4">
@@ -160,35 +158,6 @@ export default function PPESubstantiveProcedures({ onBack }: PPESubstantiveProce
         })}
       </div>
 
-      {/* Selected Procedure Details */}
-      {selectedProcedure === "ppe-ipe-testing" && (
-        <PPEIPETesting onBack={() => setSelectedProcedure(null)} />
-      )}
-
-      {selectedProcedure && selectedProcedure !== "ppe-ipe-testing" && (
-        <Card className="border-white/10 bg-black/40">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-3 text-white">
-              <Settings className="h-5 w-5 text-blue-500" />
-              {PPE_SUBSTANTIVE_PROCEDURES.find(p => p.id === selectedProcedure)?.name}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-white/80 mb-4">
-              {PPE_SUBSTANTIVE_PROCEDURES.find(p => p.id === selectedProcedure)?.description}
-            </p>
-            <div className="flex gap-2">
-              <Button className="bg-blue-600 text-white hover:bg-blue-700">
-                <Play className="h-4 w-4 mr-2" />
-                Run Procedure
-              </Button>
-              <Button variant="outline" className="border-white/20 text-white hover:bg-white/10">
-                Configure
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }
