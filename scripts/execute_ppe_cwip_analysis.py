@@ -55,6 +55,8 @@ def upload_file(headers, drive_id, file_bytes, remote_name, folder_name):
 
 
 def process_reconciliation(json_bytes, excel_bytes, amt_col_name):
+    # Normalize incoming column name
+    amt_col_name = str(amt_col_name or "").strip()
     data = json.loads(json_bytes.decode("utf-8"))
     if isinstance(data, dict):
         data = [data]
@@ -76,6 +78,8 @@ def process_reconciliation(json_bytes, excel_bytes, amt_col_name):
 
 
 def process_ageing_excel(excel_bytes, date_col_name, cutoff_date):
+    # Normalize incoming column name
+    date_col_name = str(date_col_name or "").strip()
     wb = openpyxl.load_workbook(BytesIO(excel_bytes))
     ws = wb.worksheets[0]
     max_col = ws.max_column
@@ -108,6 +112,9 @@ def process_ageing_excel(excel_bytes, date_col_name, cutoff_date):
 
 def jugg(excel_file, cutoff_date, columns):
     amt_col_name, date_col_name = columns
+    # Normalize column names early
+    amt_col_name = str(amt_col_name or "").strip()
+    date_col_name = str(date_col_name or "").strip()
     access_token = get_token()
     headers = {"Authorization": f"Bearer {access_token}"}
     drive_id = get_drive_id(headers)

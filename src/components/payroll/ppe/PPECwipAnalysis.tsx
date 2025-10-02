@@ -76,7 +76,11 @@ export default function PPECwipAnalysis({ onBack }: PPECwipAnalysisProps) {
       if (window.payroll?.run) {
         const result = await window.payroll.run("execute_ppe_cwip_analysis", {
           inputFiles: [],
-          options: { excel_file: cwipFile, cutoff_date: cutoffDate, columns: [amountColumn, dateColumn] },
+          options: { 
+            excel_file: cwipFile, 
+            cutoff_date: cutoffDate, 
+            columns: [amountColumn.trim(), dateColumn.trim()] 
+          },
         });
         if (result.ok && result.runId) {
           let isCompleted = false;
