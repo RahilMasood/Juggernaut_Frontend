@@ -367,7 +367,14 @@ export function addPayrollEventListeners(mainWindow: BrowserWindow) {
       // Environment override
       const env = { ...process.env };
       env["PYTHONIOENCODING"] = "utf-8";
-      const cwd = PAYROLL_CODES_DIR;
+      
+      // Set working directory based on script location
+      let cwd: string;
+      if (mapping.file.includes("scripts/")) {
+        cwd = process.cwd(); // Use project root for scripts in scripts/ directory
+      } else {
+        cwd = PAYROLL_CODES_DIR; // Use payroll/encrypted for other scripts
+      }
 
       // Create output directory with error handling
       let outputs = PAYROLL_OUTPUTS_DIR;
@@ -462,6 +469,8 @@ export function addPayrollEventListeners(mainWindow: BrowserWindow) {
       emit(0, "running", "Starting execution...");
 
       // Spawn Python process
+      console.log("Spawning Python process with args:", argsList);
+      console.log("Working directory:", cwd);
       const child = spawn(pythonCmd, argsList, { cwd, env });
 
       // For specific scripts, pass options via stdin as JSON
@@ -494,6 +503,8 @@ export function addPayrollEventListeners(mainWindow: BrowserWindow) {
         const text = String(d);
         stdout += text;
         
+        console.log("Received stdout chunk:", text);
+        
         // Parse different types of log messages
         if (text.includes("ERROR") || text.includes("FATAL ERROR")) {
           emit(90, "error", "Python execution error detected", undefined, stdout, stderr);
@@ -507,15 +518,24 @@ export function addPayrollEventListeners(mainWindow: BrowserWindow) {
 
         // If we detect a JSON line indicating success, immediately emit success
         try {
-          const lines = text.split("\n");
-          const jsonLine = lines.find((l) => l.trim().startsWith("{") && l.trim().endsWith("}"));
+          // Look for JSON in the accumulated stdout, not just the current chunk
+          const lines = stdout.split("\n");
+          console.log("All stdout lines:", lines);
+          
+          // Look for any line that starts with { and contains "success"
+          const jsonLine = lines.find((l) => l.trim().startsWith("{") && l.includes("success"));
           if (jsonLine) {
+            console.log("Found JSON line:", jsonLine);
             const parsed = JSON.parse(jsonLine);
+            console.log("Parsed JSON:", parsed);
             if (parsed && parsed.success) {
+              console.log("Emitting success status");
               emit(100, "success", "Completed successfully", undefined, stdout, stderr);
             }
           }
-        } catch {}
+        } catch (e) {
+          console.log("JSON parsing error:", e);
+        }
       });
       
       child.stderr.on("data", (d) => {
@@ -525,9 +545,28 @@ export function addPayrollEventListeners(mainWindow: BrowserWindow) {
       });
 
       const exitCode: number = await new Promise((resolve) => child.on("close", resolve));
+      console.log("Script exited with code:", exitCode);
+      console.log("Final stdout:", stdout);
+      console.log("Final stderr:", stderr);
+      
       if (exitCode !== 0) {
         emit(100, "error", "Python script failed", `Script exited with code ${exitCode}`, stdout, stderr);
         return { ok: false, error: `Script failed (${exitCode}). Check logs for details.` };
+      }
+
+      // Fallback: Check for success JSON in final stdout if not already emitted
+      try {
+        const lines = stdout.split("\n");
+        const jsonLine = lines.find((l) => l.trim().startsWith("{") && l.includes("success"));
+        if (jsonLine) {
+          const parsed = JSON.parse(jsonLine);
+          if (parsed && parsed.success) {
+            console.log("Fallback: Emitting success status from final stdout");
+            emit(100, "success", "Completed successfully", undefined, stdout, stderr);
+          }
+        }
+      } catch (e) {
+        console.log("Fallback JSON parsing error:", e);
       }
 
       // Collect produced files based on convention or mapping

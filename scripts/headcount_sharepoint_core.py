@@ -220,3 +220,4 @@ def jugg(add_list, del_list, ctc_file, pay_registrar, output_path, opening_apr, 
 
 
 
+

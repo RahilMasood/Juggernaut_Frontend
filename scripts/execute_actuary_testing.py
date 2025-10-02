@@ -69,7 +69,6 @@ def run_actuary_recon(ctc_content, actuary_content, input_mapping):
     net_diff = diff - usr_rows
 
     # --- USE COLUMN MAPPINGS DIRECTLY ---
-    # Validate mapping structure
     if not isinstance(input_mapping, dict) or "column_map" not in input_mapping:
         raise ValueError("input_mapping must be of shape { 'column_map': [ { 'CTC': 'Col', 'Actuary': 'Col' }, ... ] }")
     mapping_data = input_mapping["column_map"]
@@ -100,9 +99,9 @@ def run_actuary_recon(ctc_content, actuary_content, input_mapping):
 
     # Format datetime columns
     for df in [df_ctc_common, df_at_common]:
-      for col in df.columns:
-        if pd.api.types.is_datetime64_any_dtype(df[col]):
-          df[col] = df[col].dt.strftime("%d-%b-%Y")
+        for col in df.columns:
+            if pd.api.types.is_datetime64_any_dtype(df[col]):
+                df[col] = df[col].dt.strftime("%d-%b-%Y")
 
     # Helper: Excel col letters
     def excel_col_letter(idx):
@@ -189,18 +188,19 @@ def jugg(actuary_file, ctc_file, input_mapping):
 
 
 def main():
-    # Primary: Electron runner passes key and a config file path
-    # argv pattern: [script_path, 'execute_actuary_testing', '.../runs/<id>_config.json']
+    print("=== ACTUARY TESTING SCRIPT START ===", flush=True)
     payload = None
     if len(sys.argv) >= 3:
         cfg_path = sys.argv[2]
+        print(f"Reading config from: {cfg_path}", flush=True)
         try:
             with open(cfg_path, 'r', encoding='utf-8') as f:
                 payload = json.load(f)
-        except Exception:
+            print(f"Config loaded: {payload}", flush=True)
+        except Exception as e:
+            print(f"Error reading config: {e}", flush=True)
             payload = None
 
-    # Fallback: argv[1] as inline JSON
     if not isinstance(payload, dict) and len(sys.argv) > 1:
         try:
             payload = json.loads(sys.argv[1])
@@ -208,15 +208,14 @@ def main():
             payload = None
 
     if not isinstance(payload, dict):
-        print(json.dumps({"success": False, "error": "Missing input payload"}))
+        result = {"success": False, "error": "Missing input payload"}
+        print(json.dumps(result), flush=True)
         sys.exit(1)
 
     try:
-        # Support config objects of shape { options: {...}, output_directory: "..." }
         if isinstance(payload, dict) and "options" in payload and isinstance(payload["options"], dict):
             payload = payload["options"]
 
-        # Normalize file names: strip trailing reference e.g., "File.xlsx (ref)"
         def clean_name(name: str) -> str:
             try:
                 return name.split(" (")[0].strip()
@@ -228,18 +227,24 @@ def main():
         input_mapping = payload.get("input_mapping")
 
         if not ctc_file or not actuary_file or not input_mapping:
-            print(json.dumps({"success": False, "error": "Missing required inputs"}))
+            result = {"success": False, "error": "Missing required inputs"}
+            print(json.dumps(result), flush=True)
             sys.exit(1)
 
+        print("Starting jugg function...", flush=True)
         excel_url, json_url = jugg(clean_name(actuary_file), clean_name(ctc_file), input_mapping)
+        print("Jugg function completed", flush=True)
 
-        print(json.dumps({"success": True, "excel_url": excel_url, "json_url": json_url}))
+        result = {"success": True, "excel_url": excel_url, "json_url": json_url}
+        print("Final result:", json.dumps(result), flush=True)
+        print("=== ACTUARY TESTING SCRIPT END ===", flush=True)
+        sys.exit(0)
+        
     except Exception as e:
-        print(json.dumps({"success": False, "error": str(e)}))
+        result = {"success": False, "error": str(e)}
+        print(json.dumps(result), flush=True)
         sys.exit(1)
 
 
 if __name__ == "__main__":
     main()
-
-
