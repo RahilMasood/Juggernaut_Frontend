@@ -60,3 +60,4 @@ export default function IntangibleAssetsLanding({ onSelect }: IntangibleAssetsLa
 
 
 
+

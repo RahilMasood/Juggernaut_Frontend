@@ -28,6 +28,10 @@ import { PlanningWorkflow } from "./planning/planning-workflow";
 import { logger } from "../utils/logger";
 import IntangibleAssetsLanding from "./intangible/IntangibleAssetsLanding";
 import IATailoringQuestions from "./intangible/IATailoringQuestions";
+import IAIPETesting from "./intangible/IAIPETesting";
+import IAExceptionTesting from "./intangible/IAExceptionTesting";
+import IAAdditionsDeletions from "./intangible/IAAdditionsDeletions";
+import IASubstantiveProcedures from "./intangible/IASubstantiveProcedures";
 
 export interface RouteConfig {
   component: React.ComponentType<any>;
@@ -132,13 +136,13 @@ export const mainContentRoutes: Record<string, RouteConfig> = {
     component: IATailoringQuestions,
   },
   "ia-ipe-testing": {
-    component: PPEIPETesting,
+    component: IAIPETesting,
   },
   "ia-exception-testing": {
-    component: PPEExceptionTesting,
+    component: IAExceptionTesting,
   },
   "ia-additions-deletions": {
-    component: PPECwipAnalysis,
+    component: IAAdditionsDeletions,
   },
 };
 
@@ -198,6 +202,14 @@ export function renderSpecialRoute(
       return (
         <PPESubstantiveProcedures
           onBack={() => setActiveSection?.("execution-ppe")}
+          setActiveSection={setActiveSection}
+        />
+      );
+
+    case "ia-substantive":
+      return (
+        <IASubstantiveProcedures
+          onBack={() => setActiveSection?.("execution-ia")}
           setActiveSection={setActiveSection}
         />
       );
