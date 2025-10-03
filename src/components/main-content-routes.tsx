@@ -222,6 +222,10 @@ export function renderSpecialRoute(
       if (!setActiveSection) return <PPELanding onSelect={() => {}} />;
       return <PPELanding onSelect={setActiveSection} />;
 
+    case "execution-ia":
+      if (!setActiveSection) return <IntangibleAssetsLanding onSelect={() => {}} />;
+      return <IntangibleAssetsLanding onSelect={setActiveSection} />;
+
     case "planning":
     case "engagement-acceptance":
     case "fraud-risk":

@@ -72,10 +72,10 @@ export default function IAIPETesting({ onBack }: IAIPETestingProps) {
     if (!farFile) return;
     setIsLoadingExcelColumns(true);
     try {
-      if (window.sharePointAPI?.readExcelColumnsFromCloud) {
-        const result = await window.sharePointAPI.readExcelColumnsFromCloud(farFile);
-        if (result.success && Array.isArray(result.data)) {
-          setExcelColumns(result.data.map((c: any) => ({ name: c, value: c })));
+      if ((window as any).payroll?.loadExcelColumns) {
+        const result = await (window as any).payroll.loadExcelColumns(farFile);
+        if (result.ok && Array.isArray(result.columns)) {
+          setExcelColumns(result.columns.map((c: any) => ({ name: c, value: c })));
         }
       }
     } finally {

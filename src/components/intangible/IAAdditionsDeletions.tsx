@@ -68,10 +68,10 @@ export default function IAAdditionsDeletions({ onBack }: IAAdditionsDeletionsPro
     if (!additionsFile) return;
     setIsLoadingAddCols(true);
     try {
-      if (window.sharePointAPI?.readExcelColumnsFromCloud) {
-        const result = await window.sharePointAPI.readExcelColumnsFromCloud(additionsFile);
-        if (result.success && Array.isArray(result.data)) {
-          setAdditionColumns(result.data.map((c: any) => ({ name: c, value: c })));
+      if ((window as any).payroll?.loadExcelColumns) {
+        const result = await (window as any).payroll.loadExcelColumns(additionsFile);
+        if (result.ok && Array.isArray(result.columns)) {
+          setAdditionColumns(result.columns.map((c: any) => ({ name: c, value: c })));
         }
       }
     } finally {
@@ -83,10 +83,10 @@ export default function IAAdditionsDeletions({ onBack }: IAAdditionsDeletionsPro
     if (!deletionsFile) return;
     setIsLoadingDelCols(true);
     try {
-      if (window.sharePointAPI?.readExcelColumnsFromCloud) {
-        const result = await window.sharePointAPI.readExcelColumnsFromCloud(deletionsFile);
-        if (result.success && Array.isArray(result.data)) {
-          setDeletionColumns(result.data.map((c: any) => ({ name: c, value: c })));
+      if ((window as any).payroll?.loadExcelColumns) {
+        const result = await (window as any).payroll.loadExcelColumns(deletionsFile);
+        if (result.ok && Array.isArray(result.columns)) {
+          setDeletionColumns(result.columns.map((c: any) => ({ name: c, value: c })));
         }
       }
     } finally {
@@ -315,6 +315,7 @@ export default function IAAdditionsDeletions({ onBack }: IAAdditionsDeletionsPro
     </div>
   );
 }
+
 
 
 
