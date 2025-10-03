@@ -26,6 +26,8 @@ import {
 import SubstantiveProcedures from "./payroll/SubstantiveProcedures";
 import { PlanningWorkflow } from "./planning/planning-workflow";
 import { logger } from "../utils/logger";
+import IntangibleAssetsLanding from "./intangible/IntangibleAssetsLanding";
+import IATailoringQuestions from "./intangible/IATailoringQuestions";
 
 export interface RouteConfig {
   component: React.ComponentType<any>;
@@ -94,6 +96,10 @@ export const mainContentRoutes: Record<string, RouteConfig> = {
     component: PPELanding,
     requiresSetActiveSection: true,
   },
+  "execution-ia": {
+    component: IntangibleAssetsLanding,
+    requiresSetActiveSection: true,
+  },
   "payroll-tailoring": {
     component: TailoringQuestionsPanel,
   },
@@ -121,6 +127,19 @@ export const mainContentRoutes: Record<string, RouteConfig> = {
   "ppe-cwip-analysis": {
     component: PPECwipAnalysis,
   },
+  // Intangible Assets reuse PPE components for substantive procedures
+  "ia-tailoring": {
+    component: IATailoringQuestions,
+  },
+  "ia-ipe-testing": {
+    component: PPEIPETesting,
+  },
+  "ia-exception-testing": {
+    component: PPEExceptionTesting,
+  },
+  "ia-additions-deletions": {
+    component: PPECwipAnalysis,
+  },
 };
 
 /**
@@ -131,6 +150,7 @@ export const specialRoutes = {
   "payroll-substantive": "payroll-substantive",
   "ppe-romms": "ppe-romms",
   "ppe-substantive": "ppe-substantive",
+  "ia-substantive": "ia-substantive",
   planning: "planning",
   "engagement-acceptance": "planning",
   "fraud-risk": "planning",

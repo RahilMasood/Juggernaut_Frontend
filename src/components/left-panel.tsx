@@ -398,6 +398,30 @@ export function LeftPanel({ activeSection, setActiveSection }: LeftPanelProps) {
               <ChevronRight className="h-4 w-4" />
             )}
           </button>
+
+          <button
+            onClick={() => setActiveSection("execution-ia")}
+            className={`group flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm transition-all duration-200 ${
+              activeSection === "execution-ia"
+                ? "border border-[#4da3ff]/30 bg-[#4da3ff]/15 text-white shadow-lg shadow-[#4da3ff]/10"
+                : "text-white/70 hover:bg-white/5 hover:text-white"
+            }`}
+          >
+            <Building2
+              className={`h-4 w-4 ${activeSection === "execution-ia" ? "text-[#4da3ff]" : "text-white/50 group-hover:text-white"}`}
+            />
+            <div className="flex-1 text-left">
+              <div className="font-medium">Intangible Assets</div>
+              <div
+                className={`text-xs ${activeSection === "execution-ia" ? "text-[#4da3ff]/70" : "text-white/50"}`}
+              >
+                Process Intangible Assets audit procedures
+              </div>
+            </div>
+            {activeSection === "execution-ia" && (
+              <ChevronRight className="h-4 w-4" />
+            )}
+          </button>
         </div>
       </div>
     </>
