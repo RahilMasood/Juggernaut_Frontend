@@ -32,6 +32,16 @@ import IAIPETesting from "./intangible/IAIPETesting";
 import IAExceptionTesting from "./intangible/IAExceptionTesting";
 import IAAdditionsDeletions from "./intangible/IAAdditionsDeletions";
 import IASubstantiveProcedures from "./intangible/IASubstantiveProcedures";
+import DepreciationLanding from "./intangible/DepreciationLanding";
+import DepreciationTailoringQuestions from "./intangible/DepreciationTailoringQuestions";
+import DepreciationRomms from "./intangible/DepreciationRomms";
+import DepreciationInternalControls from "./intangible/DepreciationInternalControls";
+import DepreciationSubstantive from "./intangible/DepreciationSubstantive";
+import ImpairmentLanding from "./intangible/ImpairmentLanding";
+import ImpairmentTailoringQuestions from "./intangible/ImpairmentTailoringQuestions";
+import ImpairmentRomms from "./intangible/ImpairmentRomms";
+import ImpairmentInternalControls from "./intangible/ImpairmentInternalControls";
+import ImpairmentSubstantive from "./intangible/ImpairmentSubstantive";
 
 export interface RouteConfig {
   component: React.ComponentType<any>;
@@ -104,6 +114,14 @@ export const mainContentRoutes: Record<string, RouteConfig> = {
     component: IntangibleAssetsLanding,
     requiresSetActiveSection: true,
   },
+  "execution-depreciation": {
+    component: DepreciationLanding,
+    requiresSetActiveSection: true,
+  },
+  "execution-impairment": {
+    component: ImpairmentLanding,
+    requiresSetActiveSection: true,
+  },
   "payroll-tailoring": {
     component: TailoringQuestionsPanel,
   },
@@ -144,6 +162,14 @@ export const mainContentRoutes: Record<string, RouteConfig> = {
   "ia-additions-deletions": {
     component: IAAdditionsDeletions,
   },
+  "depr-tailoring": { component: DepreciationTailoringQuestions },
+  "depr-romms": { component: DepreciationRomms },
+  "depr-controls": { component: DepreciationInternalControls },
+  "depr-substantive": { component: DepreciationSubstantive },
+  "imp-tailoring": { component: ImpairmentTailoringQuestions },
+  "imp-romms": { component: ImpairmentRomms },
+  "imp-controls": { component: ImpairmentInternalControls },
+  "imp-substantive": { component: ImpairmentSubstantive },
 };
 
 /**
@@ -225,6 +251,14 @@ export function renderSpecialRoute(
     case "execution-ia":
       if (!setActiveSection) return <IntangibleAssetsLanding onSelect={() => {}} />;
       return <IntangibleAssetsLanding onSelect={setActiveSection} />;
+
+    case "execution-depreciation":
+      if (!setActiveSection) return <DepreciationLanding onSelect={() => {}} />;
+      return <DepreciationLanding onSelect={setActiveSection} />;
+
+    case "execution-impairment":
+      if (!setActiveSection) return <ImpairmentLanding onSelect={() => {}} />;
+      return <ImpairmentLanding onSelect={setActiveSection} />;
 
     case "planning":
     case "engagement-acceptance":

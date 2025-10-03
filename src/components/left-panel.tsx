@@ -422,6 +422,54 @@ export function LeftPanel({ activeSection, setActiveSection }: LeftPanelProps) {
               <ChevronRight className="h-4 w-4" />
             )}
           </button>
+
+          <button
+            onClick={() => setActiveSection("execution-depreciation")}
+            className={`group flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm transition-all duration-200 ${
+              activeSection === "execution-depreciation"
+                ? "border border-[#4da3ff]/30 bg-[#4da3ff]/15 text-white shadow-lg shadow-[#4da3ff]/10"
+                : "text-white/70 hover:bg-white/5 hover:text-white"
+            }`}
+          >
+            <Calculator
+              className={`h-4 w-4 ${activeSection === "execution-depreciation" ? "text-[#4da3ff]" : "text-white/50 group-hover:text-white"}`}
+            />
+            <div className="flex-1 text-left">
+              <div className="font-medium">Depreciation</div>
+              <div
+                className={`text-xs ${activeSection === "execution-depreciation" ? "text-[#4da3ff]/70" : "text-white/50"}`}
+              >
+                Depreciation audit workflows
+              </div>
+            </div>
+            {activeSection === "execution-depreciation" && (
+              <ChevronRight className="h-4 w-4" />
+            )}
+          </button>
+
+          <button
+            onClick={() => setActiveSection("execution-impairment")}
+            className={`group flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm transition-all duration-200 ${
+              activeSection === "execution-impairment"
+                ? "border border-[#4da3ff]/30 bg-[#4da3ff]/15 text-white shadow-lg shadow-[#4da3ff]/10"
+                : "text-white/70 hover:bg-white/5 hover:text-white"
+            }`}
+          >
+            <AlertTriangle
+              className={`h-4 w-4 ${activeSection === "execution-impairment" ? "text-[#4da3ff]" : "text-white/50 group-hover:text-white"}`}
+            />
+            <div className="flex-1 text-left">
+              <div className="font-medium">Impairment Testing</div>
+              <div
+                className={`text-xs ${activeSection === "execution-impairment" ? "text-[#4da3ff]/70" : "text-white/50"}`}
+              >
+                Impairment testing workflows
+              </div>
+            </div>
+            {activeSection === "execution-impairment" && (
+              <ChevronRight className="h-4 w-4" />
+            )}
+          </button>
         </div>
       </div>
     </>
